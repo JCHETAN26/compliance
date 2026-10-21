@@ -1,0 +1,134 @@
+[project]
+name = "compliance-workspace"
+version = "0.1.0"
+description = "Multi-agent compliance & document intelligence workspace (development root)"
+requires-python = ">=3.11"
+dependencies = [
+    "compliance-core",
+    "compliance-llm",
+    "compliance-ingestion",
+    "compliance-retrieval",
+    "compliance-agents",
+    "compliance-api",
+    "compliance-worker",
+    "compliance-model-service",
+    "compliance-mcp-server",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0",
+    "pytest-asyncio>=1.3",
+    "pytest-cov>=7.0",
+    "httpx>=0.28",
+    "ruff>=0.15",
+    "mypy>=1.18",
+    "pre-commit>=4.0",
+]
+
+[tool.uv]
+package = false
+default-groups = ["dev"]
+
+[tool.uv.workspace]
+members = [
+    "packages/core",
+    "packages/llm",
+    "packages/ingestion",
+    "packages/retrieval",
+    "packages/agents",
+    "apps/api",
+    "apps/worker",
+    "apps/model-service",
+    "apps/mcp-server",
+]
+
+[tool.uv.sources]
+compliance-core = { workspace = true }
+compliance-llm = { workspace = true }
+compliance-ingestion = { workspace = true }
+compliance-retrieval = { workspace = true }
+compliance-agents = { workspace = true }
+compliance-api = { workspace = true }
+compliance-worker = { workspace = true }
+compliance-model-service = { workspace = true }
+compliance-mcp-server = { workspace = true }
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["apps/web", "node_modules"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F", "I", "B", "UP", "N", "S", "ASYNC", "C4", "SIM", "RUF", "PT", "T20", "DTZ",
+]
+ignore = [
+    "E501",  # formatter handles line length
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101", "S105", "S106", "S311"]
+"conftest.py" = ["S101", "S105", "S106"]
+"**/migrations/versions/*.py" = ["N999"]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "compliance_core",
+    "compliance_llm",
+    "compliance_ingestion",
+    "compliance_retrieval",
+    "compliance_agents",
+    "compliance_api",
+    "compliance_worker",
+    "compliance_model_service",
+    "compliance_mcp_server",
+]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+mypy_path = [
+    "packages/core/src",
+    "packages/llm/src",
+    "packages/ingestion/src",
+    "packages/retrieval/src",
+    "packages/agents/src",
+    "apps/api/src",
+    "apps/worker/src",
+    "apps/model-service/src",
+    "apps/mcp-server/src",
+]
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = ["arq", "arq.*", "asyncpg", "asyncpg.*"]
+ignore_missing_imports = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = [
+    "packages/core/tests",
+    "apps/api/tests",
+    "apps/worker/tests",
+    "apps/model-service/tests",
+    "apps/mcp-server/tests",
+]
+addopts = "-ra --strict-markers --import-mode=importlib"
+markers = [
+    "integration: requires running Postgres (pgvector) and Redis; see TEST_DATABASE_URL / TEST_REDIS_URL",
+]
+filterwarnings = [
+    "error::pytest.PytestUnraisableExceptionWarning",
+    # arq 0.28 calls redis-py's deprecated close(); third-party, not our code.
+    "ignore:Call to deprecated close:DeprecationWarning:arq.*",
+]

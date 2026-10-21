@@ -1,0 +1,33 @@
+# Uses the project's locked tool versions via uv/npm instead of separate hook envs.
+#   uv run pre-commit install
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types: [python]
+      - id: mypy
+        name: mypy --strict
+        entry: uv run mypy packages apps conftest.py scripts
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: web-lint
+        name: eslint
+        entry: npm --prefix apps/web run lint
+        language: system
+        files: ^apps/web/
+        pass_filenames: false
+      - id: web-typecheck
+        name: tsc --noEmit
+        entry: npm --prefix apps/web run typecheck
+        language: system
+        files: ^apps/web/
+        pass_filenames: false

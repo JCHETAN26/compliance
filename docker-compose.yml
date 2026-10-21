@@ -1,0 +1,187 @@
+# Full local stack: `docker compose up --build` (or `make up`).
+# Every service has a healthcheck that exercises real behaviour, not just a TCP port.
+# Host ports bind to ${BIND_ADDRESS:-127.0.0.1}; override *_PORT if they are taken.
+name: compliance
+
+x-python-service: &python-service
+  restart: unless-stopped
+  environment: &python-env
+    APP_ENV: ${APP_ENV:-development}
+    LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-compliance}:${POSTGRES_PASSWORD:-compliance}@postgres:5432/${POSTGRES_DB:-compliance}
+    REDIS_URL: redis://redis:6379/0
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-compliance}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-compliance}
+      POSTGRES_DB: ${POSTGRES_DB:-compliance}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # Accepting connections AND able to run a query in the application database.
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\" && psql -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\" -tAc 'select 1' | grep -qx 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -qx PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    <<: *python-service
+    image: compliance/api:dev
+    build:
+      context: .
+      dockerfile: docker/python-service.Dockerfile
+      # Set DOCKER_BUILD_NETWORK=host on hosts whose daemon runs with iptables disabled.
+      network: ${DOCKER_BUILD_NETWORK:-default}
+      args:
+        SERVICE_PACKAGE: compliance-api
+    # Migrations run before the server starts (serialised by a Postgres advisory lock).
+    command:
+      - sh
+      - -c
+      - python -m compliance_core.db.migrate upgrade head && exec uvicorn --factory compliance_api.main:create_app --host 0.0.0.0 --port 8000 --no-access-log
+    environment:
+      <<: *python-env
+      # Empty JWT_SECRET in development => a random secret is generated once into the
+      # api-data volume. Production refuses to start without an explicit secret.
+      JWT_SECRET: ${JWT_SECRET:-}
+      JWT_ACCESS_TTL_MINUTES: ${JWT_ACCESS_TTL_MINUTES:-480}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      LOGIN_MAX_FAILURES: ${LOGIN_MAX_FAILURES:-10}
+      LOGIN_FAILURE_WINDOW_SECONDS: ${LOGIN_FAILURE_WINDOW_SECONDS:-900}
+    volumes:
+      - api-data:/data
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # Ready = database reachable, schema at Alembic head, pgvector installed, Redis up.
+      test: ["CMD", "python", "-m", "compliance_core.healthcheck", "http://127.0.0.1:8000/api/v1/health/ready", "--expect", "status=ok"]
+      interval: 10s
+      timeout: 8s
+      retries: 10
+      start_period: 30s
+
+  worker:
+    <<: *python-service
+    image: compliance/worker:dev
+    build:
+      context: .
+      dockerfile: docker/python-service.Dockerfile
+      # Set DOCKER_BUILD_NETWORK=host on hosts whose daemon runs with iptables disabled.
+      network: ${DOCKER_BUILD_NETWORK:-default}
+      args:
+        SERVICE_PACKAGE: compliance-worker
+    command: ["arq", "compliance_worker.main.WorkerSettings"]
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # Passes only while the running worker refreshes its heartbeat key in Redis
+      # (written every 10s, expires after 11s, deleted on shutdown).
+      test: ["CMD", "arq", "compliance_worker.main.WorkerSettings", "--check"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  model-service:
+    <<: *python-service
+    image: compliance/model-service:dev
+    build:
+      context: .
+      dockerfile: docker/python-service.Dockerfile
+      # Set DOCKER_BUILD_NETWORK=host on hosts whose daemon runs with iptables disabled.
+      network: ${DOCKER_BUILD_NETWORK:-default}
+      args:
+        SERVICE_PACKAGE: compliance-model-service
+    command: ["uvicorn", "--factory", "compliance_model_service.main:create_app", "--host", "0.0.0.0", "--port", "8010", "--no-access-log"]
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${MODEL_SERVICE_PORT:-8010}:8010"
+    healthcheck:
+      # Phase 0 skeleton: healthy means the server answers and truthfully reports
+      # mode=not_implemented (no model loaded). See apps/model-service.
+      test: ["CMD", "python", "-m", "compliance_core.healthcheck", "http://127.0.0.1:8010/health", "--expect", "status=ok", "--expect", "mode=not_implemented"]
+      interval: 10s
+      timeout: 8s
+      retries: 10
+      start_period: 15s
+
+  mcp-server:
+    <<: *python-service
+    image: compliance/mcp-server:dev
+    build:
+      context: .
+      dockerfile: docker/python-service.Dockerfile
+      # Set DOCKER_BUILD_NETWORK=host on hosts whose daemon runs with iptables disabled.
+      network: ${DOCKER_BUILD_NETWORK:-default}
+      args:
+        SERVICE_PACKAGE: compliance-mcp-server
+    command: ["python", "-m", "compliance_mcp_server", "--transport", "http", "--host", "0.0.0.0", "--port", "8020"]
+    environment:
+      <<: *python-env
+      MCP_ALLOWED_HOSTS: ${MCP_ALLOWED_HOSTS:-localhost:*,127.0.0.1:*,mcp-server:*}
+      MCP_ALLOWED_ORIGINS: ${MCP_ALLOWED_ORIGINS:-http://localhost:*,http://127.0.0.1:*}
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${MCP_PORT:-8020}:8020"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      # A real MCP client handshake + tools/list over streamable HTTP, then the
+      # database probe on /health.
+      test: ["CMD", "python", "-m", "compliance_mcp_server.healthcheck", "http://127.0.0.1:8020"]
+      interval: 15s
+      timeout: 12s
+      retries: 10
+      start_period: 20s
+
+  web:
+    image: compliance/web:dev
+    build:
+      context: apps/web
+      dockerfile: Dockerfile
+      network: ${DOCKER_BUILD_NETWORK:-default}
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: http://api:8000
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      # Next.js serving AND able to reach the API through the proxy's upstream URL.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/healthz').then(r=>r.json().then(b=>process.exit(r.ok&&b.status==='ok'?0:1))).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 8s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  postgres-data:
+  redis-data:
+  api-data:
