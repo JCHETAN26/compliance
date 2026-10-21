@@ -11,5 +11,5 @@ export default defineConfig([
       "@typescript-eslint/consistent-type-imports": "error",
     },
   },
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", "src/lib/api/schema.d.ts"]),
+  globalIgnores([".next/**", "out/**", "build/**", "public/**", "next-env.d.ts", "src/lib/api/schema.d.ts"]),
 ]);

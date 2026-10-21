@@ -61,3 +61,47 @@ class TokenRevocationList:
 
     async def is_revoked(self, jti: str) -> bool:
         return bool(await self._redis.exists(_REVOKED_PREFIX + jti))
+
+
+class UploadRateLimiter:
+    """Per-user upload quotas in fixed one-minute windows, reserved atomically.
+
+    Two units are counted, both *attempts* (rejected and duplicate files count too):
+
+    - requests: reserved with ``INCR`` before the body is streamed, so concurrent
+      requests cannot all slip past a read-then-write check;
+    - files: every file part is reserved with ``INCRBY`` after streaming and before any
+      validation or storage, whatever its outcome.
+
+    A reservation that exceeds the cap is refused (HTTP 429) and is not rolled back:
+    hammering the endpoint keeps the user over the limit until the window ends.
+    """
+
+    def __init__(self, redis: Redis, files_per_minute: int, requests_per_minute: int) -> None:
+        self._redis = redis
+        self._files_per_minute = files_per_minute
+        self._requests_per_minute = requests_per_minute
+
+    @staticmethod
+    def _window() -> tuple[int, int]:
+        now = int(datetime.now(UTC).timestamp())
+        return now // 60, 60 - now % 60
+
+    async def _reserve(self, unit: str, user_id: str, amount: int, cap: int, noun: str) -> None:
+        window, retry_after = self._window()
+        key = f"ratelimit:uploads:{unit}:{user_id}:{window}"
+        async with self._redis.pipeline(transaction=True) as pipe:
+            pipe.incrby(key, amount)
+            pipe.expire(key, 120)
+            total, _ = await pipe.execute()
+        if int(total) > cap:
+            raise RateLimitedError(
+                f"Upload limit of {cap} {noun} per minute reached. Try again shortly.", retry_after
+            )
+
+    async def reserve_request(self, user_id: str) -> None:
+        await self._reserve("requests", user_id, 1, self._requests_per_minute, "upload requests")
+
+    async def reserve_files(self, user_id: str, files: int) -> None:
+        if files > 0:
+            await self._reserve("files", user_id, files, self._files_per_minute, "files")

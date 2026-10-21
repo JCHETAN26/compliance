@@ -27,3 +27,100 @@ export async function fetchMembers(workspaceId: string) {
     "/api/v1/workspaces/{workspace_id}/members",
   );
 }
+
+export const documentKeys = {
+  list: (workspaceId: string) => ["workspaces", workspaceId, "documents"] as const,
+  detail: (documentId: string) => ["documents", documentId] as const,
+  chunks: (documentId: string) => ["documents", documentId, "chunks"] as const,
+  pages: (documentId: string) => ["documents", documentId, "pages"] as const,
+  blocks: (documentId: string) => ["documents", documentId, "blocks"] as const,
+  sheets: (documentId: string) => ["documents", documentId, "sheets"] as const,
+  rows: (documentId: string, sheet: number) => ["documents", documentId, "rows", sheet] as const,
+  entities: (documentId: string) => ["documents", documentId, "entities"] as const,
+};
+
+
+export async function fetchDocuments(workspaceId: string) {
+  return unwrap(
+    await api.GET("/api/v1/workspaces/{workspace_id}/documents", {
+      params: { path: { workspace_id: workspaceId } },
+    }),
+    "/api/v1/workspaces/{workspace_id}/documents",
+  );
+}
+
+export async function fetchDocument(documentId: string) {
+  return unwrap(
+    await api.GET("/api/v1/documents/{document_id}", {
+      params: { path: { document_id: documentId } },
+    }),
+    "/api/v1/documents/{document_id}",
+  );
+}
+
+/** All chunks of a document (pages through the API's 2000-item limit). */
+export async function fetchAllChunks(documentId: string) {
+  const items = [];
+  for (let offset = 0; ; offset += 2000) {
+    const page = unwrap(
+      await api.GET("/api/v1/documents/{document_id}/chunks", {
+        params: { path: { document_id: documentId }, query: { offset, limit: 2000 } },
+      }),
+      "/api/v1/documents/{document_id}/chunks",
+    );
+    items.push(...page.items);
+    if (items.length >= page.total || page.items.length === 0) return items;
+  }
+}
+
+export async function fetchPages(documentId: string) {
+  return unwrap(
+    await api.GET("/api/v1/documents/{document_id}/pages", {
+      params: { path: { document_id: documentId }, query: { include_text: true } },
+    }),
+    "/api/v1/documents/{document_id}/pages",
+  );
+}
+
+export async function fetchBlocks(documentId: string) {
+  return unwrap(
+    await api.GET("/api/v1/documents/{document_id}/blocks", {
+      params: { path: { document_id: documentId } },
+    }),
+    "/api/v1/documents/{document_id}/blocks",
+  );
+}
+
+export async function fetchSheets(documentId: string) {
+  return unwrap(
+    await api.GET("/api/v1/documents/{document_id}/sheets", {
+      params: { path: { document_id: documentId } },
+    }),
+    "/api/v1/documents/{document_id}/sheets",
+  );
+}
+
+export async function fetchRows(documentId: string, sheetIndex: number, offset = 0, limit = 1000) {
+  return unwrap(
+    await api.GET("/api/v1/documents/{document_id}/rows", {
+      params: {
+        path: { document_id: documentId },
+        query: { sheet_index: sheetIndex, offset, limit },
+      },
+    }),
+    "/api/v1/documents/{document_id}/rows",
+  );
+}
+
+export async function fetchEntities(documentId: string) {
+  return unwrap(
+    await api.GET("/api/v1/documents/{document_id}/entities", {
+      params: { path: { document_id: documentId } },
+    }),
+    "/api/v1/documents/{document_id}/entities",
+  );
+}
+
+export function documentFileUrl(documentId: string, download = false): string {
+  return `/api/v1/documents/${encodeURIComponent(documentId)}/file${download ? "?download=true" : ""}`;
+}

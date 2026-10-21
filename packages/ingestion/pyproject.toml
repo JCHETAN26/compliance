@@ -1,9 +1,23 @@
 [project]
 name = "compliance-ingestion"
 version = "0.1.0"
-description = "Parsers, OCR fallback and layout-aware chunking"
+description = "Document parsers (PDF + OCR fallback, DOCX, XLSX/CSV), layout-aware chunking and local embeddings"
 requires-python = ">=3.11"
-dependencies = ["compliance-core"]
+dependencies = [
+    "compliance-core",
+    "pymupdf>=1.26",
+    "python-docx>=1.1",
+    "openpyxl>=3.1",
+    "defusedxml>=0.7",
+    "pytesseract>=0.3.13",
+    "pillow>=11.0",
+    "numpy>=1.26",
+    "tokenizers>=0.21",
+    "huggingface-hub>=0.30",
+    "sentence-transformers>=5.0",
+    # CPU-only build; the source is pinned to the PyTorch CPU index in the root pyproject.
+    "torch>=2.6",
+]
 
 [tool.uv.sources]
 compliance-core = { workspace = true }

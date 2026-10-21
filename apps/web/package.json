@@ -7,7 +7,9 @@
     "node": ">=22.0.0"
   },
   "scripts": {
+    "predev": "node scripts/copy-pdf-worker.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/copy-pdf-worker.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint --max-warnings=0 .",
@@ -27,6 +29,7 @@
     "openapi-fetch": "^0.17.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "react-pdf": "^11.0.0",
     "server-only": "^0.0.1",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0"

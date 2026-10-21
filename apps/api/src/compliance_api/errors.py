@@ -21,6 +21,7 @@ from compliance_core.services.errors import (
     RateLimitedError,
     ServiceError,
 )
+from compliance_core.uploads import UploadError
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +84,11 @@ async def _service_error(_: Request, exc: Exception) -> JSONResponse:
     return error_response(status_code, exc.code, exc.message, headers=headers)
 
 
+async def _upload_error(_: Request, exc: Exception) -> JSONResponse:
+    assert isinstance(exc, UploadError)  # noqa: S101
+    return error_response(exc.status_code, exc.code, str(exc))
+
+
 async def _http_error(_: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, StarletteHTTPException)  # noqa: S101
     message = exc.detail if isinstance(exc.detail, str) else HTTPStatus(exc.status_code).phrase
@@ -112,6 +118,7 @@ async def _unhandled_error(_: Request, exc: Exception) -> JSONResponse:
 
 def install_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(ServiceError, _service_error)
+    app.add_exception_handler(UploadError, _upload_error)
     app.add_exception_handler(StarletteHTTPException, _http_error)
     app.add_exception_handler(RequestValidationError, _validation_error)
     app.add_exception_handler(Exception, _unhandled_error)

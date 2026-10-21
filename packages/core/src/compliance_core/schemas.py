@@ -70,6 +70,7 @@ class WorkspaceRead(_ReadModel):
     created_at: datetime
     role: WorkspaceRole = Field(description="The requesting user's role in this workspace")
     member_count: int
+    document_count: int = 0
 
 
 class MemberAdd(_Model):

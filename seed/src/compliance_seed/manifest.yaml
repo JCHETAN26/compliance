@@ -1,0 +1,84 @@
+# Demo workspace manifest (make seed). Version-controlled configuration only: no raw
+# dataset text lives here. Contract documents come from the ContractNLI TEST split
+# (CC BY 4.0, see ml/data/LICENSES.md) and are generated at seed time into git-ignored
+# locations. The vendor register values (data access level, renewal date) are SYNTHETIC
+# demo data invented for the flagship scenario; they describe no real relationship.
+
+dataset:
+  name: ContractNLI
+  url: https://stanfordnlp.github.io/contract-nli/resources/contract-nli.zip
+  # Trust-on-first-use pin: computed from the archive downloaded on 2026-10-21
+  # (65,362,913 bytes, Last-Modified 2022-02-11). The project does not publish a checksum.
+  sha256: e03fc77bbf8b53e2976a250e81d8a294bc3d5e5fb014521e477dee9340d6287b
+  max_bytes: 80000000
+  split_file: contract-nli/test.json
+  license: CC BY 4.0
+  citation: Koreeda & Manning (2021), ContractNLI, Findings of EMNLP 2021
+
+demo:
+  email: demo@example.com
+  password: demo1234  # mandated by docs/BUILD_HANDOFF.md section 13 (local demo only)
+  workspace: Demo - Vendor confidentiality review
+  register_filename: vendor_register.xlsx
+
+# format: original_pdf = the dataset's original PDF (metadata stamped with provenance)
+#         scanned_pdf  = the original PDF rasterised into an image-only PDF (no text layer)
+#         docx         = the dataset's extracted text typeset as a Word document
+vendors:
+  - name: Ready4S Ltd
+    data_access: High
+    renewal_date: 2027-03-31
+    contract_file: ready4s_mutual_nda.pdf
+    source: {contractnli_id: 24, format: original_pdf}
+  - name: NSK Europe Limited
+    data_access: High
+    renewal_date: 2027-01-15
+    contract_file: nsk_europe_nda.pdf
+    source: {contractnli_id: 21, format: original_pdf}
+  - name: Accruence GmbH
+    data_access: High
+    renewal_date: 2026-12-01
+    contract_file: accruence_nda_scanned.pdf
+    source: {contractnli_id: 289, format: scanned_pdf}
+  - name: Anton Paar GmbH
+    data_access: Medium
+    renewal_date: 2027-06-30
+    contract_file: anton_paar_confidentiality.pdf
+    source: {contractnli_id: 76, format: original_pdf}
+  - name: Helu Kabel GmbH
+    data_access: Low
+    renewal_date: 2026-11-15
+    contract_file: helu_kabel_confidentiality.docx
+    source: {contractnli_id: 77, format: docx}
+  - name: Haldex
+    data_access: Medium
+    renewal_date: 2027-05-20
+    contract_file: haldex_nda.pdf
+    source: {contractnli_id: 84, format: original_pdf}
+  - name: Acumen Business Systems Ltd
+    data_access: High
+    renewal_date: 2027-09-01
+    contract_file: acumen_mutual_nda.pdf
+    source: {contractnli_id: 181, format: original_pdf}
+  - name: Forschungszentrum Karlsruhe GmbH
+    data_access: Medium
+    renewal_date: 2027-02-28
+    contract_file: fzk_nda.docx
+    source: {contractnli_id: 228, format: docx}
+  - name: Mandarin Trading (Pty) Ltd (ResRequest)
+    data_access: Low
+    renewal_date: 2027-04-10
+    contract_file: resrequest_nda.pdf
+    source: {contractnli_id: 225, format: original_pdf}
+  - name: PricewaterhouseCoopers LLP
+    data_access: Medium
+    renewal_date: 2027-08-15
+    contract_file: pwc_nda.pdf
+    source: {contractnli_id: 57, format: original_pdf}
+  # Fictitious vendor whose contract is listed but deliberately NOT provided, so the
+  # flagship review can flag a missing contract.
+  - name: Northwind Analytics Ltd (fictitious)
+    data_access: High
+    renewal_date: 2026-12-31
+    contract_file: northwind_analytics_nda.pdf
+    source: null

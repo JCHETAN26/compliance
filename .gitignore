@@ -21,6 +21,16 @@ node_modules/
 .next/
 *.tsbuildinfo
 
+# Downloaded artifacts (datasets, model weights) and generated seed files: never committed
+.cache/
+**/.cache/
+*.zip
+*.bin
+*.pt
+*.pth
+*.ckpt
+seed/output/
+
 # ML datasets and artifacts are never committed (see ml/README.md)
 ml/data/raw/
 ml/data/processed/

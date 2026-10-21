@@ -1,14 +1,9 @@
 import type { Metadata } from "next";
 
-import { WorkspaceDetail } from "@/components/workspaces/workspace-detail";
+import { WorkspaceDocuments } from "@/components/documents/workspace-documents";
 
-export const metadata: Metadata = { title: "Workspace" };
+export const metadata: Metadata = { title: "Documents" };
 
-export default async function WorkspacePage({
-  params,
-}: {
-  params: Promise<{ workspaceId: string }>;
-}) {
-  const { workspaceId } = await params;
-  return <WorkspaceDetail workspaceId={workspaceId} />;
+export default function WorkspaceDocumentsPage() {
+  return <WorkspaceDocuments />;
 }

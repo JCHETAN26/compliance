@@ -6,7 +6,7 @@ import uuid
 
 from fastapi import APIRouter, Response, status
 
-from compliance_api.deps import CurrentPrincipal, Session
+from compliance_api.deps import Ctx, CurrentPrincipal, Session
 from compliance_api.errors import error_responses
 from compliance_core.schemas import (
     MemberAdd,
@@ -56,9 +56,9 @@ async def update_workspace(
     responses=error_responses(401, 403, 404, 422),
 )
 async def delete_workspace(
-    workspace_id: uuid.UUID, principal: CurrentPrincipal, session: Session
+    workspace_id: uuid.UUID, principal: CurrentPrincipal, session: Session, ctx: Ctx
 ) -> Response:
-    await service.delete_workspace(session, workspace_id, principal.user.id)
+    await service.delete_workspace(session, workspace_id, principal.user.id, ctx.storage)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

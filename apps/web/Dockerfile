@@ -1,13 +1,11 @@
 # syntax=docker/dockerfile:1.7
-FROM node:22-alpine AS deps
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
-
+# Single builder stage: node_modules is created once (copying it into another stage
+# would store it twice). The npm download cache is removed in the same layer.
 FROM node:22-alpine AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
-COPY --from=deps /app/node_modules ./node_modules
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund && npm cache clean --force
 COPY . .
 RUN npm run build
 

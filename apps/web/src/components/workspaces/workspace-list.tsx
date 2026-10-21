@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, FolderOpen, Loader2, Plus, Users } from "lucide-react";
+import { AlertTriangle, FileText, FolderOpen, Loader2, Plus, Users } from "lucide-react";
 import Link from "next/link";
 import { useId, useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -94,9 +94,15 @@ function WorkspaceCard({ workspace }: { workspace: Workspace }) {
           </div>
           <CardDescription>Created {formatDate(workspace.created_at)}</CardDescription>
         </CardHeader>
-        <CardContent className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <Users className="size-4" aria-hidden />
-          {workspace.member_count} {workspace.member_count === 1 ? "member" : "members"}
+        <CardContent className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <FileText className="size-4" aria-hidden />
+            {workspace.document_count} {workspace.document_count === 1 ? "document" : "documents"}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Users className="size-4" aria-hidden />
+            {workspace.member_count} {workspace.member_count === 1 ? "member" : "members"}
+          </span>
         </CardContent>
       </Card>
     </Link>

@@ -31,6 +31,10 @@ TEST_DATABASE_URL = os.environ.get(
 )
 TEST_REDIS_URL = os.environ.get("TEST_REDIS_URL", "redis://127.0.0.1:56379/15")
 TEST_PASSWORD = "correct horse battery"
+REPO_ROOT = Path(__file__).resolve().parent
+# Downloaded once by `make fetch-artifacts` (CI caches it); tests never download.
+ARTIFACT_CACHE_DIR = Path(os.environ.get("TEST_ARTIFACT_CACHE_DIR", REPO_ROOT / ".cache"))
+TEST_MAX_FILE_BYTES = 2 * 1024 * 1024
 
 
 async def _ensure_database(url: str) -> None:
@@ -68,7 +72,43 @@ def test_settings(tmp_path_factory: pytest.TempPathFactory) -> Settings:
         login_max_failures=3,
         login_failure_window_seconds=60,
         log_level="WARNING",
+        storage_dir=Path(tmp_path_factory.mktemp("storage")),
+        artifact_cache_dir=ARTIFACT_CACHE_DIR,
+        artifact_auto_download=False,
+        max_upload_file_bytes=TEST_MAX_FILE_BYTES,
+        max_upload_request_bytes=3 * TEST_MAX_FILE_BYTES,
+        max_upload_files=5,
+        upload_rate_limit_per_minute=1000,
+        ingest_max_attempts=2,
     )
+
+
+@pytest.fixture(scope="session")
+def model_path(test_settings: Settings) -> Path:
+    """The verified, pinned embedding model (fails loudly if not fetched)."""
+    from compliance_ingestion.embeddings import ensure_model, spec_from_settings
+
+    try:
+        return ensure_model(
+            test_settings.model_cache_dir, spec_from_settings(), allow_download=False
+        )
+    except Exception as exc:
+        pytest.fail(f"embedding model unavailable ({exc}); run `make fetch-artifacts`")
+
+
+@pytest.fixture(scope="session")
+def dataset_zip(test_settings: Settings) -> Path:
+    path = test_settings.dataset_cache_dir / "contractnli" / "contract-nli.zip"
+    if not path.is_file():
+        pytest.fail(f"ContractNLI archive missing at {path}; run `make fetch-artifacts`")
+    return path
+
+
+@pytest.fixture(scope="session")
+def embedder(model_path: Path) -> Any:
+    from compliance_ingestion.embeddings import Embedder
+
+    return Embedder(model_path, threads=2, batch_size=16)
 
 
 @pytest.fixture(scope="session")
@@ -94,7 +134,7 @@ async def clean_state(api_app: Any) -> None:
     ctx = api_app.state.ctx
     async with ctx.engine.begin() as conn:
         await conn.exec_driver_sql(
-            "TRUNCATE workspace_members, workspaces, users RESTART IDENTITY CASCADE"
+            "TRUNCATE documents, workspace_members, workspaces, users RESTART IDENTITY CASCADE"
         )
     await ctx.redis.flushdb()
 

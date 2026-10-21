@@ -8,6 +8,16 @@ export type User = components["schemas"]["UserRead"];
 export type Workspace = components["schemas"]["WorkspaceRead"];
 export type Member = components["schemas"]["MemberRead"];
 export type WorkspaceRole = Workspace["role"];
+export type DocumentInfo = components["schemas"]["DocumentRead"];
+export type DocumentStatus = DocumentInfo["status"];
+export type ChunkInfo = components["schemas"]["ChunkRead"];
+export type BBox = components["schemas"]["BBoxRead"];
+export type PageInfo = components["schemas"]["PageRead"];
+export type BlockInfo = components["schemas"]["BlockRead"];
+export type SheetInfo = components["schemas"]["SheetRead"];
+export type RowInfo = components["schemas"]["RowRead"];
+export type EntitiesInfo = components["schemas"]["EntitiesResponse"];
+export type UploadResult = components["schemas"]["UploadResult"];
 type ErrorEnvelope = components["schemas"]["ErrorResponse"];
 
 const AUTH_ENTRY_PATHS = ["/api/v1/auth/login", "/api/v1/auth/register"];

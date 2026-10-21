@@ -16,7 +16,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from compliance_core.db.models import User, Workspace, WorkspaceMember, WorkspaceRole
+from compliance_core.db.models import Document, User, Workspace, WorkspaceMember, WorkspaceRole
 from compliance_core.schemas import (
     MemberAdd,
     MemberRead,
@@ -31,6 +31,7 @@ from compliance_core.services.errors import (
     NotFoundError,
     PermissionDeniedError,
 )
+from compliance_core.storage import Storage
 
 WORKSPACE_NOT_FOUND = "Workspace not found."
 
@@ -43,7 +44,18 @@ _member_count = (
 )
 
 
-def _to_read(workspace: Workspace, role: WorkspaceRole, member_count: int) -> WorkspaceRead:
+_document_count = (
+    select(func.count())
+    .select_from(Document)
+    .where(Document.workspace_id == Workspace.id)
+    .correlate(Workspace)
+    .scalar_subquery()
+)
+
+
+def _to_read(
+    workspace: Workspace, role: WorkspaceRole, member_count: int, document_count: int = 0
+) -> WorkspaceRead:
     return WorkspaceRead(
         id=workspace.id,
         name=workspace.name,
@@ -51,22 +63,23 @@ def _to_read(workspace: Workspace, role: WorkspaceRole, member_count: int) -> Wo
         created_at=workspace.created_at,
         role=role,
         member_count=member_count,
+        document_count=document_count,
     )
 
 
 async def _membership(
     session: AsyncSession, workspace_id: uuid.UUID, user_id: uuid.UUID
-) -> tuple[Workspace, WorkspaceRole, int]:
+) -> tuple[Workspace, WorkspaceRole, int, int]:
     row = (
         await session.execute(
-            select(Workspace, WorkspaceMember.role, _member_count)
+            select(Workspace, WorkspaceMember.role, _member_count, _document_count)
             .join(WorkspaceMember, WorkspaceMember.workspace_id == Workspace.id)
             .where(Workspace.id == workspace_id, WorkspaceMember.user_id == user_id)
         )
     ).one_or_none()
     if row is None:
         raise NotFoundError(WORKSPACE_NOT_FOUND)
-    return row[0], row[1], int(row[2])
+    return row[0], row[1], int(row[2]), int(row[3])
 
 
 def _require(role: WorkspaceRole, allowed: Collection[WorkspaceRole], action: str) -> None:
@@ -82,19 +95,19 @@ async def require_role(
     action: str,
 ) -> WorkspaceRole:
     """Public guard for other services (documents, reviews) in later phases."""
-    _, role, _ = await _membership(session, workspace_id, user_id)
+    _, role, _, _ = await _membership(session, workspace_id, user_id)
     _require(role, allowed, action)
     return role
 
 
 async def list_workspaces(session: AsyncSession, user_id: uuid.UUID) -> list[WorkspaceRead]:
     rows = await session.execute(
-        select(Workspace, WorkspaceMember.role, _member_count)
+        select(Workspace, WorkspaceMember.role, _member_count, _document_count)
         .join(WorkspaceMember, WorkspaceMember.workspace_id == Workspace.id)
         .where(WorkspaceMember.user_id == user_id)
         .order_by(Workspace.created_at.desc(), Workspace.id)
     )
-    return [_to_read(ws, role, int(count)) for ws, role, count in rows.all()]
+    return [_to_read(ws, role, int(m), int(d)) for ws, role, m, d in rows.all()]
 
 
 async def create_workspace(
@@ -109,33 +122,45 @@ async def create_workspace(
     await session.flush()
     await session.refresh(workspace)
     await session.commit()
-    return _to_read(workspace, WorkspaceRole.OWNER, 1)
+    return _to_read(workspace, WorkspaceRole.OWNER, 1, 0)
 
 
 async def get_workspace(
     session: AsyncSession, workspace_id: uuid.UUID, user_id: uuid.UUID
 ) -> WorkspaceRead:
-    workspace, role, count = await _membership(session, workspace_id, user_id)
-    return _to_read(workspace, role, count)
+    workspace, role, count, docs = await _membership(session, workspace_id, user_id)
+    return _to_read(workspace, role, count, docs)
 
 
 async def update_workspace(
     session: AsyncSession, workspace_id: uuid.UUID, user_id: uuid.UUID, payload: WorkspaceUpdate
 ) -> WorkspaceRead:
-    workspace, role, count = await _membership(session, workspace_id, user_id)
+    workspace, role, count, docs = await _membership(session, workspace_id, user_id)
     _require(role, {WorkspaceRole.OWNER}, "rename this workspace")
     workspace.name = payload.name
     await session.commit()
-    return _to_read(workspace, role, count)
+    return _to_read(workspace, role, count, docs)
 
 
 async def delete_workspace(
-    session: AsyncSession, workspace_id: uuid.UUID, user_id: uuid.UUID
+    session: AsyncSession,
+    workspace_id: uuid.UUID,
+    user_id: uuid.UUID,
+    storage: Storage | None = None,
 ) -> None:
-    workspace, role, _ = await _membership(session, workspace_id, user_id)
+    """Delete the workspace (rows cascade), then its stored document files."""
+    workspace, role, _, _ = await _membership(session, workspace_id, user_id)
     _require(role, {WorkspaceRole.OWNER}, "delete this workspace")
+    keys = list(
+        await session.scalars(
+            select(Document.storage_key).where(Document.workspace_id == workspace_id)
+        )
+    )
     await session.delete(workspace)
     await session.commit()
+    if storage is not None:
+        for key in keys:
+            storage.delete(key)
 
 
 async def list_members(
@@ -170,7 +195,7 @@ async def _member_read(
 async def add_member(
     session: AsyncSession, workspace_id: uuid.UUID, user_id: uuid.UUID, payload: MemberAdd
 ) -> MemberRead:
-    _, role, _ = await _membership(session, workspace_id, user_id)
+    _, role, _, _ = await _membership(session, workspace_id, user_id)
     _require(role, {WorkspaceRole.OWNER}, "add members")
     target = await session.scalar(select(User).where(User.email == payload.email))
     if target is None:
@@ -195,7 +220,7 @@ async def update_member(
     member_user_id: uuid.UUID,
     payload: MemberUpdate,
 ) -> MemberRead:
-    workspace, role, _ = await _membership(session, workspace_id, user_id)
+    workspace, role, _, _ = await _membership(session, workspace_id, user_id)
     _require(role, {WorkspaceRole.OWNER}, "change member roles")
     if member_user_id == workspace.owner_id:
         raise InvalidOperationError("The workspace owner's role cannot be changed.")
@@ -213,7 +238,7 @@ async def remove_member(
     user_id: uuid.UUID,
     member_user_id: uuid.UUID,
 ) -> None:
-    workspace, role, _ = await _membership(session, workspace_id, user_id)
+    workspace, role, _, _ = await _membership(session, workspace_id, user_id)
     if member_user_id == workspace.owner_id:
         raise InvalidOperationError(
             "The workspace owner cannot be removed. Delete the workspace instead."

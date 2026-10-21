@@ -2,9 +2,10 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowLeft, Loader2 } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useId, useState, type FormEvent } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { createContext, useContext, useId, useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -31,11 +32,26 @@ import { MembersPanel } from "./members-panel";
 import { RoleBadge } from "./role-badge";
 import { WORKSPACE_NAME_MAX } from "./workspace-list";
 
-export function WorkspaceDetail({ workspaceId }: { workspaceId: string }) {
+const WorkspaceContext = createContext<Workspace | null>(null);
+
+export function useWorkspace(): Workspace {
+  const workspace = useContext(WorkspaceContext);
+  if (!workspace) throw new Error("useWorkspace must be used inside WorkspaceShell");
+  return workspace;
+}
+
+/** Loads the workspace once and renders its header, tabs and the active tab. */
+export function WorkspaceShell({ workspaceId, children }: { workspaceId: string; children: ReactNode }) {
+  const pathname = usePathname();
   const workspace = useQuery({
     queryKey: queryKeys.workspace(workspaceId),
     queryFn: () => fetchWorkspace(workspaceId),
   });
+  const base = `/workspaces/${workspaceId}`;
+  const tabs = [
+    { href: base, label: "Documents", active: pathname === base || pathname.startsWith(`${base}/documents`) },
+    { href: `${base}/settings`, label: "Settings & members", active: pathname.startsWith(`${base}/settings`) },
+  ] as const;
 
   return (
     <div className="grid gap-6">
@@ -50,15 +66,41 @@ export function WorkspaceDetail({ workspaceId }: { workspaceId: string }) {
         <div className="grid gap-4" aria-busy="true" aria-label="Loading workspace">
           <Skeleton className="h-8 w-64" />
           <Skeleton className="h-40 rounded-xl" />
-          <Skeleton className="h-56 rounded-xl" />
         </div>
       ) : workspace.isError ? (
         <WorkspaceLoadError error={workspace.error} onRetry={() => workspace.refetch()} />
       ) : (
-        <LoadedWorkspace workspace={workspace.data} />
+        <WorkspaceContext.Provider value={workspace.data}>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight break-words">{workspace.data.name}</h1>
+            <RoleBadge role={workspace.data.role} />
+          </div>
+          <nav aria-label="Workspace sections" className="-mt-2 flex gap-1 border-b">
+            {tabs.map((tab) => (
+              <Link
+                key={tab.href}
+                href={tab.href as Route}
+                aria-current={tab.active ? "page" : undefined}
+                className={
+                  "-mb-px border-b-2 px-3 py-2 text-sm font-medium focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none " +
+                  (tab.active
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground")
+                }
+              >
+                {tab.label}
+              </Link>
+            ))}
+          </nav>
+          {children}
+        </WorkspaceContext.Provider>
       )}
     </div>
   );
+}
+
+export function WorkspaceSettings() {
+  return <LoadedWorkspace workspace={useWorkspace()} />;
 }
 
 function WorkspaceLoadError({ error, onRetry }: { error: unknown; onRetry: () => void }) {
@@ -87,10 +129,6 @@ function LoadedWorkspace({ workspace }: { workspace: Workspace }) {
   const isOwner = workspace.role === "owner";
   return (
     <>
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight break-words">{workspace.name}</h1>
-        <RoleBadge role={workspace.role} />
-      </div>
       <Card>
         <CardHeader>
           <CardTitle>Details</CardTitle>

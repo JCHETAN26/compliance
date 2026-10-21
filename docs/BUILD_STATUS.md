@@ -1,29 +1,323 @@
 # Build status
 
 Implementer log for `docs/BUILD_HANDOFF.md`. The independent verification ledger is
-kept separately in `docs/SUPERVISION.md` / `docs/PHASE0_REVIEW.md`. Nothing has been
-committed yet: the supervisor verifies first.
+kept by the supervisor in `docs/SUPERVISION.md`, `docs/PHASE0_REVIEW.md` and
+`docs/PHASE1_REVIEW.md`; this file does not restate it as fact. Phase 1 work is
+uncommitted; the supervisor commits and pushes it.
 
 | Phase | Status |
 |---|---|
-| 0 — Skeleton | **Implemented and mostly independently verified; not yet accepted.** Hosted GitHub Actions CI has **not** run (nothing pushed), so the "CI green" criterion is still pending. The supervisor's own `make ci` run was in progress at the time of this update. |
-| 1–6 | Not started. |
+| 0 — Skeleton | **Accepted.** Independent local gates passed, and hosted GitHub Actions run 39678264159 passed all three jobs for commit `e6b709e`. |
+| 1 — Ingestion + viewer | **Locally accepted by independent verification** (supervisor: `make ci`, production browser walkthrough, live smoke and a fresh-volume auto-seed smoke; see `docs/PHASE1_REVIEW.md`). **Hosted CI has not run Phase 1 yet** (pending the supervisor's push). In particular, the container auto-download path (model and dataset fetched by the worker on a clean start) is unverified until a hosted run, because containers on this host have no internet. |
+| 2–6 | Not started. |
 
-### Independent verification (supervisor, recorded in `docs/SUPERVISION.md` / `docs/PHASE0_REVIEW.md`)
+## Phase 1 scope delivered
 
-As reported by the supervisor:
+**Storage and database**
+- Migration `0002`, reversible, creates:
+  - `documents` (status, stage, progress, attempts, generation, warnings, unique
+    `(workspace_id, sha256)`);
+  - `document_contents` (the canonical text), `pages`, `document_blocks`,
+    `table_sheets`, `table_rows`;
+  - `chunks`, with `vector(384)` + HNSW cosine, a generated `tsvector` + GIN, and
+    offsets, bboxes, sections and `embedding_windows`;
+  - `extracted_entities`, which stays empty until Phase 4.
+- Alembic's autogenerate compare reports **0 diffs** against the ORM.
+- `LocalStorage` uses server-generated keys, confines every path to the storage root,
+  and writes atomically via a staging directory.
 
-- pytest **80 passed**; web lint, tsc and vitest **53 passed**; ruff, ruff format and mypy passed.
-- All 7 compose containers healthy (`WEB_PORT=3300`); `make smoke` passed all 10 checks.
-- Stable browser walkthrough passed (a frozen copy at
-  `/tmp/compliance-supervision/phase0-ui-verify.py`), with no console or page errors, and the
-  workspace-detail screenshot was inspected.
-- `.pre-commit-config.yaml` was installed unchanged from my proposal and passed
-  `validate-config` (see below).
-- Still pending: the supervisor's full `make ci` run (in progress) and a **hosted GitHub
-  Actions run**, which needs a push and has not been done.
+**Upload API** (`POST /workspaces/{id}/documents`)
+- The role check (owner/reviewer) runs before the body is read.
+- The multipart body is streamed with per-file, per-request, file-count, field and
+  header caps.
+- SHA-256 is computed while streaming.
+- Content is sniffed: the extension must match, and zips are checked for bombs
+  (ratio, total size, entry count), encryption, traversal paths and macros.
+- Filenames are sanitised.
+- Rate limiting is atomic, per request (`INCR`, before streaming) and per file attempt
+  (`INCRBY`, rejected files included).
+- Each file gets its own outcome: `created`, `duplicate` (same workspace) or `rejected`.
 
-## Phase 0 scope delivered
+**Other document endpoints**
+- List, get, original file (inline PDF; other formats as attachment + `CSP: sandbox`),
+  chunks, pages (+text), blocks, sheets, rows, entities (honest `not_available`),
+  delete (owner/reviewer; removes the row, then the file), and retry (failed documents
+  only, new generation).
+- Workspace deletion also removes its stored files.
+- `document_count` was added to workspaces.
+
+**Ingestion** (`compliance_ingestion` + worker job)
+- Parsing runs in an isolated child process with a wall-clock timeout and an
+  address-space limit (baseline + `INGEST_PARSE_MEMORY_MB`).
+- **PDF:** the text layer from per-character boxes, with rotation applied.
+- **OCR:** pages with fewer than 25 non-space characters are OCR'd with Tesseract.
+  - The raster cap is enforced before `get_pixmap`; a page that won't fit at 100 DPI
+    is refused with a visible warning.
+  - OCR errors are classified separately as not installed, tesseract error, timeout
+    or other.
+- **DOCX:** paragraphs, styles, lists and tables (merged cells de-duplicated).
+- **XLSX/CSV:**
+  - XLSX is read via a file handle, so extension-less storage paths work; CSV
+    encoding and dialect are sniffed.
+  - A header row is detected even below title rows, and values get a documented
+    display form (ISO dates, integral floats, empty cells omitted from row text).
+  - Each row becomes one chunk.
+- **Chunking**
+  - Sentence-preserving and layout-aware (headings, numbered clauses, paragraphs),
+    targeting 200–400 tokens with the bge tokenizer and up to 40 tokens of overlap.
+    There is no overlap across section breaks, a chunk never ends on a heading, and a
+    small tail merges into the previous chunk.
+  - **Sentences are never split.** An oversized sentence becomes one whole chunk with
+    its true token count.
+- **Embeddings:** real local `BAAI/bge-small-en-v1.5` at pinned revision `5c38ec7c…`,
+  with the SHA-256 of `model.safetensors` verified at download and at every load, and
+  CPU torch.
+  - A chunk longer than 510 tokens is embedded in bounded windows. Each window is at
+    most 510 tokens, starts on a word, overlaps the previous window by 64 tokens and is
+    re-tokenised to verify it fits.
+  - The window vectors are averaged, weighted by token count, and renormalised.
+  - The source chunk is unchanged, and `embedding_windows` records the window count.
+  - There is no fallback embedding.
+- **Job correctness**
+  - Jobs are keyed by generation.
+  - Results are stored in one transaction that re-locks the row, so a deleted or
+    superseded document's results are discarded.
+  - Stale derived rows are deleted before insert, so retries never duplicate data.
+  - Transient errors retry up to `INGEST_MAX_ATTEMPTS`; other errors fail visibly and
+    never leave a document stuck in PROCESSING.
+  - `_fail` only transitions PROCESSING documents of the same generation.
+  - A per-minute sweep re-queues lost uploads and recovers stale PROCESSING documents,
+    with atomic status and staleness checks.
+
+**Seed**
+- A manifest maps 10 ContractNLI **test-split** NDAs to synthetic vendors:
+  - 7 original PDFs;
+  - 2 DOCX;
+  - 1 genuinely image-only scanned PDF;
+  - 1 fictitious vendor with a missing contract.
+- The vendor register XLSX has a title row above its header and a Sources sheet.
+- Generation is byte-deterministic.
+- `run_seed` is idempotent: an existing user's password is never touched, and files are
+  deduplicated by SHA-256. Seeding is refused in production.
+- The worker auto-seeds only when the demo workspace does not exist yet.
+- `make seed` exists, and `make fetch-artifacts` fetches and verifies the model and
+  dataset.
+- The ContractNLI license was checked before download and recorded in
+  `ml/data/LICENSES.md`.
+
+**Web**
+- A workspace shell with tabs (Documents / Settings & members).
+- Documents page:
+  - drag-and-drop or keyboard file picker, one XHR per file with real progress;
+  - client prechecks, with the server authoritative;
+  - per-file outcomes;
+  - a table showing type, pages, OCR flag, live status/stage/progress (polled), errors
+    and warnings, with retry/delete for writers;
+  - read-only mode for viewers.
+- Viewer:
+  - PDF via react-pdf, using pdf.js's legacy build (see failures below), with lazy
+    page rendering, a text-layer search with escaped HTML and match navigation, and
+    exact box overlays.
+  - Clicking a chunk scrolls to it and highlights it.
+  - `?chunk=` deep links wait for the PDF to load and use scroll-container-relative
+    offsets.
+  - Spreadsheets render as per-sheet tables, with the selected row highlighted and
+    auto-loaded if needed.
+  - DOCX shows its extracted body with an exact-range `<mark>`.
+  - Sidebar tabs: Chunks, Entities (an honest notice, distinct from load errors) and
+    Details (OCR confidence, model, SHA-256, warnings).
+  - Download original.
+
+**Compose and CI**
+- The worker image includes Tesseract and CPU torch.
+- Each image is a single stage with uv and sources bind-mounted and a manifest-only
+  dependency layer (no duplicated venv); the web build uses a single builder stage.
+- The `document-storage` volume is shared by api and worker; the worker never sees the
+  API's secret volume.
+- The `artifact-cache` volume can be swapped for a bind mount via
+  `ARTIFACT_CACHE_SOURCE`.
+- The CI workflow:
+  - installs Tesseract;
+  - caches and fetches the artifacts;
+  - runs the stack with automatic seeding, `compliance_seed --wait`, and the Phase 0
+    and Phase 1 smoke tests.
+
+## Supervisor review findings addressed during Phase 1 (`docs/PHASE1_REVIEW.md`)
+
+1. **Oversized sentences were being split.** That code was removed. An oversized
+   sentence now stays whole, and the embedder handles long inputs with bounded token
+   windows aggregated into one vector. Tests cover:
+   - a 600-word sentence kept intact with its exact token count;
+   - windows that are bounded, ordered, verbatim, start-to-end and word-aligned;
+   - a vector that differs from the first window alone;
+   - a real 512-token-plus case on the full-size model.
+2. **The OCR raster cap was applied after rendering.** The DPI is now chosen from
+   arithmetic before `get_pixmap`, and pages that cannot fit at 100 DPI are refused.
+   Tests use a page object whose `get_pixmap` raises if called, plus a real 200×200-inch
+   page with a guarded `get_pixmap`. Exception order is corrected (`TesseractError` is a
+   `RuntimeError` subclass), with one test per class.
+3. **Dataset cache not ignored.** `.cache/`, `*.zip`, `*.bin`, `*.pt` and generated seed
+   output are now ignored (`git check-ignore` confirmed).
+4. **Multipart headers were buffered without a cap.** Per-header (4 KiB), per-part
+   (8 KiB) and header-count caps now apply. python-multipart's own limit is also
+   configured and mapped to the same 400. An incremental test streams the header in
+   1-, 7- and 4096-byte chunks and asserts parsing stops near the cap.
+5. **Stale job transitions.** `_fail` now requires PROCESSING and the same generation,
+   and sweep updates re-check status, generation and staleness in their `WHERE`
+   clauses. Unexpected exceptions retry or fail visibly. Tests cover:
+   - a late failure after success;
+   - the sweep racing a completion;
+   - an unexpected embedding error;
+   - a crash-retry-then-fail sequence.
+6. **Upload rate accounting.** Quota is now reserved atomically per request and per
+   file attempt (see above). Tests cover rejected files consuming quota (429 with no
+   staging leftovers), and concurrent API uploads with exactly the cap succeeding.
+7. **PDF deep-link focus.** It now waits for `numPages`, and the scroll offset uses
+   bounding rects relative to the scroll container. It was verified in the browser by
+   opening a fresh `?chunk=` link to the last page (overlay geometry measured, overlay
+   inside the viewport).
+
+## Phase 1 commands run (chronological, with failures)
+
+1. **License check before download:** fetched the ContractNLI project page and read the
+   full license section and Terms and Conditions (CC BY 4.0 plus Hitachi terms), then
+   wrote `ml/data/LICENSES.md`. After that, `curl` downloaded `contract-nli.zip`
+   (65,362,913 B), and its SHA-256 `e03fc77b…` was pinned trust-on-first-use. Also
+   read the HF API for `BAAI/bge-small-en-v1.5` (license MIT, revision `5c38ec7c…`,
+   safetensors SHA-256 `3c9f3166…`).
+2. **Dependencies:** `uv lock` added CPU torch `2.14.1+cpu` from download.pytorch.org;
+   the lock contains **0** `nvidia`/`triton`/`cuda` packages. `uv sync --frozen` grew
+   the host venv by about 1.04 GB (free root space went from 4.0 GB to 2.99 GB).
+3. **Model:** `python -m compliance_ingestion.embeddings fetch --cache-dir .cache/models`
+   verified the model. **Failure:** `mkdtemp` left the directory at mode 0700, which the
+   container uid could not read. Fixed in code with `chmod 0755`, and the existing
+   directory was changed.
+4. **Extraction child process:**
+   - First run **failed**: `PanicException: global thread pool not initialized`.
+     A flat `RLIMIT_AS` of 3 GB broke the Rust thread pools. Fixed by running the child
+     single-threaded.
+   - Second run **failed**: `malloc failed` while rendering a 9 MB raster. Measured that
+     PyMuPDF reserves about 4.2 GB of virtual memory at import (about 150 MB resident).
+     The limit is now set after imports as `VmSize + budget`.
+5. **Migrations:**
+   - First run **failed**: the `Chunk.text` column shadowed SQLAlchemy's `text()` in
+     the class body. Fixed by aliasing the import.
+   - Second run **failed**: `sa.SchemaItem` is evaluated at runtime. Fixed with
+     `from __future__` and an explicit import.
+   - The base → head → 0001 → head round trip then passed, and autogenerate compare
+     reported **0 diffs**.
+6. **Seed generation:** generated twice in a row, all 11 files were **byte-identical**.
+   The scanned PDF has 0 text characters and 1 image per page. Extracted with real
+   OCR, its 3 pages scored mean confidence 95.3–95.8.
+7. **Tests written alongside the code.** Failures along the way:
+   - Chunk overlap test: the fixture's sentences started lowercase, which the
+     segmenter treats as continuations. Fixed the fixture.
+   - Bbox `get_textbox` check: glyph boxes touch on tight 15pt leading. Fixed by
+     probing the central band of the rect.
+   - Section-label expectation: the test expected a title that the labeller
+     deliberately omits. Fixed the expectation.
+   - A corrupt DOCX raised `PackageNotFoundError` unmapped. **Fixed in code.**
+   - Scanned and heading-only documents produced **0 chunks**: trailing headings were
+     carried forward and dropped. **Fixed in code**, with tests.
+   - Every XLSX ingestion failed: openpyxl rejects extension-less storage paths.
+     **Fixed in code** (file handle), with a test.
+   - Seed logging used `extra={"created": …}`, which collides with a reserved
+     `LogRecord` attribute. Fixed.
+   - Two over-broad assertions in my API tests were tightened, not loosened.
+8. **Docker builds** (`DOCKER_BUILD_NETWORK=host`, serial, disk monitored):
+   - worker 1.54 GB (1.32 GB dependency layer plus 88 MB Tesseract), then api 202 MB,
+     model-service 201 MB, mcp 219 MB, web about 238 MB.
+   - Free root space fell to **807 MB**. Recovered using only project-owned
+     artifacts:
+     - superseded `compliance/*` images, after their containers were replaced;
+     - the 59 remaining Phase 0 build-window private BuildKit records, by ID;
+     - each Phase 1 build's private records, by ID.
+   - Log: `/tmp/cw-disk/phase1-cleanup.log`. Free space ended at 1.7–1.9 GB.
+   - The 48 older records from other projects, unrelated images, volumes and global
+     caches were not touched.
+9. **Stack upgrade** (`WEB_PORT=3300 ARTIFACT_CACHE_SOURCE=./.cache
+   ARTIFACT_AUTO_DOWNLOAD=false docker compose up -d --no-build --wait`): all 7
+   services healthy. The API applied `0002`, and the worker loaded the verified model
+   and auto-seeded. `make seed` exited 0 ("0 file(s) added, 11 already present", all
+   11 READY).
+10. **Browser walkthrough** (`/tmp/cw-e2e/phase1_ui_check.py`). The first two attempts
+    **failed** on my script's locators: an inexact "Ready" text match also hit the
+    `ready4s` filename. The third attempt **failed for real**: the PDF viewer crashed
+    with `n.toHex is not a function`, because pdf.js 6's modern build needs ES2025
+    built-ins that Chrome 139 lacks. Fixed by aliasing `pdfjs-dist` to its legacy build
+    and serving the matching legacy worker.
+
+    While debugging I ran `next dev`, which wrote an untracked `apps/web/AGENTS.md`. I
+    deleted it and set `agentRules: false`. Two `pkill`/`pgrep -f` commands matched
+    their own shell and killed it (exit 144); I then stopped the dev server by PID, and
+    no other process was affected. I also fixed sidebar overflow, previews ignoring
+    `line-clamp`, and a missing favicon.
+11. **Final production run** after rebuilding the web image:
+    - `phase1_ui_check.py http://127.0.0.1:3300` exit 0, "console/page errors: none";
+    - `scripts/smoke_phase1.py` exit 0, all 3 steps passed;
+    - `make smoke WEB_PORT=3300` (Phase 0 regression) exit 0.
+12. **Clean-start check** (separate project `compliance-cleanstart`, fresh volumes,
+    ports 3310/8101/8111/8121):
+    - healthy in 30 s, with all 11 demo documents READY after 52 s and no manual seed;
+    - after deleting a demo document, changing the demo password hash and restarting
+      worker and api: 10 documents remained and the hash was unchanged, so no
+      resurrection and no reset;
+    - `down -v` removed only that project's volumes.
+13. **Final gate:** `set -o pipefail; make ci > /tmp/cw-p1/gates/make-ci.log`.
+    - The first run had exit **2**: mypy flagged untyped PyMuPDF calls in the new smoke
+      script. I added a per-file directive.
+    - The rerun had **exit 0**: ruff passed with 104 files formatted, mypy strict found
+      no issues in 85 files, the OpenAPI schema and types were current, **pytest 197
+      passed**, **Vitest 73 passed**, and the Next.js build compiled.
+
+## Phase 1 known issues and limitations
+
+- **Hosted CI has not run Phase 1 yet.** The automatic in-container model/dataset
+  download and the first clean CI start are untested here; this host's containers have
+  no egress, and its runs used the bind-mounted, pre-verified cache.
+- OCR runs only on pages with almost no text layer, so mixed pages are not OCR'd.
+  Character boxes inside an OCR word are evenly divided.
+- DOCX headers, footers, footnotes and text boxes are not extracted, and DOCX has no
+  pages (citations use offsets).
+- Document type is a keyword heuristic. Entities are honestly absent until Phase 4.
+- The demo set contains no chunk longer than 512 tokens (the maximum is 395), so
+  windowing is exercised only by tests, not by the demo data.
+- If the API crashes after the DB commit and before file removal, the stored file can
+  be orphaned.
+- Search in the viewer covers the PDF text layer plus our extracted text; hybrid
+  retrieval is Phase 2.
+- **Disk:** about 1.7 GB is free on root. Rebuilding the web image needs roughly 1 GB
+  transient (`npm ci`) before scoped pruning. The external SSD is unused.
+
+## Phase 1 supervisor validation commands
+
+```bash
+cd /home/grv22/projects/compliance
+make fetch-artifacts                   # verifies cached model + dataset (no-op if present)
+make test-infra-up
+set -o pipefail; make ci 2>&1 | tee /tmp/compliance-supervision/phase1-make-ci.log
+# Stack (port 3000 taken on this host; daemon has iptables disabled; containers lack egress)
+export WEB_PORT=3300 ARTIFACT_CACHE_SOURCE=./.cache ARTIFACT_AUTO_DOWNLOAD=false
+DOCKER_BUILD_NETWORK=host docker compose up -d --build --wait   # serial builds advised: see disk note
+make seed
+env -u PYTHONPATH uv run python scripts/smoke_phase1.py --web http://127.0.0.1:3300
+make smoke WEB_PORT=3300
+env -u PYTHONPATH /tmp/cw-e2e/.venv/bin/python -I /tmp/cw-e2e/phase1_ui_check.py http://127.0.0.1:3300
+# Clean-start (separate project, removed afterwards)
+COMPOSE_PROJECT_NAME=compliance-cleanstart WEB_PORT=3310 API_PORT=8101 MODEL_SERVICE_PORT=8111 \
+  MCP_PORT=8121 docker compose up -d --no-build --wait   # then: ... docker compose down -v
+```
+
+Artifacts:
+- browser screenshots: `/tmp/cw-e2e/p1-*.png`;
+- browser log: `/tmp/cw-e2e/phase1-ui.log`;
+- gate log: `/tmp/cw-p1/gates/make-ci.log`;
+- disk actions: `/tmp/cw-disk/phase1-cleanup.log` (ID lists alongside);
+- model and dataset: `./.cache` (git-ignored).
+
+---
+
+## Phase 0 scope delivered (accepted)
 
 - **Monorepo** per handoff §4: uv workspace (`packages/*`, `apps/{api,worker,model-service,mcp-server}`)
   plus `apps/web` (npm). `ml/`, `evals/`, `rule_packs/`, `seed/` and
@@ -299,7 +593,7 @@ Trade-offs and caveats:
 - The real LLM provider for the application, demo and zero-shot baseline is the
   **Anthropic API**. The mock LLM remains for tests and offline development.
 
-## Supervisor validation commands
+## Phase 0 validation commands (historical)
 
 ```bash
 cd /home/grv22/projects/compliance

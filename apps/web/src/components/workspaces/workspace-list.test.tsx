@@ -13,6 +13,7 @@ const existing: Workspace = {
   created_at: "2026-10-01T12:00:00Z",
   role: "reviewer",
   member_count: 3,
+  document_count: 4,
 };
 
 describe("WorkspaceList", () => {
@@ -29,6 +30,7 @@ describe("WorkspaceList", () => {
     expect(link).toHaveAttribute("href", `/workspaces/${existing.id}`);
     expect(within(link).getByText("Reviewer")).toBeInTheDocument();
     expect(within(link).getByText("3 members")).toBeInTheDocument();
+    expect(within(link).getByText("4 documents")).toBeInTheDocument();
   });
 
   it("shows an error with a working retry", async () => {
@@ -49,7 +51,14 @@ describe("WorkspaceList", () => {
 
   it("creates a workspace with the CSRF header and shows it", async () => {
     document.cookie = "cw_csrf=csrf-abc; path=/";
-    const created: Workspace = { ...existing, id: "2", name: "Policy audit", role: "owner", member_count: 1 };
+    const created: Workspace = {
+      ...existing,
+      id: "2",
+      name: "Policy audit",
+      role: "owner",
+      member_count: 1,
+      document_count: 0,
+    };
     let listed: Workspace[] = [];
     const { calls } = mockFetch({
       "GET /api/v1/workspaces": () => json(200, listed),

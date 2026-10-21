@@ -7,8 +7,8 @@ verification to Codex. The authoritative requirements are in `BUILD_HANDOFF.md`.
 
 | Phase | Implementation | Independently verified acceptance |
 |---|---|---|
-| 0 — Skeleton | In progress with Claude | Pending |
-| 1 — Ingestion and viewer | Not started | Pending |
+| 0 — Skeleton | Complete | Accepted: local gates and hosted CI passed |
+| 1 — Ingestion and viewer | Complete locally | Local gates accepted; hosted CI pending |
 | 2 — Retrieval | Not started | Pending |
 | 3 — Trained model | Not started | Pending |
 | 4 — Agents and review UI | Not started | Pending |
@@ -99,3 +99,48 @@ failure. No product implementation was authored by Codex.
 
 Local Phase 0 acceptance is complete. Hosted CI is still required before starting
 Phase 1 under the handoff's sequential gates.
+
+## Phase 0 commit and hosted CI
+
+- Commit `e6b709e944208a5a411fd3e6127054dd0b1da3ae` pushed to `main` on the private
+  `JCHETAN26/compliance` repository. Author confirmed as `JCHETAN26` with the
+  account-specific noreply email; no coauthor trailer.
+- Hosted CI run: https://github.com/JCHETAN26/compliance/actions/runs/39678264159
+  Python and web jobs passed; Docker build/smoke job pending at time of this entry.
+
+## Scoped cache cleanup
+
+Validated the 80 proposed BuildKit record IDs against fresh daemon metadata:
+all private, reclaimable, and created during this project's Phase 0 build window.
+Pruned using individual `--filter id=<verified-id>` arguments only. Free disk rose
+from roughly 2.2 GB to 4.0 GB. 30 records were removed; other selected records remain
+because of cache dependencies. All 48 older cache records were independently
+confirmed preserved. No images, containers, volumes, source, or other-project
+artifacts were removed. All seven application services remain healthy.
+
+## Phase 0 accepted
+
+Hosted run `39678264159` completed successfully: Python, web, and Docker build +
+Compose smoke-test jobs all passed for commit `e6b709e`. Phase 1 is authorized to
+begin. Full project acceptance remains pending Phases 1–6.
+
+## Independent dataset-source check before Phase 1 sample data
+
+Checked the publishers' pages on 2026-10-21 before using dataset content:
+
+- ContractNLI: https://stanfordnlp.github.io/contract-nli/ — publisher identifies
+  CC BY 4.0, 607 NDAs, 17 hypotheses, official document spans and annotations.
+- CUAD: https://www.atticusprojectai.org/legal/ — publisher lists CUAD under
+  CC BY 4.0. CUAD usage is a later-phase requirement.
+
+The implementer must still record provenance, attribution and the distributed
+license terms in `ml/data/LICENSES.md` before downloads/use. Keep raw data out of Git.
+
+## Phase 1 local acceptance
+
+See `PHASE1_REVIEW.md` for independent checks and corrections. Full final `make ci`
+passed with 197 Python tests and 73 frontend tests, plus lint, strict typing, schema
+drift checks and production build. Production browser and fresh-volume automatic
+seed smoke both passed. The temporary acceptance project was removed; the main app
+and data are retained. Hosted CI and final commit hygiene remain pending before
+Phase 2 can begin. No full-project completion is claimed.

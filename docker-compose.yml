@@ -66,8 +66,14 @@ services:
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
       LOGIN_MAX_FAILURES: ${LOGIN_MAX_FAILURES:-10}
       LOGIN_FAILURE_WINDOW_SECONDS: ${LOGIN_FAILURE_WINDOW_SECONDS:-900}
+      MAX_UPLOAD_FILE_BYTES: ${MAX_UPLOAD_FILE_BYTES:-52428800}
+      MAX_UPLOAD_FILES: ${MAX_UPLOAD_FILES:-20}
+      MAX_UPLOAD_REQUEST_BYTES: ${MAX_UPLOAD_REQUEST_BYTES:-209715200}
+      UPLOAD_RATE_LIMIT_PER_MINUTE: ${UPLOAD_RATE_LIMIT_PER_MINUTE:-60}
     volumes:
       - api-data:/data
+      # Uploaded originals; shared with the worker (which never sees api-data secrets).
+      - document-storage:/data/storage
     ports:
       - "${BIND_ADDRESS:-127.0.0.1}:${API_PORT:-8000}:8000"
     depends_on:
@@ -93,7 +99,23 @@ services:
       network: ${DOCKER_BUILD_NETWORK:-default}
       args:
         SERVICE_PACKAGE: compliance-worker
+        SYSTEM_PACKAGES: tesseract-ocr tesseract-ocr-eng
     command: ["arq", "compliance_worker.main.WorkerSettings"]
+    environment:
+      <<: *python-env
+      # Demo workspace is seeded automatically on the first clean start (never in production).
+      SEED_DEMO: ${SEED_DEMO:-true}
+      # The pinned embedding model and the ContractNLI archive are fetched into the
+      # artifact cache on first start. Hosts whose containers have no internet can run
+      # `make fetch-artifacts` and set ARTIFACT_CACHE_SOURCE=./.cache and
+      # ARTIFACT_AUTO_DOWNLOAD=false (see .env.example).
+      ARTIFACT_AUTO_DOWNLOAD: ${ARTIFACT_AUTO_DOWNLOAD:-true}
+      WORKER_MAX_JOBS: ${WORKER_MAX_JOBS:-2}
+      EMBEDDING_THREADS: ${EMBEDDING_THREADS:-4}
+      OCR_DPI: ${OCR_DPI:-300}
+    volumes:
+      - document-storage:/data/storage
+      - ${ARTIFACT_CACHE_SOURCE:-artifact-cache}:/cache
     depends_on:
       api:
         condition: service_healthy
@@ -101,12 +123,14 @@ services:
         condition: service_healthy
     healthcheck:
       # Passes only while the running worker refreshes its heartbeat key in Redis
-      # (written every 10s, expires after 11s, deleted on shutdown).
+      # (written every 10s, expires after 11s, deleted on shutdown). The worker only
+      # starts heartbeating after the database is reachable and the pinned embedding
+      # model has been verified (SHA-256) and loaded.
       test: ["CMD", "arq", "compliance_worker.main.WorkerSettings", "--check"]
       interval: 15s
       timeout: 10s
       retries: 5
-      start_period: 20s
+      start_period: 180s
 
   model-service:
     <<: *python-service
@@ -185,3 +209,5 @@ volumes:
   postgres-data:
   redis-data:
   api-data:
+  document-storage:
+  artifact-cache:

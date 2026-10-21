@@ -106,6 +106,19 @@ smoke: ## Phase 0 end-to-end smoke test against the running stack
 		--web http://127.0.0.1:$(WEB_PORT) --api http://127.0.0.1:$(API_PORT) \
 		--model-service http://127.0.0.1:$(MODEL_SERVICE_PORT) --mcp http://127.0.0.1:$(MCP_PORT)
 
+.PHONY: fetch-artifacts
+fetch-artifacts: ## Download + verify the pinned embedding model and ContractNLI into ./.cache
+	ARTIFACT_CACHE_DIR=.cache $(UV) run python -m compliance_ingestion.embeddings fetch
+	ARTIFACT_CACHE_DIR=.cache $(UV) run python -m compliance_seed.fetch
+
+.PHONY: seed
+seed: ## Seed demo user/workspace/register/NDAs in the running stack and wait for ingestion
+	$(COMPOSE) exec worker python -m compliance_seed --wait 900
+
+.PHONY: smoke-phase1
+smoke-phase1: ## Phase 1 end-to-end smoke test (upload -> ingest -> viewer data) against the stack
+	$(UV) run python scripts/smoke_phase1.py --web http://127.0.0.1:$(WEB_PORT)
+
 .PHONY: migrate
 migrate: ## Apply database migrations (uses DATABASE_URL)
 	$(UV) run python -m compliance_core.db.migrate upgrade head
@@ -113,9 +126,7 @@ migrate: ## Apply database migrations (uses DATABASE_URL)
 # ---------------------------------------------------------------- later phases
 NOT_IMPLEMENTED = @echo "make $@: not implemented yet ($(1) of docs/BUILD_HANDOFF.md)" >&2; exit 2
 
-.PHONY: seed train eval-model export-model eval-retrieval eval-all
-seed: ## [Phase 1] Demo workspace + documents (not implemented)
-	$(call NOT_IMPLEMENTED,Phase 1)
+.PHONY: train eval-model export-model eval-retrieval eval-all
 eval-retrieval: ## [Phase 2] Retrieval eval (not implemented)
 	$(call NOT_IMPLEMENTED,Phase 2)
 train: ## [Phase 3] Train the rule-check model (not implemented)

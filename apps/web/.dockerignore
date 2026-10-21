@@ -2,3 +2,4 @@ node_modules
 .next
 coverage
 *.tsbuildinfo
+public/pdf.worker.min.mjs
