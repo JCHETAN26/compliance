@@ -75,6 +75,8 @@ def test_settings(tmp_path_factory: pytest.TempPathFactory) -> Settings:
         storage_dir=Path(tmp_path_factory.mktemp("storage")),
         artifact_cache_dir=ARTIFACT_CACHE_DIR,
         artifact_auto_download=False,
+        # Deterministic: never pick up a rule-check artifact installed in ./.cache.
+        rule_check_artifact_dir=Path(tmp_path_factory.mktemp("no-rule-check-artifact")),
         max_upload_file_bytes=TEST_MAX_FILE_BYTES,
         max_upload_request_bytes=3 * TEST_MAX_FILE_BYTES,
         max_upload_files=5,

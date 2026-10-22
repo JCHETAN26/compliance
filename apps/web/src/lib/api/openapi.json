@@ -778,6 +778,18 @@
         "title": "MethodScore",
         "type": "object"
       },
+      "ModelStatus": {
+        "properties": {
+          "rule_check": {
+            "$ref": "#/components/schemas/RuleCheckModelStatus"
+          }
+        },
+        "required": [
+          "rule_check"
+        ],
+        "title": "ModelStatus",
+        "type": "object"
+      },
       "PageRead": {
         "properties": {
           "char_end": {
@@ -1008,6 +1020,56 @@
           "char_end"
         ],
         "title": "RowRead",
+        "type": "object"
+      },
+      "RuleCheckModelStatus": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "state": {
+            "enum": [
+              "trained",
+              "smoke",
+              "untrained_fallback",
+              "unreachable"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "variant": {
+            "anyOf": [
+              {
+                "enum": [
+                  "int8",
+                  "fp32"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variant"
+          }
+        },
+        "required": [
+          "state",
+          "message"
+        ],
+        "title": "RuleCheckModelStatus",
         "type": "object"
       },
       "SearchCapabilities": {
@@ -2777,6 +2839,38 @@
         "summary": "Ready",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/v1/models/status": {
+      "get": {
+        "description": "Whether a trained rule-check model is available. Never exposes server paths or\ninternal error details; an unreachable or invalid model service is reported as such.",
+        "operationId": "model_status_api_v1_models_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          }
+        },
+        "summary": "Model Status",
+        "tags": [
+          "models"
         ]
       }
     },

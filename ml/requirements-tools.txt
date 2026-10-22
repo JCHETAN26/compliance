@@ -1,0 +1,9 @@
+# ML tool packages that are NOT in uv.lock (deliberately: changing uv.lock or any
+# pyproject.toml invalidates the shared ~1.3 GB worker/model-service Docker dependency
+# layer). They run as a uv overlay on top of the locked project environment:
+#   uv run --frozen --with-requirements ml/requirements-tools.txt python -m ...
+# Exact pins; checked into git; recorded by uv in the overlay environment.
+onnx==1.23.2          # ONNX export (torch.onnx) + onnxruntime.quantization
+onnxscript==0.7.2     # torch.onnx dependency
+sentencepiece==0.2.2  # one-off conversion of DeBERTa-v3 spm.model -> tokenizer.json
+anthropic==2.1.0      # zero-shot LLM baseline (ANTHROPIC_API_KEY from the environment)

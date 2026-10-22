@@ -16,7 +16,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from compliance_api.context import AppContext
 from compliance_api.errors import install_error_handlers
-from compliance_api.routes import auth, documents, health, search, workspaces
+from compliance_api.routes import auth, documents, health, models, search, workspaces
 from compliance_core.config import Settings, get_settings
 from compliance_core.logs import configure_logging, request_id_var
 
@@ -105,5 +105,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api.include_router(workspaces.router)
     api.include_router(documents.router)
     api.include_router(search.router)
+    api.include_router(models.router)
     app.include_router(api)
     return app

@@ -1,0 +1,57 @@
+# Primary rule-check model (docs/BUILD_HANDOFF.md section 7.3): DeBERTa-v3-base, one
+# backbone with an evidence head and a 3-way label head. Run on a CUDA GPU (Colab T4):
+#   make train CONFIG=ml/train/configs/deberta_v3_base.yaml RUN_DIR=<drive dir>
+# Hyperparameters are fixed a priori (common DeBERTa-v3 fine-tuning values); the only
+# selections (checkpoint/epoch, label top-k, temperature, thresholds) are made on DEV.
+run_name: deberta_v3_base
+kind: production
+seed: 20261021
+requires_cuda: true
+backbone:
+  kind: pretrained
+  repo_id: microsoft/deberta-v3-base
+  revision: 8ccc9b6f36199bec6961081d44eb72fb3f7353f3  # MIT license
+  weights: {name: pytorch_model.bin, sha256: 691d48a2800b926a19e3051def466fc2cca4f59a15e42ce4a0cf7f1b380b5e33, bytes: 371146213}
+  config_file: {name: config.json, sha256: 649f6a1ec33c6bdd9a6486d5c66019d461139e54957073eafe9bbc2d34c75b0b, bytes: 579}
+  tokenizer:
+    repo_id: microsoft/deberta-v3-base
+    revision: 8ccc9b6f36199bec6961081d44eb72fb3f7353f3
+    source: spm
+    files:
+      - {name: spm.model, sha256: c679fbf93643d19aab7ee10c0b99e460bdbc02fedf34b92b05af343b4af586fd, bytes: 2464616}
+      - {name: tokenizer_config.json, sha256: 3f3978e0c036f2c2588cac34a6047cbb0af0b0dc1814254e291028529805496d, bytes: 52}
+      - {name: config.json, sha256: 649f6a1ec33c6bdd9a6486d5c66019d461139e54957073eafe9bbc2d34c75b0b, bytes: 579}
+encoder:
+  normalization: NFKC  # DeBERTa-v3's SentencePiece normalises with NFKC
+  max_hypothesis_tokens: 64
+  max_evidence_tokens: 256
+  max_label_tokens: 512
+data:
+  data_dir: .cache/ml/data/full
+  held_out_hypotheses: []
+sampling:
+  hard_negatives: 4
+  random_negatives: 4
+  hard_negative_depth: 16
+  label_k_choices: [3, 4, 5]
+  gold_drop_prob: 0.15
+training:
+  epochs: 3
+  evidence_batch_size: 32
+  label_batch_size: 8
+  grad_accum_steps: 1
+  lr: 2.0e-5
+  head_lr: 1.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.06
+  max_grad_norm: 1.0
+  class_weighting: inverse_frequency
+  dropout: 0.1
+  fp16: true
+  checkpoint_every_steps: 500
+selection:
+  metric: macro_f1
+  top_k_candidates: [3, 4, 5]
+inference:
+  chunk_rows: 8192
+  max_tokens_per_forward: 32768

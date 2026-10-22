@@ -1,0 +1,56 @@
+# Backbone ablation (handoff section 7.3): answerdotai/ModernBERT-base with exactly the
+# primary run's heads, data, sampling and optimisation settings (a pure backbone swap;
+# no ModernBERT-specific tuning). The backbone used for serving is chosen on DEV.
+#   make train CONFIG=ml/train/configs/modernbert_base.yaml RUN_DIR=<drive dir>
+run_name: modernbert_base
+kind: production
+seed: 20261021
+requires_cuda: true
+backbone:
+  kind: pretrained
+  repo_id: answerdotai/ModernBERT-base
+  revision: 8949b909ec900327062f0ebf497f51aef5e6f0c8  # Apache-2.0 license
+  weights: {name: model.safetensors, sha256: 340ac08b74eef0d7bdec2d7981a6a3d4249bf0e6aab60634b72ad02c2b8023a9, bytes: 598635032}
+  config_file: {name: config.json, sha256: 1609d59e627c33eaed524b4f01e546d42e84190a079a5a5ded84b212c41c324f, bytes: 1193}
+  tokenizer:
+    repo_id: answerdotai/ModernBERT-base
+    revision: 8949b909ec900327062f0ebf497f51aef5e6f0c8
+    source: tokenizer_json
+    files:
+      - {name: tokenizer.json, sha256: 9fd55248d51d33976b324fc11592e28071da7d41e0e9401dfb7082e30574b7b1, bytes: 2132967}
+      - {name: tokenizer_config.json, sha256: 3cd2017ff46d0a527e5d39cae39272eccfa1f19bb9f89b05d166aab2e38354e2, bytes: 20810}
+      - {name: special_tokens_map.json, sha256: ea97ecdbcc73713039d8d64dbb05e3689495c96657fbd9a18f5bed381be81049, bytes: 694}
+      - {name: config.json, sha256: 1609d59e627c33eaed524b4f01e546d42e84190a079a5a5ded84b212c41c324f, bytes: 1193}
+encoder:
+  max_hypothesis_tokens: 64
+  max_evidence_tokens: 256
+  max_label_tokens: 512
+data:
+  data_dir: .cache/ml/data/full
+  held_out_hypotheses: []
+sampling:
+  hard_negatives: 4
+  random_negatives: 4
+  hard_negative_depth: 16
+  label_k_choices: [3, 4, 5]
+  gold_drop_prob: 0.15
+training:
+  epochs: 3
+  evidence_batch_size: 32
+  label_batch_size: 8
+  grad_accum_steps: 1
+  lr: 2.0e-5
+  head_lr: 1.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.06
+  max_grad_norm: 1.0
+  class_weighting: inverse_frequency
+  dropout: 0.1
+  fp16: true
+  checkpoint_every_steps: 500
+selection:
+  metric: macro_f1
+  top_k_candidates: [3, 4, 5]
+inference:
+  chunk_rows: 8192
+  max_tokens_per_forward: 32768

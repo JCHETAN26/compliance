@@ -3,8 +3,8 @@
 Checks hybrid search on the seeded demo workspace: real query embeddings from the model
 service, results that are exact stored spans (verified against the chunk API), a
 spreadsheet-row hit with its sheet/row reference, keyword/vector modes, filters,
-viewer access, cross-workspace isolation, validation, the model service's honest
-rule-check 501, and the search page itself.
+viewer access, cross-workspace isolation, validation, an honest rule-check state from
+the model service, and the search page itself.
 
     uv run python scripts/smoke_phase2.py --web http://127.0.0.1:3000 \
         --model-service http://127.0.0.1:8010
@@ -62,14 +62,17 @@ def main() -> int:
         ms = httpx.Client(base_url=args.model_service, timeout=30)
         health = ms.get("/health").json()
         expect(health["embedding"] == "ready", str(health))
-        expect(health["rule_check"] == "not_implemented", str(health))
         meta = ms.get("/metadata").json()
         expect(meta["embedding"]["model"] == "BAAI/bge-small-en-v1.5", str(meta))
-        expect(meta["rule_check"]["implemented"] is False, str(meta))
+        expect(meta["rule_check"]["available"] == (health["rule_check"] == "ready"), str(meta))
         check = ms.post(
             "/v1/check", json={"hypothesis": "h", "spans": [{"span_id": "s", "text": "t"}]}
         )
-        expect(check.status_code == 501, f"/v1/check must stay 501, got {check.status_code}")
+        expected = 200 if health["rule_check"] == "ready" else 503
+        expect(
+            check.status_code == expected,
+            f"/v1/check gave {check.status_code}, expected {expected}",
+        )
         state["rerank"] = health["rerank"] == "ready"
 
     def demo_hybrid() -> None:
@@ -154,7 +157,7 @@ def main() -> int:
             demo.delete(f"/api/v1/workspaces/{ws}/members/{member['user_id']}")
 
     try:
-        step("model service: pinned encoder ready, rule check honestly 501", model_service)
+        step("model service: pinned encoder ready, rule check state honest", model_service)
         step("demo hybrid search: real embeddings + FTS, results == stored chunks", demo_hybrid)
         step("spreadsheet row hit with sheet/row reference and viewer deep link", spreadsheet_row)
         step(

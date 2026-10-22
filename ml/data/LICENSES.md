@@ -56,8 +56,10 @@ containers).
 
 ## CUAD (secondary)
 
-Not checked or downloaded yet. It is needed only from Phase 3, and its license will be
-recorded here before first use.
+**Not used in Phase 3.** The handoff uses CUAD for the clause-extraction evaluation (the
+extraction agent, Phase 4) and optional pretraining, which this phase does not do. Nothing
+has been downloaded. The publisher lists CUAD under CC BY 4.0 (supervisor check,
+2026-10-21); the distributed terms will be read and recorded here before first use.
 
 ## Model weights (not datasets, recorded for completeness)
 
@@ -71,3 +73,26 @@ recorded here before first use.
   `make fetch-artifacts` into the git-ignored model cache; never committed. It was
   trained on MS MARCO passage ranking; the model is used here only for scoring, and the
   MS MARCO data itself is not downloaded or used.
+
+### Rule-check model backbones and tokenizers (Phase 3)
+
+Licenses read from the Hugging Face model cards / API (`cardData.license`) on 2026-10-21.
+Files are fetched at pinned revisions with pinned SHA-256 into git-ignored caches (Colab or
+`.cache/ml/backbones/`); no weights are committed. Fine-tuned derivatives are produced on the
+user's own Colab/Drive and only an int8 ONNX export is brought back to this host.
+
+- `microsoft/deberta-v3-base` (primary backbone): **MIT**. Revision
+  `8ccc9b6f36199bec6961081d44eb72fb3f7353f3`; `pytorch_model.bin` 371,146,213 bytes, SHA-256
+  `691d48a2800b926a19e3051def466fc2cca4f59a15e42ce4a0cf7f1b380b5e33`; `spm.model` SHA-256
+  `c679fbf9…`. The CPU smoke uses only its tokenizer and config with a tiny, randomly
+  initialised architecture (no pretrained weights).
+- `answerdotai/ModernBERT-base` (ablation backbone): **Apache-2.0**. Revision
+  `8949b909ec900327062f0ebf497f51aef5e6f0c8`; `model.safetensors` 598,635,032 bytes, SHA-256
+  `340ac08b74eef0d7bdec2d7981a6a3d4249bf0e6aab60634b72ad02c2b8023a9`.
+- Exact pins for every file are in `ml/train/configs/*.yaml`.
+
+### Third-party API used by a baseline
+
+The zero-shot baseline sends ContractNLI hypothesis text and up to eight excerpts per pair
+from the ContractNLI dev/test documents (CC BY 4.0, public) to the Anthropic API under the
+key holder's own account and terms. No private or user documents are sent by the baseline.

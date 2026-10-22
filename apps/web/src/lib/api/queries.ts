@@ -143,3 +143,11 @@ export async function searchWorkspace(workspaceId: string, body: SearchRequest) 
     "/api/v1/workspaces/{workspace_id}/search",
   );
 }
+
+export const modelKeys = {
+  status: ["models", "status"] as const,
+};
+
+export async function fetchModelStatus() {
+  return unwrap(await api.GET("/api/v1/models/status"), "/api/v1/models/status");
+}

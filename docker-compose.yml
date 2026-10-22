@@ -159,14 +159,25 @@ services:
       # Optional cross-encoder reranker. When true, a missing/unverifiable model fails
       # startup instead of silently searching without it.
       RERANK_ENABLED: ${RERANK_ENABLED:-false}
+      # Trained rule-check model (Phase 3): a verified ONNX artifact under
+      # /cache/models/rule-check/current (installed by `make install-model` or
+      # `make import-colab-bundle`). Without one the service runs in untrained fallback
+      # mode (no verdicts; /health and the web UI say so).
+      RULE_CHECK_ARTIFACT_DIR: ${RULE_CHECK_ARTIFACT_DIR:-}
+      RULE_CHECK_VARIANT: ${RULE_CHECK_VARIANT:-int8}
+      RULE_CHECK_ALLOW_SMOKE: ${RULE_CHECK_ALLOW_SMOKE:-false}
+      RULE_CHECK_THREADS: ${RULE_CHECK_THREADS:-4}
+      RULE_CHECK_MAX_BATCH_ROWS: ${RULE_CHECK_MAX_BATCH_ROWS:-64}
+      RULE_CHECK_MAX_WAIT_MS: ${RULE_CHECK_MAX_WAIT_MS:-5}
     volumes:
       - ${ARTIFACT_CACHE_SOURCE:-artifact-cache}:/cache
     ports:
       - "${BIND_ADDRESS:-127.0.0.1}:${MODEL_SERVICE_PORT:-8010}:8010"
     healthcheck:
-      # Healthy only once the pinned encoder is verified (SHA-256) and loaded; the
-      # rule-check model is truthfully reported as not implemented (Phase 3).
-      test: ["CMD", "python", "-m", "compliance_core.healthcheck", "http://127.0.0.1:8010/health", "--expect", "status=ok", "--expect", "embedding=ready", "--expect", "rule_check=not_implemented"]
+      # Healthy once the pinned encoder is verified (SHA-256) and loaded. The rule-check
+      # model is reported truthfully (rule_check=ready|unavailable); its absence is the
+      # documented untrained-fallback mode, not an unhealthy service.
+      test: ["CMD", "python", "-m", "compliance_core.healthcheck", "http://127.0.0.1:8010/health", "--expect", "status=ok", "--expect", "embedding=ready"]
       interval: 10s
       timeout: 8s
       retries: 10

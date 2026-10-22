@@ -106,6 +106,26 @@ class Settings(BaseSettings):
     rerank_model_revision: str = "233902d25c440f23af6f7d6e94d2946bac0bee0a"
     rerank_model_sha256: str = "821d1aa69520101d6e0737f78a042ae25b19e5cb9160701909d10434f4aeb0ae"
 
+    # Trained rule-check model (Phase 3), served from a verified ONNX artifact directory
+    # (manifest + SHA-256-checked files; see compliance_model_service.rule_check). Empty
+    # means <ARTIFACT_CACHE_DIR>/models/rule-check/current. Without a verified artifact
+    # the service runs in "untrained_fallback" mode: /v1/check answers 503, never a verdict.
+    rule_check_artifact_dir: Path | None = None
+    rule_check_variant: Literal["int8", "fp32"] = "int8"
+    # CI smoke artifacts (tiny random backbone) are refused unless this is set (tests only).
+    rule_check_allow_smoke: bool = False
+    rule_check_threads: Annotated[int, Field(ge=1, le=64)] = 4
+    # Dynamic micro-batching: a batch runs when it has max_batch_rows rows or when
+    # max_wait_ms has passed since its first row arrived.
+    rule_check_max_batch_rows: Annotated[int, Field(ge=1, le=1024)] = 64
+    rule_check_max_wait_ms: Annotated[float, Field(ge=0, le=1000)] = 5.0
+    rule_check_max_queue_rows: Annotated[int, Field(ge=1, le=100_000)] = 4096
+    rule_check_max_tokens_per_forward: Annotated[int, Field(ge=512, le=1_000_000)] = 16_384
+    # Admission before tokenization: requests with tokenization queued/running, and the
+    # per-request budget of hypothesis + span characters (413 above it).
+    rule_check_max_pending_requests: Annotated[int, Field(ge=1, le=256)] = 8
+    rule_check_max_request_chars: Annotated[int, Field(ge=1_000, le=10_000_000)] = 400_000
+
     # Hybrid retrieval defaults. rrf_k, the weights, the keyword mode and the query
     # instruction were selected on the ContractNLI DEV split and frozen in
     # evals/retrieval/frozen_config.json (config hash 6cb1378f...); see evals/README.md.
@@ -123,7 +143,7 @@ class Settings(BaseSettings):
     # Demo data. Seeding is refused in production regardless of this flag.
     seed_demo: bool = False
 
-    @field_validator("cookie_domain", mode="before")
+    @field_validator("cookie_domain", "rule_check_artifact_dir", mode="before")
     @classmethod
     def _empty_domain_is_none(cls, value: object) -> object:
         return None if value == "" else value
@@ -163,6 +183,10 @@ class Settings(BaseSettings):
     @property
     def dataset_cache_dir(self) -> Path:
         return self.artifact_cache_dir / "datasets"
+
+    @property
+    def resolved_rule_check_dir(self) -> Path:
+        return self.rule_check_artifact_dir or self.model_cache_dir / "rule-check" / "current"
 
     def resolved_jwt_secret(self) -> str:
         """Return the signing secret, generating and persisting one for local development."""

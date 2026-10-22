@@ -1,0 +1,17 @@
+# USD per million tokens, read from https://platform.claude.com/docs/en/about-claude/pricing
+# on 2026-10-21 (standard / global routing; prompts up to 100k tokens). Used only to turn
+# the API's reported token usage into cost; re-check before a run and update with the
+# date if prices change. The LLM baseline refuses a model that is not listed here.
+source: https://platform.claude.com/docs/en/about-claude/pricing
+retrieved: "2026-10-21"
+models:
+  claude-sonnet-5-5:
+    input: 2.00
+    output: 10.00
+    cache_write_5m: 2.50
+    cache_read: 0.10
+  claude-haiku-5-5:
+    input: 0.10
+    output: 0.50
+    cache_write_5m: 0.125
+    cache_read: 0.01

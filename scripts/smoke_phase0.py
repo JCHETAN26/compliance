@@ -126,12 +126,17 @@ def main() -> int:
     def backend_health() -> None:
         r = httpx.get(f"{args.api}/api/v1/health/ready", timeout=10)
         expect(r.status_code == 200 and r.json()["status"] == "ok", r.text)
+        mode = httpx.get(f"{args.model_service}/health", timeout=10).json()["rule_check_mode"]
         r = httpx.post(
             f"{args.model_service}/v1/check",
             json={"hypothesis": "h", "spans": [{"span_id": "s", "text": "t"}]},
-            timeout=10,
+            timeout=30,
         )
-        expect(r.status_code == 501, f"model-service must be honest 501, got {r.status_code}")
+        if mode == "untrained_fallback":  # no verified artifact: honest refusal, no verdict
+            expect(r.status_code == 503, f"fallback /v1/check must be 503, got {r.status_code}")
+            expect(r.json()["error"]["code"] == "rule_check_unavailable", r.text)
+        else:  # a verified production artifact is installed
+            expect(r.status_code == 200 and r.json()["model_kind"] == "production", r.text)
         r = httpx.get(f"{args.mcp}/health", timeout=10)
         expect(r.status_code == 200 and r.json()["implemented_tools"] == [], r.text)
 
@@ -145,7 +150,7 @@ def main() -> int:
         step("membership: non-member 404, viewer cannot rename", membership)
         step("owner rename + delete", rename_and_delete)
         step("logout revokes session server-side", logout)
-        step("api ready; model-service 501; mcp health", backend_health)
+        step("api ready; model-service rule check honest; mcp health", backend_health)
     except (SmokeError, httpx.HTTPError, KeyError) as exc:
         print(f"FAIL  {type(exc).__name__}: {exc}", file=sys.stderr)  # noqa: T201
         return 1

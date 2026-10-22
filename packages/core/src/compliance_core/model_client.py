@@ -22,7 +22,7 @@ from __future__ import annotations
 import asyncio
 import math
 from dataclasses import dataclass
-from typing import Annotated, TypeVar
+from typing import Annotated, Literal, TypeVar
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -104,9 +104,18 @@ class _EmbeddingInfo(_ModelInfo):
     query_instruction: str
 
 
+class _RuleCheckInfo(_Body):
+    available: bool
+    mode: Literal["model", "untrained_fallback"]
+    kind: Literal["production", "smoke"] | None = None
+    model_version: str | None = None
+    variant: Literal["int8", "fp32"] | None = None
+
+
 class _MetadataBody(_Body):
     embedding: _EmbeddingInfo
     rerank: _ModelInfo | None
+    rule_check: _RuleCheckInfo | None = None
 
 
 @dataclass(frozen=True)
@@ -129,6 +138,17 @@ class ServiceInfo:
     rerank_available: bool
     rerank_model: str | None
     rerank_revision: str | None
+
+
+@dataclass(frozen=True)
+class RuleCheckStatus:
+    """What the model service says about the trained rule-check model (no paths/reasons)."""
+
+    available: bool
+    mode: str  # "model" | "untrained_fallback"
+    kind: str | None  # "production" | "smoke" when available
+    model_version: str | None
+    variant: str | None
 
 
 def _finite(values: list[float], what: str) -> None:
@@ -259,6 +279,27 @@ class ModelServiceClient:
             )
         _finite(list(scores.values()), "rerank scores")
         return scores
+
+    async def rule_check_status(self) -> RuleCheckStatus:
+        body = await self._request(_MetadataBody, "GET", "/metadata")
+        info = body.rule_check
+        if info is None:
+            raise ModelServiceProtocolError(
+                "model service metadata has no rule_check section", "bad_response"
+            )
+        if info.available != (info.mode == "model") or (
+            info.available and (info.kind is None or not info.model_version)
+        ):
+            raise ModelServiceProtocolError(
+                "inconsistent rule_check status from the model service", "bad_response"
+            )
+        return RuleCheckStatus(
+            available=info.available,
+            mode=info.mode,
+            kind=info.kind,
+            model_version=info.model_version,
+            variant=info.variant,
+        )
 
     async def info(self) -> ServiceInfo:
         body = await self._request(_MetadataBody, "GET", "/metadata")

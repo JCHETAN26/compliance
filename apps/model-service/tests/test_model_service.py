@@ -1,7 +1,9 @@
 """Model service with the real pinned encoder and cross-encoder (no stubs, CPU).
 
-The rule-check endpoint must stay honest: it validates input and answers 501 with no
-fabricated verdict until a trained model exists (Phase 3).
+Without a verified rule-check artifact the service runs in untrained fallback mode: it
+says so in /health and /metadata, and /v1/check validates input then answers 503 with
+the reason, never a verdict. (Serving a real ONNX artifact with batching is covered by
+``test_rule_check_*.py`` and the ML smoke pipeline.)
 """
 
 from __future__ import annotations
@@ -42,7 +44,7 @@ def _cos(a: list[float], b: list[float]) -> float:
     return sum(x * y for x, y in zip(a, b, strict=True))
 
 
-async def test_health_reports_loaded_models_and_unimplemented_rule_check(
+async def test_health_reports_loaded_models_and_untrained_fallback(
     client: httpx.AsyncClient, disabled_client: httpx.AsyncClient
 ) -> None:
     assert (await client.get("/health")).json() == {
@@ -50,7 +52,8 @@ async def test_health_reports_loaded_models_and_unimplemented_rule_check(
         "service": "model-service",
         "embedding": "ready",
         "rerank": "ready",
-        "rule_check": "not_implemented",
+        "rule_check": "unavailable",
+        "rule_check_mode": "untrained_fallback",
     }
     assert (await disabled_client.get("/health")).json()["rerank"] == "disabled"
 
@@ -68,8 +71,12 @@ async def test_metadata_pins_models(client: httpx.AsyncClient, test_settings: Se
     }
     assert body["rerank"]["model"] == "cross-encoder/ms-marco-MiniLM-L6-v2"
     assert body["rerank"]["revision"] == test_settings.rerank_model_revision
-    assert body["rule_check"]["implemented"] is False
-    assert body["rule_check"]["planned_phase"] == 3
+    rule_check = body["rule_check"]
+    assert rule_check["available"] is False
+    assert rule_check["mode"] == "untrained_fallback"
+    assert "no rule-check artifact manifest" in rule_check["reason"]
+    for advertised in ("model_version", "kind", "variant", "metrics", "inference"):
+        assert rule_check[advertised] is None
 
 
 async def test_passage_embeddings_match_ingestion_embedder(
@@ -170,7 +177,7 @@ async def test_overload_sheds_with_503(test_settings: Settings, embedder: Embedd
         await asyncio.sleep(0)
 
 
-async def test_check_returns_501_without_verdict(client: httpx.AsyncClient) -> None:
+async def test_check_is_unavailable_without_verdict_in_fallback(client: httpx.AsyncClient) -> None:
     response = await client.post(
         "/v1/check",
         json={
@@ -178,9 +185,10 @@ async def test_check_returns_501_without_verdict(client: httpx.AsyncClient) -> N
             "spans": [{"span_id": "s1", "text": "Recipient may disclose to its employees."}],
         },
     )
-    assert response.status_code == 501
+    assert response.status_code == 503
     body = response.json()
-    assert body["error"]["code"] == "not_implemented"
+    assert body["error"]["code"] == "rule_check_unavailable"
+    assert "untrained fallback" in body["error"]["message"]
     for fabricated in ("label", "confidence", "evidence"):
         assert fabricated not in body
 
@@ -191,6 +199,13 @@ async def test_check_returns_501_without_verdict(client: httpx.AsyncClient) -> N
         ("/v1/check", {}),
         ("/v1/check", {"hypothesis": "", "spans": [{"span_id": "s", "text": "t"}]}),
         ("/v1/check", {"hypothesis": "h", "spans": []}),
+        (
+            "/v1/check",
+            {
+                "hypothesis": "h",
+                "spans": [{"span_id": "a", "text": "x"}, {"span_id": "a", "text": "y"}],
+            },
+        ),
         ("/v1/embed", {"inputs": [], "kind": "query"}),
         ("/v1/embed", {"inputs": ["x"], "kind": "document"}),
         ("/v1/embed", {"inputs": ["x"] * 65, "kind": "passage"}),

@@ -263,6 +263,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/models/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Model Status
+         * @description Whether a trained rule-check model is available. Never exposes server paths or
+         *     internal error details; an unreachable or invalid model service is reported as such.
+         */
+        get: operations["model_status_api_v1_models_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/search/capabilities": {
         parameters: {
             query?: never;
@@ -693,6 +714,10 @@ export interface components {
              */
             score: number;
         };
+        /** ModelStatus */
+        ModelStatus: {
+            rule_check: components["schemas"]["RuleCheckModelStatus"];
+        };
         /** PageRead */
         PageRead: {
             /** Char End */
@@ -777,6 +802,20 @@ export interface components {
             sheet_index: number;
             /** Sheet Name */
             sheet_name: string;
+        };
+        /** RuleCheckModelStatus */
+        RuleCheckModelStatus: {
+            /** Message */
+            message: string;
+            /** Model Version */
+            model_version?: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "trained" | "smoke" | "untrained_fallback" | "unreachable";
+            /** Variant */
+            variant?: ("int8" | "fp32") | null;
         };
         /** SearchCapabilities */
         SearchCapabilities: {
@@ -1801,6 +1840,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReadinessReport"];
+                };
+            };
+        };
+    };
+    model_status_api_v1_models_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelStatus"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };

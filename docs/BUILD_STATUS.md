@@ -1,18 +1,180 @@
 # Build status
 
 Implementer log for `docs/BUILD_HANDOFF.md`. The independent verification ledger is
-kept by the supervisor in `docs/SUPERVISION.md` and `docs/PHASE0_REVIEW.md` /
-`PHASE1_REVIEW.md` / `PHASE2_REVIEW.md`; this file does not restate it as fact. Phase 2
-work is uncommitted; the supervisor commits and pushes it.
+kept by the supervisor in `docs/SUPERVISION.md` and `docs/PHASE0_REVIEW.md` …
+`PHASE3_REVIEW.md`; this file does not restate it as fact. Phase 3 work is uncommitted;
+the supervisor reviews, commits and pushes it.
 
 | Phase | Status |
 |---|---|
 | 0 — Skeleton | **Accepted.** Hosted GitHub Actions run 39678264159 passed all jobs for `e6b709e`. |
 | 1 — Ingestion + viewer | **Accepted.** Hosted GitHub Actions run 39687462736 passed all jobs for `ec6c254` (auto download, seeding, ingestion, smoke). |
-| 2 — Hybrid retrieval, search UI, retrieval eval | **Implemented; awaiting independent verification and hosted CI.** Local gates below. |
-| 3–6 | Not started. `/v1/check` still answers 501; no trained model, agents, MCP tools or final eval dashboard. |
+| 2 — Hybrid retrieval, search UI, retrieval eval | **Accepted.** Hosted run 39699615208 passed all jobs for `c61eab2`. |
+| 3 — Rule-check model | **Local pipeline implemented and verified; hosted CI pending; acceptance BLOCKED** on external work: full Colab GPU training, the real Anthropic baseline, the resulting cascade/calibration/quantization results on the full splits, and verification of the imported artifact. No trained-model or LLM result exists. See "Phase 3" below. |
+| 4–6 | Not started (Phase 4 gated on Phase 3 acceptance). |
 
-## Phase 2 scope delivered
+## Phase 3 — rule-check model
+
+### Delivered (code, configs, tests, docs)
+
+- **Rule pack** `rule_packs/nda_standard.yaml`: the 17 ContractNLI hypotheses verbatim as
+  `model_supported` per-document rules (test checks every text against the dataset).
+- **Data** (`ml/data`): official splits unchanged (train 423/7,191, dev 61/1,037, test
+  123/2,091 pairs; nothing excluded); ingestion segmentation; overlap-defined gold
+  mapping (many-to-many, counted); BGE candidate ranking; deterministic serialization;
+  `data_report.json`. **Handoff correction:** TRAIN counts are entailment 3,530 /
+  not_mentioned 2,820 / contradiction 841 (not_mentioned does not dominate); loss weights
+  come from the actual TRAIN pairs used.
+- **Model/training** (`ml/train`): one backbone + evidence head + 3-way label head;
+  DeBERTa-v3-base primary, ModernBERT-base ablation, unseen-4-rules run, CPU smoke; all
+  backbone/tokenizer files SHA-256 pinned; DEV-only selection (epoch, k, T, thresholds,
+  backbone, tau); fp16 skip-aware scheduler; atomic, recoverable, identity-checked
+  resume; production refuses subset data/CPU; TEST loaded only after selection is frozen.
+- **Evaluation** (`ml/eval`): label/evidence (end-to-end denominators, official-span
+  projection, invalid ids as false positives)/calibration/cascade/per-hypothesis/
+  bootstrap metrics through one scoring path for every system; fixed-top-8 model variant
+  to separate head quality from candidate scope; plots.
+- **Baselines** (`ml/baselines`): majority (global, per hypothesis), TF-IDF + logistic
+  regression (TRAIN fit, DEV choice), Anthropic zero-shot (structured output, per-prompt
+  cache identity, every attempt's usage/latency, lower-bound cost when usage is unknown,
+  CLI bounds, dry-run estimate).
+- **Export/serving**: ONNX fp32 + dynamic int8 with parity and batch-sensitivity checks,
+  parameter-hashed model versions, manifest refresh; `apps/model-service` `/v1/check` with
+  a verified artifact, micro-batching, bounded admission (tokenization and rows), size
+  and blank-input validation, honest `untrained_fallback` (503) otherwise.
+- **UI/API**: `GET /api/v1/models/status` (no paths/reasons exposed) and a site-wide
+  banner (`ModelStatusBanner`) with concise availability text.
+- **Colab**: `ml/notebooks/colab_train.ipynb` + runbook `ml/notebooks/README.md`; results
+  bundle pack/verified import (`ml/colab/bundle.py`).
+- **Make/CI**: `ml-data`, `baselines`, `baseline-llm`, `train`, `train-smoke`, `eval-model`,
+  `export-model`, `bench-model`, `eval-onnx`, `ml-test`, `ml-smoke`, `install-model`,
+  `import-colab-bundle`, `smoke-phase3`; CI runs mypy on `ml`, the ML unit tests, the ML
+  CPU smoke and `scripts/smoke_phase3.py`. `uv.lock` and every `pyproject.toml` are
+  unchanged (the ML tools are a pinned overlay, `ml/requirements-tools.txt`).
+
+### Measured results (real runs, full official data)
+
+`make baselines`, `data_version 620358b51ef96fac…`, TEST 2,091 pairs, choices on DEV only:
+
+| System | Accuracy | Macro-F1 |
+|---|---:|---:|
+| Majority (global) | 0.463 | 0.211 |
+| Majority per hypothesis | 0.659 | 0.617 |
+| TF-IDF + logistic regression (C=30, balanced) | 0.763 | 0.723 (0.722885) |
+
+- Re-running `make baselines` reproduced all six prediction files byte for byte (SHA-256).
+- The TF-IDF label C grid was extended to {30, 100} after an earlier run picked its upper
+  edge C=10 on DEV (DEV-driven). TEST results have not changed any choice.
+- BGE top-8 candidate coverage (pairs with any gold in the top 8): TRAIN .866, DEV .868,
+  TEST .837.
+- **No trained model, LLM, cascade, calibration, latency or quantization numbers exist
+  yet.** Smoke runs use a tiny random backbone; their numbers are meaningless and are never
+  written to `ml/eval/results`.
+
+### Commands run and outcomes (with failures)
+
+- **Full data prep** `python -m ml.data.prepare` (CPU, ~25 min; TRAIN ranking 920 s): written
+  with the old gzip writer, which embedded random temp names in gzip headers (supervisor
+  finding). Fixed the writer and re-serialized with `ml.data.reserialize --verify-ranking dev`:
+  rows identical, documents/pairs equal a fresh rebuild, 1,037/1,037 DEV rankings
+  re-embedded identically (max score diff 0.0) -> `620358b51ef96fac`; old dir kept as
+  `.cache/ml/data/full.pre-reserialize-f93f46478098c871`.
+- **Embedding throughput** profiled at ~37 segments/s on this CPU, so the Colab path uses
+  the same encoder on GPU (`--device cuda`, recorded).
+- **DeBERTa-v3 tokenizer**: conversion needs `sentencepiece`; the converted `tokenizer.json`
+  differed from the original SentencePiece ids on 1.25 % of TRAIN spans, 0.36 % after NFKC
+  (remaining: byte-fallback private-use bullets). NFKC is now part of the shared encoder;
+  every run records the measured rate on TRAIN.
+- **ONNX**: the TorchScript exporter needs `onnx`; fp32 parity ~5e-7. Dynamic int8 is
+  batch-dependent (activation scales per input tensor): measured and reported as
+  `batch_sensitivity`; service tests use a stated int8 tolerance and rebuild the label
+  input from the served spans.
+- **Service admission**: a 10-request concurrency test hit the new 8-request tokenization
+  bound (503) as designed; the test raises the bound explicitly.
+- `hf_hub_download` failed after the production `Embedder` set `HF_HUB_OFFLINE=1`
+  process-wide; backbone files now download through the project's SHA-256-checked HTTPS
+  downloader.
+- **Final local gates** (run by the supervisor after the storage recovery, on the final
+  sources):
+  - `ruff check` + `ruff format --check`: clean (188 files); strict `mypy`: clean (165 files);
+    OpenAPI schema and generated TypeScript types current.
+  - application `pytest`: 334 passed; ML unit tests: 25 passed; Vitest: 87 passed (banner 4).
+  - full ML smoke (`make ml-smoke`, tool overlay): **14 passed in 113 s**, including the fixed
+    reserved-name/ancestry test, fp32/int8 service equivalence, interrupted resume ==
+    uninterrupted bit-identically, tokenizer cache recovery, bundle round trip and
+    malicious/late-invalid bundle refusal, and manifest refresh. Tiny random backbone: no
+    performance meaning.
+  - These were run as separate static/test steps, not as one literal host `make ci`: the
+    host production web build could not be written to the nearly full disk. Instead the
+    **unmodified web source was built for production** (`npm ci` + `next build`) inside
+    `node:22-alpine` with a RAM-only build directory, and a small runtime image made from
+    its outputs is serving the stack (see the storage section). The normal
+    `apps/web/Dockerfile` is unchanged; hosted CI builds it with normal disk.
+- **Docker**: model-service and API images rebuilt from the final sources (dependency layer
+  cached; no lock change); the web image rebuilt as described below; all seven services
+  healthy; live `smoke_phase0..3` passed, with the model service in honest untrained fallback.
+  Container path: a tiny smoke artifact installed with `make install-model` was loaded by the
+  container (uid 10001) through the relative `current` symlink with the explicit smoke
+  opt-in and served concurrent, micro-batched `/v1/check` requests (also verified
+  independently by the supervisor: 8 concurrent requests, shared batches); it was then
+  removed. Browser: smoke and fallback banners verified, no console errors.
+
+### Storage incident and how it was resolved
+
+The normal web image build needs ~1.1 GB transient (`npm ci` layer) plus build output, more
+than this host had free. Two attempts were made with a watchdog that cancels below 200/250 MB
+free; both were cancelled (the second on my mistaken assumption that the first attempt's
+`npm ci` layer would be reused). BuildKit still holds three **non-reclaimable** records from
+those cancelled builds (history entries removed; `prune --filter id=` frees 0 B):
+`44m8mc9ug44d6oa18r196a6tk` (1.083 GB), `xzri4ny622zrjgwhhcvkzgvwp` (841 MB),
+`re7z3ek7e2zwio1zyt2q4chkt` (61 MB), which is why root has only **~150 MB free**. No shared
+Docker restart, broad prune or external-storage write was done; all pre-existing BuildKit
+records (including the 48 older ones) are intact. Log: `/tmp/cw-disk/phase3-cleanup.log`.
+
+Recovery (supervisor-run; recipe and scripts authored by me in `/tmp/compliance-supervision`):
+`web-ram-build.sh` builds the unmodified `apps/web` source in `node:22-alpine` (pinned
+digest) on a 3 GB tmpfs with a 4 GB memory cap, copies only `.next/standalone`,
+`.next/static` and `public` to a RAM context, and `Dockerfile.web-runtime` (the existing
+runner stage with those three `COPY` sources) turns them into `compliance/web:dev`; no npm
+layer touches Docker's disk-backed store. Host web dependencies for the checks are
+temporary: `apps/web/node_modules` is a git-ignored symlink to
+`/dev/shm/compliance-web-hostdeps` (glibc `npm ci`, regenerable, removed with
+`web-host-deps.sh remove`).
+
+**Constraint still open:** importing the Colab results bundle needs free disk equal to the
+bundle size plus ~300 MB (the importer checks and refuses otherwise). With ~150 MB free,
+space must be made first, e.g. once BuildKit releases the three records above (prune them by
+exact id) or by another approved route.
+
+### External steps (exact; nothing faked meanwhile)
+
+1. Supervisor commits/pushes Phase 3 to the private `JCHETAN26/compliance` repository, waits
+   for hosted CI, and generates the git bundle plus a notebook copy with `EXPECTED_COMMIT`
+   filled in (configuration only; no logic change).
+2. User: Colab training per `ml/notebooks/README.md` (upload the bundle to
+   `MyDrive/compliance-runs/`, T4 runtime, ~10 GB Drive; three runs, evaluation, export, CPU
+   latency, int8/fp32 TEST accuracy, results bundle).
+3. User: Anthropic key as the Colab secret `ANTHROPIC_API_KEY` (or typed into their own shell
+   with `read -rs`); dry run first, then DEV and TEST.
+4. Free disk headroom, then `make import-colab-bundle BUNDLE=…`, restart model-service,
+   `make smoke-phase3` (expects `model_kind=production`); supervisor reviews
+   `ml/eval/results/*` and the handoff criterion (model TEST macro-F1 vs TF-IDF 0.722885).
+
+### Phase 3 supervisor validation commands
+
+```bash
+cd /home/grv22/projects/compliance
+make test-infra-up && make fetch-artifacts
+env -u PYTHONPATH uv run ruff check . && env -u PYTHONPATH uv run ruff format --check .
+env -u PYTHONPATH uv run mypy packages apps conftest.py scripts evals ml
+env -u PYTHONPATH uv run pytest -q && env -u PYTHONPATH uv run python -m pytest -q ml/tests
+make ml-smoke                              # ~2-3 min, tool overlay, SMOKE outputs in temp dirs
+make openapi-check                         # needs apps/web/node_modules (npm ci)
+env -u PYTHONPATH uv run python scripts/smoke_phase3.py --web http://127.0.0.1:3300 --model-service http://127.0.0.1:8010
+make baselines                             # reproduces the six prediction files byte for byte
+```
+
+## Phase 2 scope delivered (accepted)
 
 **Retrieval** (`packages/retrieval`, shared service layer)
 - `sql.py`:

@@ -9,8 +9,8 @@ verification to Codex. The authoritative requirements are in `BUILD_HANDOFF.md`.
 |---|---|---|
 | 0 — Skeleton | Complete | Accepted: local gates and hosted CI passed |
 | 1 — Ingestion and viewer | Complete | Accepted: local gates and hosted CI passed |
-| 2 — Retrieval | In progress with Claude | Pending |
-| 3 — Trained model | Not started | Pending |
+| 2 — Retrieval | Complete | Accepted: local gates and hosted CI passed |
+| 3 — Trained model | Local pipeline verified; Colab/API runs pending | Not accepted; external runs/results required |
 | 4 — Agents and review UI | Not started | Pending |
 | 5 — MCP | Not started | Pending |
 | 6 — Evaluation and polish | Not started | Pending |
@@ -202,3 +202,35 @@ Final Phase 2 local release gate passed after all review fixes: independent full
 groups passed. Evidence is in `PHASE2_REVIEW.md` and
 `/tmp/compliance-supervision/phase2-release-checks.log`. Phase 2 is locally verified;
 hosted CI remains required before accepting the phase and starting Phase 3.
+
+## Phase 2 accepted
+
+Commit c61eab2eb60772442b5857a16bc45252ec9c9b91, authored and committed by
+JCHETAN26, pushed to the private repository. Hosted GitHub Actions run
+[39699615208](https://github.com/JCHETAN26/compliance/actions/runs/39699615208)
+completed **success** for all three jobs: Python, web, and clean Docker stack.
+Build, seven service health checks, automatic artifact downloads/demo ingestion and
+Phase 0/1/2 smoke steps all passed. Combined with the independent local verification
+and actual official-dataset results, Phase 2 is accepted. Phase 3 may now begin.
+
+## Phase 3 local pipeline readiness
+
+Claude authored the data/training/baseline/calibration/export/serving pipeline,
+Colab notebook, artifact handoff, UI status and test/CI integration. Independent
+final local gates passed: 334 application tests, 25 ML unit tests, 87 web tests,
+14 real train/export/ONNX-service smoke tests, lint/format, strict mypy165files and
+schema checks. A production build of the unmodified web source ran in bounded RAM
+to avoid pinned cancelled BuildKit layers; final web/API/model-service images are
+running and all seven services healthy. Actual desktop/mobile browser checks and
+Phase0–3 live smokes passed. Details/limitations are in PHASE3_REVIEW.md.
+
+Classical baseline predictions cover all2091officialTESTpairs; independent sklearn
+recomputation confirms TF-IDF/logreg macro-F1 .722885, per-hypothesis majority .616779,
+global majority .210962. All choices are DEV-only; none of these establish trained
+model superiority or real-provider performance.
+
+Full Phase3 is **not accepted**: Colab full GPU training/ablation/unseen-rule runs,
+real Anthropic baseline/cascade, full quantization results and independent imported
+artifact verification remain. Phase4 remains gated. Source handoff commit/hosted CI
+will be recorded after creation. Host disk remains constrained by ~2GB of this
+project's cancelled BuildKit records; unrelated projects/caches were preserved.

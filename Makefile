@@ -40,7 +40,7 @@ format: ## Auto-format Python code
 
 .PHONY: typecheck
 typecheck: ## mypy --strict and tsc --noEmit
-	$(UV) run mypy packages apps conftest.py scripts evals
+	$(UV) run mypy packages apps conftest.py scripts evals ml
 	$(NPM) --prefix $(WEB) run typecheck
 
 .PHONY: test-infra-up
@@ -54,6 +54,7 @@ test-infra-down: ## Stop and remove the integration-test containers
 .PHONY: test-python
 test-python: ## pytest (needs `make test-infra-up` or TEST_DATABASE_URL/TEST_REDIS_URL)
 	$(UV) run pytest
+	$(UV) run python -m pytest -q ml/tests
 
 .PHONY: test-web
 test-web: ## Vitest unit/component tests
@@ -125,6 +126,11 @@ smoke-phase2: ## Phase 2 end-to-end smoke test (hybrid search, exact spans, isol
 	$(UV) run python scripts/smoke_phase2.py --web http://127.0.0.1:$(WEB_PORT) \
 		--model-service http://127.0.0.1:$(MODEL_SERVICE_PORT)
 
+.PHONY: smoke-phase3
+smoke-phase3: ## Phase 3 smoke (rule-check status/UI banner source, /v1/check contract) against the stack
+	$(UV) run python scripts/smoke_phase3.py --web http://127.0.0.1:$(WEB_PORT) \
+		--model-service http://127.0.0.1:$(MODEL_SERVICE_PORT)
+
 .PHONY: migrate
 migrate: ## Apply database migrations (uses DATABASE_URL)
 	$(UV) run python -m compliance_core.db.migrate upgrade head
@@ -146,12 +152,55 @@ eval-retrieval-test: ## TEST measurement with the frozen configuration only
 eval-hnsw-sweep: ## HNSW m / ef_construction / ef_search sweep (ANN recall vs latency)
 	$(UV) run python -m evals.retrieval.sweep
 
-.PHONY: train eval-model export-model eval-all
-train: ## [Phase 3] Train the rule-check model (not implemented)
-	$(call NOT_IMPLEMENTED,Phase 3)
-eval-model: ## [Phase 3] Model evaluation (not implemented)
-	$(call NOT_IMPLEMENTED,Phase 3)
-export-model: ## [Phase 3] ONNX export + int8 quantization (not implemented)
-	$(call NOT_IMPLEMENTED,Phase 3)
+# ---------------------------------------------------------------- rule-check model (Phase 3)
+# ML tool packages (onnx, onnxscript, sentencepiece, anthropic) run as a pinned uv
+# overlay so that uv.lock and the shared Docker dependency layer stay unchanged.
+ML := $(UV) run --frozen --with-requirements ml/requirements-tools.txt python
+CONFIG ?= ml/train/configs/deberta_v3_base.yaml
+RUN_DIR ?= .cache/ml/runs/$(basename $(notdir $(CONFIG)))
+ABLATION_RUN_DIR ?=
+UNSEEN_RUN_DIR ?=
+ARTIFACT_DIR ?= .cache/ml/artifacts/$(notdir $(RUN_DIR))
+HOST_LABEL ?= $(shell hostname -s)
+SPLIT ?= dev
+LLM_ARGS ?=
+EVAL_ARGS ?=
+EXPORT_ARGS ?=
+
+.PHONY: ml-data ml-data-smoke baselines baseline-llm train train-smoke eval-model export-model \
+	bench-model eval-onnx ml-smoke ml-test install-model import-colab-bundle eval-all
+ml-data: ## ContractNLI -> segments, gold mapping, BGE candidate ranking (.cache/ml/data/full; ~20 min CPU)
+	$(UV) run python -m ml.data.prepare
+ml-data-smoke: ## Small data subset for the CPU smoke (.cache/ml/data/smoke)
+	$(UV) run python -m ml.data.prepare --subset smoke
+baselines: ## Majority + TF-IDF/logistic-regression baselines on the prepared full data
+	$(UV) run python -m ml.baselines.classic
+baseline-llm: ## Anthropic zero-shot baseline: SPLIT=dev|test LLM_ARGS="--dry-run" (needs ANTHROPIC_API_KEY)
+	$(ML) -m ml.baselines.llm --split $(SPLIT) $(LLM_ARGS)
+train: ## Train: CONFIG=ml/train/configs/<x>.yaml RUN_DIR=<dir> (production configs need CUDA: Colab)
+	$(ML) -m ml.train.train --config $(CONFIG) --run-dir $(RUN_DIR)
+train-smoke: ## CPU smoke training (tiny random backbone, data subset; ~1 min; NOT a model)
+	$(ML) -m ml.train.train --config ml/train/configs/smoke.yaml --run-dir .cache/ml/runs/smoke
+eval-model: ## Evaluate RUN_DIR (+ABLATION_RUN_DIR, UNSEEN_RUN_DIR) vs baselines -> ml/eval/results
+	$(UV) run python -m ml.eval.evaluate --run-dir $(RUN_DIR) \
+		$(if $(ABLATION_RUN_DIR),--ablation-run-dir $(ABLATION_RUN_DIR)) \
+		$(if $(UNSEEN_RUN_DIR),--unseen-run-dir $(UNSEEN_RUN_DIR)) $(EVAL_ARGS)
+export-model: ## ONNX fp32 + int8 export with parity checks: RUN_DIR -> ARTIFACT_DIR (EXPORT_ARGS=--refresh-manifest)
+	$(ML) -m ml.export.export --run-dir $(RUN_DIR) --params ml/eval/results/inference_params.json \
+		--model-eval ml/eval/results/model_eval.json --out $(ARTIFACT_DIR) $(EXPORT_ARGS)
+bench-model: ## CPU latency per (rule, document) pair: torch fp32 / ONNX fp32 / ONNX int8 on this host
+	$(ML) -m ml.export.bench --artifact-dir $(ARTIFACT_DIR) --run-dir $(RUN_DIR) --label $(HOST_LABEL) \
+		--out ml/eval/results/latency_$(HOST_LABEL).json
+eval-onnx: ## Accuracy of the exported ONNX variants on full TEST (quantization effect)
+	$(ML) -m ml.export.eval_onnx --artifact-dir $(ARTIFACT_DIR) --run-dir $(RUN_DIR) --split test \
+		--out ml/eval/results/quantization_eval.json
+ml-test: ## ML unit tests (no tool overlay needed)
+	$(UV) run python -m pytest -q ml/tests
+ml-smoke: ## Bounded CPU smoke: data subset -> train -> baselines -> eval -> ONNX -> service (~2-3 min)
+	$(ML) -m pytest -q -p no:cacheprovider ml/smoke/tests
+install-model: ## Verify ARTIFACT_DIR and make it the model service's current rule-check artifact
+	$(UV) run python -m ml.colab.bundle install-artifact --artifact-dir $(ARTIFACT_DIR)
+import-colab-bundle: ## Verify + install a Colab results bundle: BUNDLE=<path to .tar>
+	$(UV) run python -m ml.colab.bundle import --bundle $(BUNDLE)
 eval-all: ## [Phase 6] Full eval suite (not implemented)
 	$(call NOT_IMPLEMENTED,Phase 6)

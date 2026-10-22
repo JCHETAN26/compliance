@@ -16,7 +16,7 @@ source passage. The full specification is in [`docs/BUILD_HANDOFF.md`](docs/BUIL
 >   - sentence-preserving chunking with exact offsets and boxes;
 >   - real local `BAAI/bge-small-en-v1.5` embeddings in pgvector, plus full-text vectors;
 >   - the documents page and source viewers, and an automatically seeded demo workspace.
-> - **Phase 2** (this change, not yet accepted):
+> - **Phase 2** (accepted):
 >   - hybrid search (pgvector HNSW + Postgres full-text `ts_rank_cd`, run in parallel,
 >     fused with weighted reciprocal rank fusion), optional pinned cross-encoder rerank;
 >   - `POST /api/v1/workspaces/{id}/search` and a Search tab whose results open the
@@ -25,9 +25,19 @@ source passage. The full specification is in [`docs/BUILD_HANDOFF.md`](docs/BUIL
 >     ingestion;
 >   - `make eval-retrieval`: ContractNLI evidence retrieval with parameters selected
 >     only on DEV and frozen before TEST, plus an HNSW sweep (results below).
-> - **Not implemented yet:** the trained rule-check model (Phase 3; `/v1/check` still
->   answers 501), agents/reviews/reports and entity extraction (Phase 4), MCP tools
->   (Phase 5), the end-to-end eval suite and dashboard (Phase 6). The services and
+> - **Phase 3** (local pipeline implemented and verified; hosted CI pending; acceptance
+>   blocked on external Colab training and a real Anthropic baseline): the rule-check
+>   model pipeline (`ml/`):
+>   official ContractNLI data and the 17-rule `nda_standard` pack, a DeBERTa-v3
+>   evidence + label cross-encoder with a ModernBERT ablation and an unseen-rule run,
+>   majority / TF-IDF / Anthropic zero-shot baselines, calibration, cascade analysis,
+>   ONNX fp32/int8 export with parity, a micro-batching `/v1/check` and a Colab
+>   notebook. **No model has been trained yet** (GPU training runs on Colab; see
+>   [`ml/notebooks/README.md`](ml/notebooks/README.md)) and the LLM baseline needs an
+>   API key, so the model service runs in honest *untrained fallback* mode (`/v1/check`
+>   503, no verdicts) and the web app shows a banner.
+> - **Not implemented yet:** agents/reviews/reports and entity extraction (Phase 4), MCP
+>   tools (Phase 5), the end-to-end eval suite and dashboard (Phase 6). The services and
 >   panels reserved for them say so explicitly instead of returning fake results.
 >
 > Verification logs are in [`docs/BUILD_STATUS.md`](docs/BUILD_STATUS.md).
@@ -46,7 +56,7 @@ flowchart LR
   worker --> store
   worker -->|isolated child process| parse[parse + OCR + chunk]
   worker --> emb[bge-small-en-v1.5<br/>CPU embeddings]
-  api -->|query embeddings, rerank| model[model-service<br/>same pinned encoder;<br/>rule check 501 until Phase 3]
+  api -->|query embeddings, rerank| model[model-service<br/>same pinned encoder;<br/>rule check: verified ONNX artifact<br/>or untrained fallback (503)]
   cache[(artifact cache<br/>models + dataset)] --> worker
   cache --> model
   mcp[mcp-server<br/>MCP SDK, no tools yet] --> pg
@@ -57,7 +67,7 @@ flowchart LR
 | `web` | Auth, workspaces, documents page (drag-and-drop upload with per-file progress, live status), document viewer, search | `/healthz`: Next.js serving **and** API reachable via the proxy upstream |
 | `api` | Auth, workspaces, documents (upload, list, metadata, original file, chunks, pages, blocks, sheets/rows, entities status, delete, retry), hybrid search; runs migrations on start | `/api/v1/health/ready`: DB query, Alembic at head, pgvector installed, Redis PING |
 | `worker` | `ingest_document` jobs, stale-document sweep, demo seeding on first start | `arq --check` heartbeat; it only heartbeats after the DB is reachable and the pinned model is SHA-256-verified and loaded |
-| `model-service` | `/v1/embed` (query/passage embeddings with the pinned ingestion encoder), `/v1/rerank` (only when `RERANK_ENABLED=true`). The rule-check model is **not implemented** (Phase 3): `/v1/check` validates input, then returns 501 | `/health`: `embedding=ready` (weights SHA-256-verified and loaded) and `rule_check=not_implemented` |
+| `model-service` | `/v1/embed` (query/passage embeddings with the pinned ingestion encoder), `/v1/rerank` (only when `RERANK_ENABLED=true`), `/v1/check` (rule-check model from a SHA-256-verified ONNX artifact with dynamic micro-batching; without a verified trained artifact: 503 `rule_check_unavailable`, see [`apps/model-service/README.md`](apps/model-service/README.md)) | `/health`: `embedding=ready` (weights SHA-256-verified and loaded); `rule_check=ready|unavailable` is reported, not required |
 | `mcp-server` | MCP over streamable HTTP and stdio; **no tools yet** (Phase 5) | Real MCP handshake + `tools/list`, plus DB probe |
 | `postgres` | pgvector/pgvector:pg16 | `pg_isready` + `select 1` |
 | `redis` | Redis 7.4, AOF | `redis-cli ping` = `PONG` |
@@ -219,6 +229,21 @@ in [`evals/README.md`](evals/README.md).
 - **Scope:** this is an isolated text-retrieval eval. It does not cover PDF/OCR
   extraction or report quality.
 
+## Results: rule-check model (Phase 3, partial)
+
+No trained-model or LLM result exists yet. Measured so far on the full official
+ContractNLI TEST split (2,091 pairs, `make baselines`, choices made on DEV only):
+
+| Baseline | Accuracy | Macro-F1 |
+|---|---:|---:|
+| Majority (global) | 0.463 | 0.211 |
+| Majority per hypothesis | 0.659 | 0.617 |
+| TF-IDF + logistic regression (BGE top-8 candidates; C=30 balanced, DEV-chosen) | 0.763 | 0.723 |
+
+The handoff's claim that `not_mentioned` dominates is wrong for the official TRAIN split
+(entailment 3,530 / not_mentioned 2,820 / contradiction 841); loss weights use the actual
+counts. Method, provenance and the remaining external steps: [`ml/README.md`](ml/README.md).
+
 ## Development
 
 ```bash
@@ -227,8 +252,9 @@ make fetch-artifacts   # pinned model + ContractNLI into ./.cache (needed by tes
 make test-infra-up     # throwaway Postgres/pgvector + Redis on 127.0.0.1:55432/56379
 make ci                # lint, typecheck, OpenAPI drift check, pytest, vitest, next build
 make up && make seed   # full stack + demo data
-make smoke smoke-phase1 smoke-phase2 WEB_PORT=3000   # end-to-end smoke tests against the stack
+make smoke smoke-phase1 smoke-phase2 smoke-phase3 WEB_PORT=3000   # end-to-end smoke tests against the stack
 make eval-retrieval    # ContractNLI retrieval eval (needs test-infra-up + fetch-artifacts)
+make ml-test ml-smoke  # rule-check model unit tests + CPU end-to-end smoke (tiny random model)
 make help              # every target
 uv run pre-commit install   # optional: ruff, mypy, eslint, tsc hooks on commit
 ```
@@ -283,8 +309,12 @@ The vendor register's access levels and dates are synthetic; see
 
 ## Limitations
 
-- No trained model, agents, reviews, MCP tools or end-to-end evals yet; see the phase
-  plan in the handoff.
+- No trained rule-check model yet (Colab training pending), no agents, reviews, MCP tools
+  or end-to-end evals; see the phase plan in the handoff.
+- **Rule-check model (when trained):** dynamic int8 quantization makes a row's output
+  depend slightly on the rows batched with it; evaluation is on canonical ContractNLI
+  text, not PDF/OCR output; the 17 hypotheses are the only model-supported rules (custom
+  rules go to the LLM in Phase 4).
 - **Search:**
   - Results are whole stored chunks (~200-400 tokens), not sentence-level answers.
     Term marks in the result list are a display aid (word-prefix matches of the

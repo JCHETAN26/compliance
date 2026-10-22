@@ -23,6 +23,7 @@ export type SearchResponse = components["schemas"]["SearchResponse"];
 export type SearchHit = components["schemas"]["SearchHit"];
 export type SearchMode = NonNullable<SearchRequest["mode"]>;
 export type SearchCapabilities = components["schemas"]["SearchCapabilities"];
+export type ModelStatus = components["schemas"]["ModelStatus"];
 type ErrorEnvelope = components["schemas"]["ErrorResponse"];
 
 const AUTH_ENTRY_PATHS = ["/api/v1/auth/login", "/api/v1/auth/register"];

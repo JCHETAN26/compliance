@@ -1,0 +1,49 @@
+# CI / local CPU smoke ONLY. A tiny RANDOMLY INITIALISED DeBERTa-v2 (2 layers, hidden 32)
+# with the real DeBERTa-v3 tokenizer, trained for a few dozen steps on 12/4/4 documents.
+# It exercises the full pipeline (data -> train -> predict -> evaluate -> ONNX export ->
+# int8 -> parity -> service) in about two minutes. Its numbers are meaningless and are
+# never written to ml/eval/results; its artifact is marked kind=smoke and refused by the
+# model service unless RULE_CHECK_ALLOW_SMOKE=true.
+run_name: smoke
+kind: smoke
+seed: 20261021
+requires_cuda: false
+backbone:
+  kind: random_tiny
+  repo_id: microsoft/deberta-v3-base
+  revision: 8ccc9b6f36199bec6961081d44eb72fb3f7353f3
+  config_file: {name: config.json, sha256: 649f6a1ec33c6bdd9a6486d5c66019d461139e54957073eafe9bbc2d34c75b0b, bytes: 579}
+  tiny_overrides: {hidden_size: 32, num_hidden_layers: 2, num_attention_heads: 2, intermediate_size: 64}
+  tokenizer:
+    repo_id: microsoft/deberta-v3-base
+    revision: 8ccc9b6f36199bec6961081d44eb72fb3f7353f3
+    source: spm
+    files:
+      - {name: spm.model, sha256: c679fbf93643d19aab7ee10c0b99e460bdbc02fedf34b92b05af343b4af586fd, bytes: 2464616}
+      - {name: tokenizer_config.json, sha256: 3f3978e0c036f2c2588cac34a6047cbb0af0b0dc1814254e291028529805496d, bytes: 52}
+      - {name: config.json, sha256: 649f6a1ec33c6bdd9a6486d5c66019d461139e54957073eafe9bbc2d34c75b0b, bytes: 579}
+encoder:
+  normalization: NFKC  # DeBERTa-v3's SentencePiece normalises with NFKC
+  max_hypothesis_tokens: 48
+  max_evidence_tokens: 128
+  max_label_tokens: 256
+data:
+  data_dir: .cache/ml/data/smoke
+sampling:
+  hard_negatives: 2
+  random_negatives: 2
+  label_k_choices: [3, 4]
+training:
+  epochs: 2
+  evidence_batch_size: 16
+  label_batch_size: 8
+  lr: 1.0e-3
+  head_lr: 1.0e-3
+  fp16: false
+  max_steps: 30
+  checkpoint_every_steps: 10
+selection:
+  top_k_candidates: [3, 4]
+inference:
+  chunk_rows: 2048
+  max_tokens_per_forward: 8192

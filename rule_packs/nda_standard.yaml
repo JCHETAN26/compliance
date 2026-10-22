@@ -1,0 +1,165 @@
+# NDA standard rule pack: the 17 ContractNLI hypotheses as model-supported rules.
+#
+# Every rule's hypothesis_text is the ContractNLI hypothesis VERBATIM (checked against
+# the official dataset by ml/tests/test_rule_pack.py), so the trained rule-check model
+# sees exactly the text it was trained on. contractnli_key is the dataset's own key.
+#
+# Label semantics (docs/BUILD_HANDOFF.md section 7.1): the model predicts
+#   Entailment    -> satisfied     (the contract states what the hypothesis says)
+#   Contradiction -> violated      (the contract states the opposite)
+#   NotMentioned  -> not_mentioned
+# "satisfied" therefore means "the contract says this", not "this is good for you":
+# e.g. nda-18 (no solicitation) is satisfied when the NDA contains a non-solicit clause.
+#
+# severity is an editorial judgement for report ranking (not learned, not evaluated):
+# high = core protection of confidential information, medium = scope / handling terms,
+# low = ancillary terms. Users can change it; the model does not read it.
+#
+# Dataset: ContractNLI (Koreeda & Manning, 2021), CC BY 4.0; see ml/data/LICENSES.md.
+key: nda_standard
+name: NDA standard review
+version: 1.0.0
+description: >-
+  The 17 ContractNLI NDA hypotheses, checked per document by the trained rule-check
+  model (with LLM escalation for low-confidence cases).
+source:
+  dataset: ContractNLI
+  url: https://stanfordnlp.github.io/contract-nli/
+  license: CC BY 4.0
+rules:
+  - key: explicit_identification
+    contractnli_key: nda-1
+    title: Explicit identification
+    hypothesis_text: All Confidential Information shall be expressly identified by the Disclosing Party.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: medium
+    model_supported: true
+  - key: non_technical_information_excluded
+    contractnli_key: nda-2
+    title: None-inclusion of non-technical information
+    hypothesis_text: Confidential Information shall only include technical information.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: medium
+    model_supported: true
+  - key: verbal_information_included
+    contractnli_key: nda-3
+    title: Inclusion of verbally conveyed information
+    hypothesis_text: Confidential Information may include verbally conveyed information.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: medium
+    model_supported: true
+  - key: limited_use
+    contractnli_key: nda-4
+    title: Limited use
+    hypothesis_text: Receiving Party shall not use any Confidential Information for any purpose other than the purposes stated in Agreement.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: high
+    model_supported: true
+  - key: sharing_with_employees
+    contractnli_key: nda-5
+    title: Sharing with employees
+    hypothesis_text: Receiving Party may share some Confidential Information with some of Receiving Party's employees.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: medium
+    model_supported: true
+  - key: sharing_with_third_parties
+    contractnli_key: nda-7
+    title: Sharing with third-parties
+    hypothesis_text: Receiving Party may share some Confidential Information with some third-parties (including consultants, agents and professional advisors).
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: high
+    model_supported: true
+  - key: notice_on_compelled_disclosure
+    contractnli_key: nda-8
+    title: Notice on compelled disclosure
+    hypothesis_text: Receiving Party shall notify Disclosing Party in case Receiving Party is required by law, regulation or judicial process to disclose any Confidential Information.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: high
+    model_supported: true
+  - key: confidentiality_of_agreement
+    contractnli_key: nda-10
+    title: Confidentiality of Agreement
+    hypothesis_text: Receiving Party shall not disclose the fact that Agreement was agreed or negotiated.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: low
+    model_supported: true
+  - key: no_reverse_engineering
+    contractnli_key: nda-11
+    title: No reverse engineering
+    hypothesis_text: Receiving Party shall not reverse engineer any objects which embody Disclosing Party's Confidential Information.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: medium
+    model_supported: true
+  - key: independent_development_permitted
+    contractnli_key: nda-12
+    title: Permissible development of similar information
+    hypothesis_text: Receiving Party may independently develop information similar to Confidential Information.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: low
+    model_supported: true
+  - key: third_party_acquisition_permitted
+    contractnli_key: nda-13
+    title: Permissible acquirement of similar information
+    hypothesis_text: Receiving Party may acquire information similar to Confidential Information from a third party.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: low
+    model_supported: true
+  - key: no_licensing
+    contractnli_key: nda-15
+    title: No licensing
+    hypothesis_text: Agreement shall not grant Receiving Party any right to Confidential Information.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: medium
+    model_supported: true
+  - key: return_or_destruction
+    contractnli_key: nda-16
+    title: Return of confidential information
+    hypothesis_text: Receiving Party shall destroy or return some Confidential Information upon the termination of Agreement.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: high
+    model_supported: true
+  - key: copies_permitted
+    contractnli_key: nda-17
+    title: Permissible copy
+    hypothesis_text: Receiving Party may create a copy of some Confidential Information in some circumstances.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: low
+    model_supported: true
+  - key: no_solicitation
+    contractnli_key: nda-18
+    title: No solicitation
+    hypothesis_text: Receiving Party shall not solicit some of Disclosing Party's representatives.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: low
+    model_supported: true
+  - key: survival_of_obligations
+    contractnli_key: nda-19
+    title: Survival of obligations
+    hypothesis_text: Some obligations of Agreement may survive termination of Agreement.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: high
+    model_supported: true
+  - key: post_agreement_retention_permitted
+    contractnli_key: nda-20
+    title: Permissible post-agreement possession
+    hypothesis_text: Receiving Party may retain some Confidential Information even after the return or destruction of Confidential Information.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: medium
+    model_supported: true

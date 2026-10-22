@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { createContext, useContext, type ReactNode } from "react";
 import { toast } from "sonner";
 
+import { ModelStatusBanner } from "@/components/model-status-banner";
 import { Button } from "@/components/ui/button";
 import { api, errorMessage, unwrap, type User } from "@/lib/api/client";
 
@@ -64,6 +65,7 @@ export function AppShell({ user, children }: { user: User; children: ReactNode }
           </div>
         </div>
       </header>
+      <ModelStatusBanner />
       <main id="main" className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         {children}
       </main>

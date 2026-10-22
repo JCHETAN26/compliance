@@ -1,6 +1,6 @@
 # Phase 2 independent acceptance checklist
 
-Status: implementation in progress. Phase 2 is not accepted yet.
+Status: accepted after independent local checks and hosted CI (run 39699615208).
 
 ## Retrieval correctness and access
 
@@ -312,3 +312,10 @@ Hosted mypy includes evals. Documentation records pre-TEST frozen hash/time and 
 unchanged reproducibility rerun. DEV-selected app defaults are verified against
 actual Settings/RetrievalConfig and were present before the canonical result run.
 No remaining local acceptance finding; hosted CI is required before Phase 3.
+
+## Hosted acceptance
+
+All three jobs in run 39699615208 completed success for commit c61eab2: Python,
+web, clean Docker build/health/automatic seed and Phase 0–2 smoke. Phase 2 accepted.
+Earlier pending entries above are chronological review history, resolved by later
+checks and this final gate.

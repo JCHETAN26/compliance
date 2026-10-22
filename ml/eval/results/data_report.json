@@ -1,0 +1,513 @@
+{
+  "scope": "full official ContractNLI splits (train/dev/test), all pairs",
+  "data_dir_version": "620358b51ef96faccf2cb55c300a8703875e8086c03b3ef0b8806d85104113f2",
+  "dataset_sha256": "e03fc77bbf8b53e2976a250e81d8a294bc3d5e5fb014521e477dee9340d6287b",
+  "splits": {
+    "train": {
+      "documents": 423,
+      "pairs": 7191,
+      "label_counts": {
+        "entailment": 3530,
+        "contradiction": 841,
+        "not_mentioned": 2820
+      },
+      "label_counts_by_hypothesis": {
+        "nda-1": {
+          "entailment": 91,
+          "contradiction": 112,
+          "not_mentioned": 220
+        },
+        "nda-2": {
+          "entailment": 23,
+          "contradiction": 309,
+          "not_mentioned": 91
+        },
+        "nda-3": {
+          "entailment": 270,
+          "contradiction": 4,
+          "not_mentioned": 149
+        },
+        "nda-4": {
+          "entailment": 364,
+          "contradiction": 7,
+          "not_mentioned": 52
+        },
+        "nda-5": {
+          "entailment": 345,
+          "contradiction": 13,
+          "not_mentioned": 65
+        },
+        "nda-7": {
+          "entailment": 259,
+          "contradiction": 111,
+          "not_mentioned": 53
+        },
+        "nda-8": {
+          "entailment": 276,
+          "contradiction": 0,
+          "not_mentioned": 147
+        },
+        "nda-10": {
+          "entailment": 159,
+          "contradiction": 2,
+          "not_mentioned": 262
+        },
+        "nda-11": {
+          "entailment": 59,
+          "contradiction": 1,
+          "not_mentioned": 363
+        },
+        "nda-12": {
+          "entailment": 263,
+          "contradiction": 0,
+          "not_mentioned": 160
+        },
+        "nda-13": {
+          "entailment": 311,
+          "contradiction": 0,
+          "not_mentioned": 112
+        },
+        "nda-15": {
+          "entailment": 327,
+          "contradiction": 0,
+          "not_mentioned": 96
+        },
+        "nda-16": {
+          "entailment": 181,
+          "contradiction": 1,
+          "not_mentioned": 241
+        },
+        "nda-17": {
+          "entailment": 91,
+          "contradiction": 76,
+          "not_mentioned": 256
+        },
+        "nda-18": {
+          "entailment": 93,
+          "contradiction": 0,
+          "not_mentioned": 330
+        },
+        "nda-19": {
+          "entailment": 300,
+          "contradiction": 11,
+          "not_mentioned": 112
+        },
+        "nda-20": {
+          "entailment": 118,
+          "contradiction": 194,
+          "not_mentioned": 111
+        }
+      },
+      "segments_per_document": {
+        "mean": 50.23,
+        "median": 47.0,
+        "p95": 92.0,
+        "max": 239.0
+      },
+      "segment_chars": {
+        "mean": 218.97,
+        "median": 167.0,
+        "p95": 617.0,
+        "max": 3770.0
+      },
+      "official_spans": 32895,
+      "official_spans_whitespace_only": 536,
+      "official_spans_overlapping_multiple_segments": 416,
+      "segments_overlapping_multiple_official_spans": 4606,
+      "gold_segments_per_evidence_pair": {
+        "mean": 1.53,
+        "median": 1.0,
+        "p95": 3.0,
+        "max": 15.0
+      },
+      "evidence_pairs_without_gold_segment": 0,
+      "not_mentioned_pairs_with_evidence_spans": 0,
+      "candidate_coverage_ceiling": {
+        "evidence_pairs": 4371,
+        "top1": {
+          "pairs_with_any_gold": 0.3322,
+          "mean_gold_segment_recall": 0.2612
+        },
+        "top3": {
+          "pairs_with_any_gold": 0.6145,
+          "mean_gold_segment_recall": 0.5029
+        },
+        "top5": {
+          "pairs_with_any_gold": 0.758,
+          "mean_gold_segment_recall": 0.6383
+        },
+        "top8": {
+          "pairs_with_any_gold": 0.8655,
+          "mean_gold_segment_recall": 0.7492
+        },
+        "top16": {
+          "pairs_with_any_gold": 0.9593,
+          "mean_gold_segment_recall": 0.8858
+        }
+      }
+    },
+    "dev": {
+      "documents": 61,
+      "pairs": 1037,
+      "label_counts": {
+        "entailment": 519,
+        "contradiction": 95,
+        "not_mentioned": 423
+      },
+      "label_counts_by_hypothesis": {
+        "nda-1": {
+          "entailment": 19,
+          "contradiction": 10,
+          "not_mentioned": 32
+        },
+        "nda-2": {
+          "entailment": 6,
+          "contradiction": 44,
+          "not_mentioned": 11
+        },
+        "nda-3": {
+          "entailment": 45,
+          "contradiction": 0,
+          "not_mentioned": 16
+        },
+        "nda-4": {
+          "entailment": 50,
+          "contradiction": 3,
+          "not_mentioned": 8
+        },
+        "nda-5": {
+          "entailment": 54,
+          "contradiction": 2,
+          "not_mentioned": 5
+        },
+        "nda-7": {
+          "entailment": 39,
+          "contradiction": 14,
+          "not_mentioned": 8
+        },
+        "nda-8": {
+          "entailment": 45,
+          "contradiction": 0,
+          "not_mentioned": 16
+        },
+        "nda-10": {
+          "entailment": 29,
+          "contradiction": 0,
+          "not_mentioned": 32
+        },
+        "nda-11": {
+          "entailment": 8,
+          "contradiction": 0,
+          "not_mentioned": 53
+        },
+        "nda-12": {
+          "entailment": 40,
+          "contradiction": 0,
+          "not_mentioned": 21
+        },
+        "nda-13": {
+          "entailment": 47,
+          "contradiction": 0,
+          "not_mentioned": 14
+        },
+        "nda-15": {
+          "entailment": 39,
+          "contradiction": 0,
+          "not_mentioned": 22
+        },
+        "nda-16": {
+          "entailment": 22,
+          "contradiction": 2,
+          "not_mentioned": 37
+        },
+        "nda-17": {
+          "entailment": 9,
+          "contradiction": 8,
+          "not_mentioned": 44
+        },
+        "nda-18": {
+          "entailment": 11,
+          "contradiction": 0,
+          "not_mentioned": 50
+        },
+        "nda-19": {
+          "entailment": 43,
+          "contradiction": 0,
+          "not_mentioned": 18
+        },
+        "nda-20": {
+          "entailment": 13,
+          "contradiction": 12,
+          "not_mentioned": 36
+        }
+      },
+      "segments_per_document": {
+        "mean": 52.07,
+        "median": 45.0,
+        "p95": 116.0,
+        "max": 131.0
+      },
+      "segment_chars": {
+        "mean": 231.29,
+        "median": 180.0,
+        "p95": 647.0,
+        "max": 2676.0
+      },
+      "official_spans": 5102,
+      "official_spans_whitespace_only": 63,
+      "official_spans_overlapping_multiple_segments": 77,
+      "segments_overlapping_multiple_official_spans": 723,
+      "gold_segments_per_evidence_pair": {
+        "mean": 1.56,
+        "median": 1.0,
+        "p95": 3.0,
+        "max": 8.0
+      },
+      "evidence_pairs_without_gold_segment": 0,
+      "not_mentioned_pairs_with_evidence_spans": 0,
+      "candidate_coverage_ceiling": {
+        "evidence_pairs": 614,
+        "top1": {
+          "pairs_with_any_gold": 0.3257,
+          "mean_gold_segment_recall": 0.2459
+        },
+        "top3": {
+          "pairs_with_any_gold": 0.6417,
+          "mean_gold_segment_recall": 0.513
+        },
+        "top5": {
+          "pairs_with_any_gold": 0.7606,
+          "mean_gold_segment_recall": 0.6326
+        },
+        "top8": {
+          "pairs_with_any_gold": 0.8681,
+          "mean_gold_segment_recall": 0.7406
+        },
+        "top16": {
+          "pairs_with_any_gold": 0.9625,
+          "mean_gold_segment_recall": 0.8749
+        }
+      }
+    },
+    "test": {
+      "documents": 123,
+      "pairs": 2091,
+      "label_counts": {
+        "entailment": 968,
+        "contradiction": 220,
+        "not_mentioned": 903
+      },
+      "label_counts_by_hypothesis": {
+        "nda-1": {
+          "entailment": 24,
+          "contradiction": 36,
+          "not_mentioned": 63
+        },
+        "nda-2": {
+          "entailment": 6,
+          "contradiction": 88,
+          "not_mentioned": 29
+        },
+        "nda-3": {
+          "entailment": 73,
+          "contradiction": 3,
+          "not_mentioned": 47
+        },
+        "nda-4": {
+          "entailment": 103,
+          "contradiction": 7,
+          "not_mentioned": 13
+        },
+        "nda-5": {
+          "entailment": 93,
+          "contradiction": 1,
+          "not_mentioned": 29
+        },
+        "nda-7": {
+          "entailment": 77,
+          "contradiction": 25,
+          "not_mentioned": 21
+        },
+        "nda-8": {
+          "entailment": 77,
+          "contradiction": 0,
+          "not_mentioned": 46
+        },
+        "nda-10": {
+          "entailment": 46,
+          "contradiction": 0,
+          "not_mentioned": 77
+        },
+        "nda-11": {
+          "entailment": 13,
+          "contradiction": 0,
+          "not_mentioned": 110
+        },
+        "nda-12": {
+          "entailment": 73,
+          "contradiction": 0,
+          "not_mentioned": 50
+        },
+        "nda-13": {
+          "entailment": 96,
+          "contradiction": 0,
+          "not_mentioned": 27
+        },
+        "nda-15": {
+          "entailment": 86,
+          "contradiction": 0,
+          "not_mentioned": 37
+        },
+        "nda-16": {
+          "entailment": 37,
+          "contradiction": 1,
+          "not_mentioned": 85
+        },
+        "nda-17": {
+          "entailment": 24,
+          "contradiction": 25,
+          "not_mentioned": 74
+        },
+        "nda-18": {
+          "entailment": 28,
+          "contradiction": 0,
+          "not_mentioned": 95
+        },
+        "nda-19": {
+          "entailment": 79,
+          "contradiction": 4,
+          "not_mentioned": 40
+        },
+        "nda-20": {
+          "entailment": 33,
+          "contradiction": 30,
+          "not_mentioned": 60
+        }
+      },
+      "segments_per_document": {
+        "mean": 52.21,
+        "median": 46.0,
+        "p95": 96.0,
+        "max": 178.0
+      },
+      "segment_chars": {
+        "mean": 213.85,
+        "median": 162.0,
+        "p95": 614.0,
+        "max": 2956.0
+      },
+      "official_spans": 10061,
+      "official_spans_whitespace_only": 138,
+      "official_spans_overlapping_multiple_segments": 150,
+      "segments_overlapping_multiple_official_spans": 1476,
+      "gold_segments_per_evidence_pair": {
+        "mean": 1.6,
+        "median": 1.0,
+        "p95": 3.0,
+        "max": 15.0
+      },
+      "evidence_pairs_without_gold_segment": 0,
+      "not_mentioned_pairs_with_evidence_spans": 0,
+      "candidate_coverage_ceiling": {
+        "evidence_pairs": 1188,
+        "top1": {
+          "pairs_with_any_gold": 0.3266,
+          "mean_gold_segment_recall": 0.2467
+        },
+        "top3": {
+          "pairs_with_any_gold": 0.6052,
+          "mean_gold_segment_recall": 0.4815
+        },
+        "top5": {
+          "pairs_with_any_gold": 0.7365,
+          "mean_gold_segment_recall": 0.6014
+        },
+        "top8": {
+          "pairs_with_any_gold": 0.8367,
+          "mean_gold_segment_recall": 0.7134
+        },
+        "top16": {
+          "pairs_with_any_gold": 0.9604,
+          "mean_gold_segment_recall": 0.8764
+        }
+      }
+    }
+  },
+  "train_class_weights_inverse_frequency": {
+    "entailment": 0.679037,
+    "contradiction": 2.850178,
+    "not_mentioned": 0.85
+  },
+  "handoff_correction": "docs/BUILD_HANDOFF.md section 7.3 says not_mentioned dominates. The official TRAIN counts are {'entailment': 3530, 'contradiction': 841, 'not_mentioned': 2820}: entailment is the largest class and contradiction the rare one. Labels are unchanged; loss weights are derived from these actual TRAIN counts.",
+  "exact_duplicate_document_texts": [
+    {
+      "text_sha256": "e357bc04d41e4165e97d7579f04446517ad74675de15204d6988751560e6dd25",
+      "documents": [
+        "test:52",
+        "test:97"
+      ]
+    }
+  ],
+  "candidate_depth_used_by_baselines": 8,
+  "provenance": {
+    "timestamp_utc": "2026-10-22T01:16:38+00:00",
+    "command": "/home/grv22/projects/compliance/ml/data/prepare.py --threads 12",
+    "git_head": "c61eab2eb60772442b5857a16bc45252ec9c9b91",
+    "git_dirty": true,
+    "git_dirty_paths": [
+      "pps/model-service/src/compliance_model_service/main.py",
+      "apps/model-service/tests/test_model_service.py",
+      "conftest.py",
+      "docs/PHASE2_REVIEW.md",
+      "docs/SUPERVISION.md",
+      "packages/core/src/compliance_core/config.py",
+      "rule_packs/README.md",
+      "apps/model-service/src/compliance_model_service/rule_check/",
+      "apps/model-service/tests/test_rule_check_batching.py",
+      "apps/model-service/tests/test_rule_check_encoding.py",
+      "apps/model-service/tests/test_rule_check_service.py",
+      "docs/PHASE3_REVIEW.md",
+      "ml/__init__.py",
+      "ml/baselines/",
+      "ml/common/",
+      "ml/data/__init__.py",
+      "ml/data/contractnli.py",
+      "ml/data/prepare.py",
+      "ml/data/store.py",
+      "ml/eval/",
+      "ml/export/",
+      "ml/requirements-tools.txt",
+      "ml/tests/",
+      "ml/tests_tools/",
+      "ml/train/",
+      "rule_packs/nda_standard.yaml"
+    ],
+    "git_dirty_count": 26,
+    "code_fingerprint": {
+      "sha256": "1c19816528725591b5ea15b8f52893dc240ad3fb21d06ded9b334bf2c31980b3",
+      "files": 63,
+      "roots": [
+        "ml",
+        "apps/model-service/src/compliance_model_service/rule_check",
+        "packages/ingestion/src/compliance_ingestion",
+        "rule_packs"
+      ]
+    },
+    "seed": null,
+    "environment": {
+      "python": "3.11.13",
+      "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+      "cpu_model": "AMD Ryzen 7 5800H with Radeon Graphics",
+      "cpu_count": 16,
+      "packages": {
+        "numpy": "2.4.6",
+        "torch": "2.14.1+cpu",
+        "transformers": "5.20.2",
+        "tokenizers": "0.23.3",
+        "onnxruntime": "1.31.0",
+        "sklearn": "1.9.1"
+      }
+    }
+  },
+  "reserialized_from_data_version": "f93f46478098c87134b3204df2b6bfa08fe3296cd8c48cd6ed44ee5cd6fe6759"
+}
