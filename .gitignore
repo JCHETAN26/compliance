@@ -17,7 +17,8 @@ build/
 *.pem
 
 # Node / Next.js
-node_modules/
+# No trailing slash: also matches a node_modules symlink (e.g. to RAM-installed deps).
+node_modules
 .next/
 *.tsbuildinfo
 
