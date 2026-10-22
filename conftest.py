@@ -112,6 +112,47 @@ def embedder(model_path: Path) -> Any:
 
 
 @pytest.fixture(scope="session")
+def reranker_path(test_settings: Settings) -> Path:
+    """The verified, pinned cross-encoder (fails loudly if not fetched)."""
+    from compliance_ingestion.embeddings import ensure_model
+    from compliance_model_service.rerank import rerank_spec
+
+    try:
+        return ensure_model(
+            test_settings.model_cache_dir, rerank_spec(test_settings), allow_download=False
+        )
+    except Exception as exc:
+        pytest.fail(f"reranker model unavailable ({exc}); run `make fetch-artifacts`")
+
+
+@pytest.fixture(scope="session")
+async def model_service_app(
+    test_settings: Settings, model_path: Path, reranker_path: Path
+) -> AsyncIterator[Any]:
+    """The real model service (pinned encoder + pinned reranker), served in-process."""
+    from compliance_model_service.main import create_app
+
+    app = create_app(test_settings.model_copy(update={"rerank_enabled": True}))
+    async with app.router.lifespan_context(app):
+        yield app
+
+
+@pytest.fixture(scope="session")
+async def model_client(model_service_app: Any) -> AsyncIterator[Any]:
+    """The production HTTP client, talking to the real in-process model service."""
+    from compliance_core.model_client import ModelServiceClient
+
+    client = ModelServiceClient(
+        "http://model-service",
+        timeout=60,
+        retries=0,
+        transport=httpx.ASGITransport(app=model_service_app),
+    )
+    yield client
+    await client.aclose()
+
+
+@pytest.fixture(scope="session")
 def migrated_database(test_settings: Settings) -> str:
     """Create the test database if needed and migrate it from scratch to head."""
     asyncio.run(_ensure_database(test_settings.database_url))
@@ -167,6 +208,60 @@ async def clients(api_app: Any, clean_state: None) -> AsyncIterator[ApiClientFac
     yield factory
     for client in factory.clients:
         await client.aclose()
+
+
+Ingest = Callable[[Any, Any, str, bytes, str], Awaitable[Any]]
+
+
+@pytest.fixture(scope="session")
+def ingest_ready(api_app: Any, embedder: Any, model_path: Path, test_settings: Settings) -> Ingest:
+    """Register an upload and run the real ingestion job to READY.
+
+    Small chunk sizes give several chunks per short test document. Documents are
+    labelled with the real encoder identity, exactly as the worker does.
+    """
+    import hashlib
+
+    from compliance_core.model_client import embedding_label
+    from compliance_core.services import documents as document_service
+    from compliance_worker.ingest import IngestDeps, ingest_document
+
+    ctx = api_app.state.ctx
+    deps = IngestDeps(
+        settings=test_settings.model_copy(
+            update={"chunk_min_tokens": 24, "chunk_max_tokens": 48, "chunk_overlap_tokens": 0}
+        ),
+        session_factory=ctx.session_factory,
+        storage=ctx.storage,
+        embedder=embedder,
+        tokenizer_path=model_path / "tokenizer.json",
+        model_label=embedding_label(
+            test_settings.embedding_model_id, test_settings.embedding_model_revision
+        ),
+        embed_lock=asyncio.Lock(),
+    )
+
+    async def run(workspace_id: Any, user_id: Any, filename: str, data: bytes, fmt: str) -> Any:
+        staged = deps.storage.new_staging_file()
+        staged.write_bytes(data)
+        async with deps.session_factory() as session:
+            registered = await document_service.register_upload(
+                session,
+                deps.storage,
+                workspace_id=workspace_id,
+                user_id=user_id,
+                filename=filename,
+                fmt=fmt,  # type: ignore[arg-type]
+                staged_path=staged,
+                sha256=hashlib.sha256(data).hexdigest(),
+                size=len(data),
+            )
+        doc_id = registered.document.id
+        result = await ingest_document({"ingest": deps}, str(doc_id), 1)
+        assert result["status"] == "ready", result
+        return doc_id
+
+    return run
 
 
 @pytest.fixture

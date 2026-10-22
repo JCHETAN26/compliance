@@ -1,4 +1,4 @@
-import { api, unwrap } from "./client";
+import { api, unwrap, type SearchRequest } from "./client";
 
 export const queryKeys = {
   workspaces: ["workspaces"] as const,
@@ -38,7 +38,6 @@ export const documentKeys = {
   rows: (documentId: string, sheet: number) => ["documents", documentId, "rows", sheet] as const,
   entities: (documentId: string) => ["documents", documentId, "entities"] as const,
 };
-
 
 export async function fetchDocuments(workspaceId: string) {
   return unwrap(
@@ -123,4 +122,24 @@ export async function fetchEntities(documentId: string) {
 
 export function documentFileUrl(documentId: string, download = false): string {
   return `/api/v1/documents/${encodeURIComponent(documentId)}/file${download ? "?download=true" : ""}`;
+}
+
+export const searchKeys = {
+  capabilities: ["search", "capabilities"] as const,
+  results: (workspaceId: string, request: SearchRequest) =>
+    ["workspaces", workspaceId, "search", request] as const,
+};
+
+export async function fetchSearchCapabilities() {
+  return unwrap(await api.GET("/api/v1/search/capabilities"), "/api/v1/search/capabilities");
+}
+
+export async function searchWorkspace(workspaceId: string, body: SearchRequest) {
+  return unwrap(
+    await api.POST("/api/v1/workspaces/{workspace_id}/search", {
+      params: { path: { workspace_id: workspaceId } },
+      body,
+    }),
+    "/api/v1/workspaces/{workspace_id}/search",
+  );
 }

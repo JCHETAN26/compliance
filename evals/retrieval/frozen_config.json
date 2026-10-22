@@ -1,0 +1,29 @@
+{
+  "selected_on": "ContractNLI dev split (official)",
+  "selection_metric": "recall@3 (tie-break mrr@10)",
+  "dev_metrics": {
+    "recall@1": 0.4297,
+    "hit@1": 0.4805,
+    "recall@3": 0.8186,
+    "hit@3": 0.8697,
+    "recall@5": 0.9123,
+    "hit@5": 0.9365,
+    "recall@10": 0.9927,
+    "hit@10": 0.9967,
+    "mrr@10": 0.6761
+  },
+  "config": {
+    "query_instruction": "Represent this sentence for searching relevant passages: ",
+    "keyword_mode": "or",
+    "rrf_k": 5,
+    "vector_weight": 1.0,
+    "keyword_weight": 1.5,
+    "candidate_k": 50,
+    "ef_search": 100,
+    "rerank_candidates": 30
+  },
+  "config_hash": "6cb1378fdec77f44581e184ff11c5072d7feead6fbb63019191b488c5f491516",
+  "frozen_at_utc": "2026-10-22T00:03:45+00:00",
+  "dev_results": "evals/results/retrieval_dev.json",
+  "code_fingerprint": "ac6c9f740b87a2ad576d510bed5424e0cf3e0a3c679b62de7fad8abd0d183852"
+}

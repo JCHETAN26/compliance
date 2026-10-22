@@ -758,6 +758,26 @@
         "title": "MemberUpdate",
         "type": "object"
       },
+      "MethodScore": {
+        "properties": {
+          "rank": {
+            "description": "1-based rank within that method's candidate list",
+            "title": "Rank",
+            "type": "integer"
+          },
+          "score": {
+            "description": "Method-native score: cosine similarity or ts_rank_cd",
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "rank",
+          "score"
+        ],
+        "title": "MethodScore",
+        "type": "object"
+      },
       "PageRead": {
         "properties": {
           "char_end": {
@@ -817,6 +837,56 @@
           "char_end"
         ],
         "title": "PageRead",
+        "type": "object"
+      },
+      "Provenance": {
+        "properties": {
+          "fused_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Weighted RRF score (hybrid mode only)",
+            "title": "Fused Score"
+          },
+          "keyword": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MethodScore"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rerank_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Cross-encoder logit",
+            "title": "Rerank Score"
+          },
+          "vector": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MethodScore"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "Provenance",
         "type": "object"
       },
       "ReadinessReport": {
@@ -940,6 +1010,504 @@
         "title": "RowRead",
         "type": "object"
       },
+      "SearchCapabilities": {
+        "properties": {
+          "default_top_k": {
+            "title": "Default Top K",
+            "type": "integer"
+          },
+          "embedding_model": {
+            "title": "Embedding Model",
+            "type": "string"
+          },
+          "embedding_revision": {
+            "title": "Embedding Revision",
+            "type": "string"
+          },
+          "max_top_k": {
+            "title": "Max Top K",
+            "type": "integer"
+          },
+          "modes": {
+            "items": {
+              "enum": [
+                "hybrid",
+                "vector",
+                "keyword"
+              ],
+              "type": "string"
+            },
+            "title": "Modes",
+            "type": "array"
+          },
+          "query_instruction": {
+            "title": "Query Instruction",
+            "type": "string"
+          },
+          "rerank_available": {
+            "title": "Rerank Available",
+            "type": "boolean"
+          },
+          "rerank_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerank Model"
+          }
+        },
+        "required": [
+          "modes",
+          "rerank_available",
+          "embedding_model",
+          "embedding_revision",
+          "query_instruction",
+          "rerank_model",
+          "default_top_k",
+          "max_top_k"
+        ],
+        "title": "SearchCapabilities",
+        "type": "object"
+      },
+      "SearchHit": {
+        "properties": {
+          "bboxes": {
+            "items": {
+              "$ref": "#/components/schemas/BBoxRead"
+            },
+            "title": "Bboxes",
+            "type": "array"
+          },
+          "char_end": {
+            "title": "Char End",
+            "type": "integer"
+          },
+          "char_start": {
+            "title": "Char Start",
+            "type": "integer"
+          },
+          "chunk_id": {
+            "format": "uuid",
+            "title": "Chunk Id",
+            "type": "string"
+          },
+          "chunk_index": {
+            "title": "Chunk Index",
+            "type": "integer"
+          },
+          "doc_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doc Type"
+          },
+          "document_id": {
+            "format": "uuid",
+            "title": "Document Id",
+            "type": "string"
+          },
+          "file_format": {
+            "title": "File Format",
+            "type": "string"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "page_end": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page End"
+          },
+          "page_start": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Start"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "rank": {
+            "title": "Rank",
+            "type": "integer"
+          },
+          "row_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Number"
+          },
+          "section_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Path"
+          },
+          "sheet_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sheet Name"
+          },
+          "table_row_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Table Row Id"
+          },
+          "text": {
+            "description": "The stored chunk text (canonical text slice)",
+            "title": "Text",
+            "type": "string"
+          },
+          "token_count": {
+            "title": "Token Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rank",
+          "chunk_id",
+          "document_id",
+          "filename",
+          "file_format",
+          "doc_type",
+          "chunk_index",
+          "text",
+          "char_start",
+          "char_end",
+          "page_start",
+          "page_end",
+          "bboxes",
+          "section_path",
+          "token_count",
+          "table_row_id",
+          "sheet_name",
+          "row_number",
+          "provenance"
+        ],
+        "title": "SearchHit",
+        "type": "object"
+      },
+      "SearchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "doc_types": {
+            "items": {
+              "$ref": "#/components/schemas/DocType"
+            },
+            "maxItems": 4,
+            "title": "Doc Types",
+            "type": "array"
+          },
+          "document_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Document Ids",
+            "type": "array"
+          },
+          "mode": {
+            "default": "hybrid",
+            "enum": [
+              "hybrid",
+              "vector",
+              "keyword"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "query": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
+          },
+          "rerank": {
+            "default": false,
+            "title": "Rerank",
+            "type": "boolean"
+          },
+          "top_k": {
+            "default": 8,
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Top K",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "SearchRequest",
+        "type": "object"
+      },
+      "SearchResponse": {
+        "properties": {
+          "candidates": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Candidate counts per method",
+            "title": "Candidates",
+            "type": "object"
+          },
+          "excluded_from_vector": {
+            "description": "Ready documents embedded by a different encoder than the query encoder. They are excluded from vector ranking (still keyword-searchable); re-ingest to include them.",
+            "items": {
+              "$ref": "#/components/schemas/StaleDocument"
+            },
+            "title": "Excluded From Vector",
+            "type": "array"
+          },
+          "mode": {
+            "enum": [
+              "hybrid",
+              "vector",
+              "keyword"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "reranked": {
+            "title": "Reranked",
+            "type": "boolean"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/SearchSettings"
+          },
+          "timings": {
+            "$ref": "#/components/schemas/SearchTimings"
+          }
+        },
+        "required": [
+          "query",
+          "mode",
+          "reranked",
+          "results",
+          "candidates",
+          "excluded_from_vector",
+          "settings",
+          "timings"
+        ],
+        "title": "SearchResponse",
+        "type": "object"
+      },
+      "SearchSettings": {
+        "properties": {
+          "candidate_k": {
+            "title": "Candidate K",
+            "type": "integer"
+          },
+          "ef_search": {
+            "title": "Ef Search",
+            "type": "integer"
+          },
+          "embedding_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Embedding Model"
+          },
+          "embedding_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Embedding Revision"
+          },
+          "keyword_mode": {
+            "title": "Keyword Mode",
+            "type": "string"
+          },
+          "keyword_weight": {
+            "title": "Keyword Weight",
+            "type": "number"
+          },
+          "query_instruction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Query Instruction"
+          },
+          "rerank_candidates": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerank Candidates"
+          },
+          "rerank_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerank Model"
+          },
+          "rrf_k": {
+            "title": "Rrf K",
+            "type": "integer"
+          },
+          "top_k": {
+            "title": "Top K",
+            "type": "integer"
+          },
+          "vector_weight": {
+            "title": "Vector Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "top_k",
+          "candidate_k",
+          "ef_search",
+          "rrf_k",
+          "vector_weight",
+          "keyword_weight",
+          "keyword_mode",
+          "rerank_candidates",
+          "embedding_model",
+          "embedding_revision",
+          "query_instruction",
+          "rerank_model"
+        ],
+        "title": "SearchSettings",
+        "type": "object"
+      },
+      "SearchTimings": {
+        "properties": {
+          "embed_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Embed Ms"
+          },
+          "keyword_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Keyword Ms"
+          },
+          "rerank_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerank Ms"
+          },
+          "total_ms": {
+            "title": "Total Ms",
+            "type": "number"
+          },
+          "vector_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vector Ms"
+          }
+        },
+        "required": [
+          "total_ms"
+        ],
+        "title": "SearchTimings",
+        "type": "object"
+      },
       "SessionRead": {
         "properties": {
           "csrf_token": {
@@ -1009,6 +1577,38 @@
           "truncated"
         ],
         "title": "SheetRead",
+        "type": "object"
+      },
+      "StaleDocument": {
+        "properties": {
+          "document_id": {
+            "format": "uuid",
+            "title": "Document Id",
+            "type": "string"
+          },
+          "embedding_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Encoder identity stored at ingestion",
+            "title": "Embedding Model"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_id",
+          "filename",
+          "embedding_model"
+        ],
+        "title": "StaleDocument",
         "type": "object"
       },
       "UploadErrorBody": {
@@ -2180,6 +2780,48 @@
         ]
       }
     },
+    "/api/v1/search/capabilities": {
+      "get": {
+        "description": "What the search backend supports right now (e.g. whether reranking is enabled).",
+        "operationId": "capabilities_api_v1_search_capabilities_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchCapabilities"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Capabilities",
+        "tags": [
+          "search"
+        ]
+      }
+    },
     "/api/v1/workspaces": {
       "get": {
         "operationId": "list_workspaces_api_v1_workspaces_get",
@@ -3016,6 +3658,120 @@
         "summary": "Update Member",
         "tags": [
           "workspaces"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspace_id}/search": {
+      "post": {
+        "description": "Hybrid (pgvector HNSW + full-text ts_rank_cd, RRF-fused), vector-only or\nkeyword-only search. Results are stored chunk spans with exact document, page,\ncharacter, bounding-box and spreadsheet-row references.",
+        "operationId": "search_api_v1_workspaces__workspace_id__search_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Search",
+        "tags": [
+          "search"
         ]
       }
     }

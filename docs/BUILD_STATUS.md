@@ -1,17 +1,334 @@
 # Build status
 
 Implementer log for `docs/BUILD_HANDOFF.md`. The independent verification ledger is
-kept by the supervisor in `docs/SUPERVISION.md`, `docs/PHASE0_REVIEW.md` and
-`docs/PHASE1_REVIEW.md`; this file does not restate it as fact. Phase 1 work is
-uncommitted; the supervisor commits and pushes it.
+kept by the supervisor in `docs/SUPERVISION.md` and `docs/PHASE0_REVIEW.md` /
+`PHASE1_REVIEW.md` / `PHASE2_REVIEW.md`; this file does not restate it as fact. Phase 2
+work is uncommitted; the supervisor commits and pushes it.
 
 | Phase | Status |
 |---|---|
-| 0 — Skeleton | **Accepted.** Independent local gates passed, and hosted GitHub Actions run 39678264159 passed all three jobs for commit `e6b709e`. |
-| 1 — Ingestion + viewer | **Locally accepted by independent verification** (supervisor: `make ci`, production browser walkthrough, live smoke and a fresh-volume auto-seed smoke; see `docs/PHASE1_REVIEW.md`). **Hosted CI has not run Phase 1 yet** (pending the supervisor's push). In particular, the container auto-download path (model and dataset fetched by the worker on a clean start) is unverified until a hosted run, because containers on this host have no internet. |
-| 2–6 | Not started. |
+| 0 — Skeleton | **Accepted.** Hosted GitHub Actions run 39678264159 passed all jobs for `e6b709e`. |
+| 1 — Ingestion + viewer | **Accepted.** Hosted GitHub Actions run 39687462736 passed all jobs for `ec6c254` (auto download, seeding, ingestion, smoke). |
+| 2 — Hybrid retrieval, search UI, retrieval eval | **Implemented; awaiting independent verification and hosted CI.** Local gates below. |
+| 3–6 | Not started. `/v1/check` still answers 501; no trained model, agents, MCP tools or final eval dashboard. |
 
-## Phase 1 scope delivered
+## Phase 2 scope delivered
+
+**Retrieval** (`packages/retrieval`, shared service layer)
+- `sql.py`:
+  - vector candidates: pgvector HNSW cosine `ORDER BY embedding <=> q LIMIT k`,
+    per-transaction `hnsw.ef_search`, `hnsw.iterative_scan = strict_order` and
+    `statement_timeout`, all via `set_config(..., true)` with bound values;
+  - keyword candidates: Postgres FTS ranked by `ts_rank_cd`. In `or` mode the query's
+    `english` lexemes are OR-ed; `websearch` mode uses `websearch_to_tsquery`. A query
+    of only stop words yields no keyword candidates;
+  - every statement is scoped to workspace + READY documents (+ optional document
+    ids / doc types), with only bound parameters;
+  - hydration re-checks the scope; `Explain` is an EXPLAIN construct for tests and
+    evals.
+- `fusion.py`: weighted RRF `Σ w_m/(k + rank_m)`.
+  - Ranks come from native scores, with ties broken by chunk id.
+  - A method contributes once per chunk; zero-weight methods are ignored.
+  - Fused ties break deterministically by best rank, then method count, then chunk id.
+    Scores are rounded to 1e-12 so that mathematically equal sums tie.
+  - Per-method rank/score provenance is kept.
+- `service.py`:
+  - `resolve_scope`: every workspace role may search, viewers included. Foreign or
+    unknown document ids return 404.
+  - `run_search`: vector (embed → HNSW) and keyword run **concurrently in separate
+    sessions** (`asyncio.TaskGroup`). It then fuses or ranks a single method, applies
+    the optional rerank (stable sort), hydrates stored spans and returns timings.
+  - Model-service errors map to 409 (query too long, rerank disabled) or 503
+    (unavailable or invalid response).
+  - **Encoder-space consistency:** vector search only matches documents whose stored
+    `embedding_model` equals the query encoder's `model@revision[:12]`. Mismatched
+    READY documents are excluded and listed in `excluded_from_vector`, and the UI
+    shows a re-ingest warning.
+- `config.py`: top-k, candidate-k, ef_search, RRF k, weights, keyword mode, rerank
+  pool (≥ top-k, ≤ 100) and statement timeout are all validated and configurable via
+  `SEARCH_*`. The defaults were **frozen from DEV**: RRF k=5, keyword weight 1.5,
+  vector weight 1, `or` mode, BGE query instruction.
+
+**Model service** (query embeddings + optional rerank inside the existing 7 services)
+- `POST /v1/embed` (`query` or `passage`) runs the same `Embedder` as ingestion: the
+  pinned revision, SHA-256-verified weights, and windowing for passages.
+  - Queries are `EMBEDDING_QUERY_INSTRUCTION + query`, never windowed. Overlong
+    queries get 422 `query_too_long`.
+- `POST /v1/rerank` uses `cross-encoder/ms-marco-MiniLM-L6-v2` (Apache-2.0, pinned
+  revision + SHA-256). It loads only when `RERANK_ENABLED=true`.
+  - If enabled but unavailable, startup fails.
+  - When disabled, `/v1/rerank` returns 409 `rerank_disabled`.
+- Single-thread executors per model and a bounded pending queue: overload sheds with
+  503.
+- `/v1/check` is still an honest 501. `/health` reports `embedding=ready`,
+  `rerank=ready|disabled`, `rule_check=not_implemented`.
+- **Docker:** the model service shares the worker's dependency layer
+  (`DEPS_PACKAGE=compliance-worker`). `SERVICE_PACKAGE` is declared only after the
+  deps layer, so CPU PyTorch is stored once.
+  - Verified: the model-service build reported the 1.3 GB `uv sync` layer as
+    `CACHED`, and free disk was unchanged.
+- **Client** (`compliance_core.model_client`):
+  - httpx with bounded timeouts, retrying transport errors and 502/503/504 with
+    backoff;
+  - 4xx error bodies map to request errors and other 5xx to unavailable;
+  - typed pydantic contracts reject malformed JSON, missing fields, wrong count or
+    dimension, non-unit or non-finite vectors, and unexpected, missing or duplicate
+    rerank ids (`ModelServiceProtocolError`).
+
+**API**
+- `POST /api/v1/workspaces/{id}/search` is authenticated and sends `Cache-Control:
+  no-store`. It applies a per-user rate limit (`SEARCH_RATE_LIMIT_PER_MINUTE`, atomic
+  INCR). `GET /api/v1/search/capabilities` reports the encoder and rerank availability.
+  `SearchUnavailableError` maps to 503.
+- The OpenAPI schema and TS types are regenerated (`make openapi-check` is clean).
+
+**Web**
+- A Search tab (`/workspaces/{id}/search`):
+  - URL-synced query/mode/top-k/document/type/rerank, so the page is shareable and
+    back navigation restores it;
+  - capabilities-driven rerank toggle;
+  - result cards with filename, page/sheet-row/section location, stored text with
+    term marks rendered as React text (never HTML), provenance badges (semantic
+    rank·cosine, keyword rank·ts_rank_cd, RRF, rerank) and an expand toggle;
+  - loading, empty, error (503/429/404) and encoder-mismatch states, and an
+    `aria-live` status;
+  - keyboard operable and responsive.
+- Each result links to `…/documents/{id}?chunk={chunk_id}`, which opens the existing
+  viewers' exact highlight.
+
+**Retrieval evaluation** (`evals/retrieval`, `make eval-retrieval`; details in
+`evals/README.md`, results in "Phase 2 retrieval evaluation results" below).
+
+## Supervisor review items addressed (`docs/PHASE2_REVIEW.md`)
+
+- **Model-client contracts:**
+  - typed response validation (count, dimension, norm, finite values, rerank ids);
+  - 5xx is unavailable, distinct from invalid user input;
+  - tested with `MockTransport` (19 tests).
+- **Encoder-space consistency:** a SQL filter on the stored encoder label, plus an
+  explicit `excluded_from_vector` report and a UI warning. Tested by relabelling a
+  document.
+- **Storage:** a shared deps layer, so torch is stored once (see above). Disk was
+  managed per the procedure below.
+- **Benchmark interpretability:**
+  - recall@1/3/5/10, hit@k and MRR@10, with an exact random-ordering baseline;
+  - the chunks-per-document distribution and the share of pairs whose document has
+    ≤ k chunks;
+  - an explicit statement that this is document-scoped retrieval, not
+    workspace-global.
+- **Metric definitions:**
+  - a per-chunk hit criterion (one chunk covers ≥ 50 % of a gold span's
+    characters), with boundary tests and an exhaustive-permutation test of the random
+    baseline;
+  - 17 unique queries and pair counts reported;
+  - memoised query embeddings disclosed in the latency scope;
+  - the duplicate test document is kept in an overflow workspace and searched in its
+    own workspace (`documents_in_overflow_workspaces: 1`).
+- **Eval DB safety:**
+  - strict name regex `compliance_eval(_[a-z0-9_]{1,30})?`, validated inside
+    `recreate_database`/`stored_fingerprint` (not via assert);
+  - an ownership marker written immediately after creation;
+  - an existing database without the marker is never dropped;
+  - a per-database advisory lock (`EvalLock`) for every run;
+  - integration tests prove refusal happens before any connection or DROP for
+    malicious names and unmanaged databases.
+  - One-time action: the first, aborted run had created `compliance_eval` before the
+    marker existed (0 committed documents). I dropped it manually; the drop is
+    logged in `/tmp/cw-eval/actions.log`.
+- **Segmentation:**
+  - ContractNLI keeps wrapped PDF lines. Consecutive lines now form one paragraph
+    block until a line ends with `.;:!?` (optionally followed by closing quotes or
+    brackets). A heading-like line is its own block only when no paragraph is open.
+  - Offsets are unchanged, and the rule never looks at gold.
+  - Tested with a wrapped single sentence longer than `max_tokens`. The corpus
+    fingerprint covers `data.py`, so stale chunks were rebuilt.
+  - After the fix: 0 unreachable gold spans in DEV and TEST.
+
+## Phase 2 retrieval evaluation results
+
+The final run of record is `make eval-retrieval` (exit 0). It ran `uv run python -m
+evals.retrieval.run all`, then `uv run python -m evals.retrieval.sweep`.
+
+- **Provenance** (all three files): git HEAD `ec6c254b2fed4b33645aa060142ccdb4856efb2e`,
+  dirty (48 paths, the uncommitted Phase 2 work); code fingerprint
+  `ac6c9f740b87a2ad576d510bed5424e0cf3e0a3c679b62de7fad8abd0d183852`; seed 20261021.
+- **Frozen config:** hash `6cb1378fdec77f44581e184ff11c5072d7feead6fbb63019191b488c5f491516`.
+  - Parameters were selected only on DEV. The original freeze, before any TEST run,
+    was at 2026-10-21T23:42:44Z (copy: `/tmp/cw-eval/frozen_config.run2.json`).
+  - The first TEST run was at 23:53:32Z.
+  - The final full `make eval-retrieval` re-ran DEV, which reselected the same
+    config with the same hash, so the canonical file's timestamp reads 00:03:45Z.
+  - It then repeated the TEST measurement unchanged to verify reproducibility. The
+    TEST metrics were identical; only latencies differ.
+  - No parameter was revised from TEST.
+- **App defaults:** the application's `SEARCH_*` defaults are the frozen DEV values
+  (k=5, keyword weight 1.5). They are included in the fingerprinted code, and
+  `SEARCH_RRF_K=60 SEARCH_KEYWORD_WEIGHT=1.0` restores standard RRF.
+- **Full method and honest reading:** `evals/README.md`.
+
+| TEST (1188 pairs / 123 docs / 17 unique queries) | recall@1 | recall@3 | recall@5 | recall@10 | MRR@10 |
+|---|---:|---:|---:|---:|---:|
+| random (expected) | 0.148 | 0.433 | 0.671 | 0.919 | 0.387 |
+| keyword | 0.416 | 0.789 | 0.918 | 0.989 | 0.658 |
+| vector | 0.455 | 0.811 | 0.934 | 0.991 | 0.692 |
+| hybrid (DEV-tuned: k=5, kw 1.5) | 0.432 | 0.816 | 0.935 | 0.992 | 0.679 |
+| hybrid untuned (k=60, 1:1) | 0.452 | 0.816 | 0.937 | 0.991 | 0.695 |
+| hybrid + rerank | 0.549 | 0.860 | 0.955 | 0.996 | 0.763 |
+
+**Comparisons** (document-clustered paired bootstrap, 95 % CI):
+
+| Comparison | recall@3 | MRR |
+|---|---|---|
+| hybrid − keyword | +0.028 [0.014, 0.042] | +0.021 [0.012, 0.029] |
+| hybrid − vector | +0.005 [−0.014, 0.021] | −0.013 [−0.032, 0.007] |
+| rerank − hybrid | +0.044 [0.021, 0.069] | +0.084 [0.065, 0.103] |
+
+**Assessment:**
+- **Handoff criterion** ("hybrid beats at least one single method"): met against
+  keyword only, not significantly against vector.
+- **DEV tuning** gained nothing on TEST relative to untuned RRF.
+- **Interpretability:** median 7 chunks per document, and 72 % of TEST pairs have
+  ≤ 10 chunks, so recall@10 is near-trivial. There are 0 unreachable gold spans.
+- **Latency** (p50/p95 total, in-process, memoised query embeddings): hybrid
+  4.4/6.0 ms; rerank adds p50 379 ms / p95 1259 ms on CPU.
+
+**HNSW sweep:**
+- **Setup:** 4047 train+dev vectors and 300 queries. Index use was verified per
+  setting with EXPLAIN, with 20 warm-ups each. The exact SQL scan agrees 100 % with
+  numpy.
+- **Production index (m=16, ef_construction=64):** ANN recall@10 is 0.990 at
+  ef_search=100, p50 0.47 ms.
+- **Skipped:** m=32/ef_construction=32 is invalid in pgvector, so it is skipped and
+  recorded.
+
+**Artifacts:**
+- `evals/results/retrieval_dev.json`, `retrieval_test.json`, `hnsw_sweep.json`;
+- `retrieval_dev_grid.png`, `retrieval_test_methods.png`, `hnsw_sweep.png`;
+- `evals/retrieval/frozen_config.json`.
+
+## Phase 2 commands run (with failures and fixes)
+
+- **Unit tests:**
+  - `pytest packages/retrieval/tests packages/core/tests/test_model_client.py`
+    passed 36.
+  - A tie test exposed float-sum ties (1/3+1/3 vs 1/2+1/6), so fused scores are now
+    rounded in the sort key.
+- **`pytest apps/model-service/tests`:** the first run failed because FastAPI rejects
+  `Model | JSONResponse` return types. I switched to a typed `ServiceError` handler;
+  19 passed with the real models.
+- **`pytest packages/retrieval/tests`:** 40 passed (real Postgres, pinned
+  encoder/reranker in-process).
+- **`pytest apps/api/tests/test_search.py`:** 17 passed. I fixed two test mistakes
+  first: the rows field is `row_number`, and there is no `/content` endpoint.
+- **`make openapi`:** regenerated the schema and types; the drift test had failed
+  before regeneration.
+- **Docker:** builds ran serially with `DOCKER_BUILD_NETWORK=host`, the stack with
+  `WEB_PORT=3300 ARTIFACT_CACHE_SOURCE=./.cache ARTIFACT_AUTO_DOWNLOAD=false`.
+  - The images were built twice: after the API work, and again after the `uv.lock`
+    change (matplotlib, dev group).
+  - Both times the model-service build reported the 1.3 GB deps layer `CACHED`.
+- **Smokes:** `smoke_phase0.py`, `smoke_phase1.py` and the new `smoke_phase2.py`
+  (`--web http://127.0.0.1:3300 --model-service http://127.0.0.1:8010`) all passed
+  on the final images. Log: `/tmp/cw-eval/final-smokes.log`.
+- **Browser walkthrough** `/tmp/cw-e2e/phase2_ui_check.py`: passed. Log
+  `/tmp/cw-e2e/phase2-ui.log`, screenshots `/tmp/cw-e2e/p2-*.png`.
+  - Run 1 failed on an ambiguous text locator in my script.
+  - Run 2 failed because it started while model-service was still restarting from
+    run 1's outage step. The 503 error UI rendered as designed.
+  - Run 3 passed, as did the final run on the final images.
+  - The screenshots showed the Mode select overlapping its neighbour, so the
+    selects are now full width.
+- **Eval:**
+  - The first DEV run was aborted to apply the supervisor's segmentation and DB-safety
+    findings. Stopping it with `pkill -f` killed its own shell (exit 144, the known
+    pattern), but the eval did stop.
+  - The sweep failed twice before succeeding: pgvector `Vector` objects needed
+    `.to_numpy()`, and pgvector rejects `ef_construction < 2m`, so that combination
+    is now skipped and recorded.
+  - The final `make eval-retrieval` exited 0. Log: `/tmp/cw-eval/make-eval-final.log`.
+- **`make ci`:** exit 0 (lint, typecheck incl. `evals`, openapi-check, **304 pytest**,
+  **83 vitest**, next build). Log: `/tmp/cw-eval/make-ci-1.log`. Only docs changed
+  afterwards.
+- **Disk:** only project-owned images and build records were removed, each after
+  its containers were replaced; IDs and container logs were saved first.
+  - Records: `/tmp/cw-disk/phase1-cleanup.log`, `p2-*` and `p2-r2-*` ID lists, logs
+    in `/tmp/cw-disk/p2-logs*/`.
+  - The 48 older other-project build records are preserved.
+  - Free space: 1.6 GB at the end; the minimum was 409 MB during the final web build.
+
+**Final review follow-ups** (tests, CI and docs only; no numerical rerun; the code
+fingerprint still computes to `ac6c9f74…`):
+- **Hosted mypy:** now `uv run mypy packages apps conftest.py scripts evals`, the same
+  scope as `make typecheck`.
+- **New test** `evals/retrieval/tests/test_sweep_grid.py`. It checks:
+  - the grid has exactly one invalid combination, (32, 32), and contains the
+    production index;
+  - the committed `hnsw_sweep.json` covers exactly the 66 valid
+    (m, ef_construction, ef_search) rows, all HNSW-planned, with (32, 32) listed as
+    skipped;
+  - `ef_search` ≥ k;
+  - against real pgvector, in a rolled-back temporary table, that
+    `ef_construction < 2m` is rejected and the 2m boundary accepted. This proves the
+    skip rule matches the engine.
+  - `sweep.py` is unchanged.
+- **Docs:** replaced "measured once on TEST" with the DEV-only selection, the
+  pre-TEST freeze evidence and the unchanged reproducibility rerun. Clarified the
+  component comparison and the app defaults.
+
+## Phase 2 known issues and limitations
+
+- **Hybrid vs vector:** hybrid is not significantly better than vector-only on TEST,
+  and the DEV-tuned fusion parameters did not beat untuned RRF on TEST (see results).
+- **Document-scoped queries:** these use Postgres's exact sort over the document's
+  rows; the planner does not choose HNSW at that selectivity. Workspace-wide queries
+  over large corpora use the index (iterative scan); that path is covered by the
+  EXPLAIN test and the sweep.
+- **The eval is text-only:** canonical ContractNLI text, with no PDF/OCR noise. Short
+  contracts make @10 near-trivial.
+- **Reranker:**
+  - The reranker (MS MARCO-trained, Apache-2.0 weights) is off by default; its CPU
+    cost is p50 ≈ 0.38 s per query.
+  - MS MARCO's own data terms are non-commercial. The model card licenses the weights
+    as Apache-2.0, and the dataset is not used here; worth a legal check before
+    commercial use.
+- **Search UI:** at desktop width the Mode select truncates "Hybrid (semantic +
+  keyword)". It is readable and has no overlap, but it is cosmetic and unfixed.
+- **Term marks** in results are a display aid (word-prefix matches), not the ranking
+  signal.
+- **Hosted CI:**
+  - Hosted CI has not run Phase 2.
+  - The CI artifact cache key includes `config.py`, so the first hosted run downloads
+    the reranker (~91 MB) once.
+  - The CI stack still runs with reranking disabled. Rerank is exercised with real
+    weights in pytest.
+- **Disk:** the root disk is ~99 % full (1.6 GB free). Another full image rebuild
+  needs the remove-old-images-first procedure above.
+
+## Phase 2 supervisor validation commands
+
+```bash
+cd /home/grv22/projects/compliance
+set -o pipefail
+make test-infra-up                       # 55432 / 56379
+make fetch-artifacts                     # verifies encoder, reranker (91 MB), ContractNLI
+make ci                                  # lint, typecheck (incl. evals), openapi, pytest, vitest, build
+env -u PYTHONPATH uv run pytest -q packages/retrieval/tests apps/api/tests/test_search.py \
+  apps/model-service/tests packages/core/tests/test_model_client.py evals/retrieval/tests
+env -u PYTHONPATH uv run pytest -q evals/retrieval/tests    # 24 (metrics, DB safety, sweep grid)
+make eval-retrieval                      # ~15 min first time (embeds 607 docs), reuses DB later
+# Same frozen hash expected: 6cb1378fdec77f44581e184ff11c5072d7feead6fbb63019191b488c5f491516
+DOCKER_BUILD_NETWORK=host docker compose build    # serial; see disk procedure above
+WEB_PORT=3300 ARTIFACT_CACHE_SOURCE=./.cache ARTIFACT_AUTO_DOWNLOAD=false docker compose up -d --wait
+env -u PYTHONPATH uv run python scripts/smoke_phase0.py --web http://127.0.0.1:3300
+env -u PYTHONPATH uv run python scripts/smoke_phase1.py --web http://127.0.0.1:3300
+env -u PYTHONPATH uv run python scripts/smoke_phase2.py --web http://127.0.0.1:3300 --model-service http://127.0.0.1:8010
+env -u PYTHONPATH /tmp/cw-e2e/.venv/bin/python -I /tmp/cw-e2e/phase2_ui_check.py http://127.0.0.1:3300
+```
+
+`phase2_ui_check.py` stops and restarts only `compliance-model-service-1` to exercise
+the outage path.
+
+## Phase 1 scope delivered (accepted)
 
 **Storage and database**
 - Migration `0002`, reversible, creates:

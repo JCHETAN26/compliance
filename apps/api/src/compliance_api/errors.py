@@ -22,6 +22,7 @@ from compliance_core.services.errors import (
     ServiceError,
 )
 from compliance_core.uploads import UploadError
+from compliance_retrieval.service import SearchUnavailableError
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ _STATUS_BY_ERROR: dict[type[ServiceError], int] = {
     AuthenticationError: 401,
     InvalidOperationError: 409,
     RateLimitedError: 429,
+    SearchUnavailableError: 503,
 }
 
 

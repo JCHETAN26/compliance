@@ -11,7 +11,7 @@ import secrets
 from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -91,6 +91,34 @@ class Settings(BaseSettings):
     embedding_model_sha256: str = "3c9f31665447c8911517620762200d2245a2518d6e7208acc78cd9db317e21ad"
     embedding_batch_size: Annotated[int, Field(ge=1, le=256)] = 32
     embedding_threads: Annotated[int, Field(ge=1, le=64)] = 4
+    # Query formatting for retrieval (passages are always embedded without a prefix).
+    # Applied by the model service to every query embedding; see compliance_retrieval.
+    embedding_query_instruction: str = "Represent this sentence for searching relevant passages: "
+
+    # Model service (embedding + optional rerank inference over HTTP).
+    model_service_url: str = "http://localhost:8010"
+    model_service_timeout_seconds: Annotated[float, Field(gt=0, le=120)] = 10.0
+    model_service_retries: Annotated[int, Field(ge=0, le=5)] = 2
+
+    # Optional cross-encoder reranker (off unless explicitly enabled).
+    rerank_enabled: bool = False
+    rerank_model_id: str = "cross-encoder/ms-marco-MiniLM-L6-v2"
+    rerank_model_revision: str = "233902d25c440f23af6f7d6e94d2946bac0bee0a"
+    rerank_model_sha256: str = "821d1aa69520101d6e0737f78a042ae25b19e5cb9160701909d10434f4aeb0ae"
+
+    # Hybrid retrieval defaults. rrf_k, the weights, the keyword mode and the query
+    # instruction were selected on the ContractNLI DEV split and frozen in
+    # evals/retrieval/frozen_config.json (config hash 6cb1378f...); see evals/README.md.
+    search_top_k: Annotated[int, Field(ge=1, le=50)] = 8
+    search_candidate_k: Annotated[int, Field(ge=1, le=500)] = 50
+    search_ef_search: Annotated[int, Field(ge=1, le=1000)] = 100
+    search_rrf_k: Annotated[int, Field(ge=1, le=1000)] = 5
+    search_vector_weight: Annotated[float, Field(ge=0, le=10)] = 1.0
+    search_keyword_weight: Annotated[float, Field(ge=0, le=10)] = 1.5
+    search_keyword_mode: Literal["or", "websearch"] = "or"
+    search_rerank_candidates: Annotated[int, Field(ge=1, le=100)] = 30
+    search_statement_timeout_ms: Annotated[int, Field(ge=100, le=60_000)] = 5000
+    search_rate_limit_per_minute: Annotated[int, Field(ge=1)] = 120
 
     # Demo data. Seeding is refused in production regardless of this flag.
     seed_demo: bool = False

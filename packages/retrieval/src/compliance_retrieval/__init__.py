@@ -1,8 +1,8 @@
-"""Hybrid (pgvector + full-text) retrieval with reciprocal rank fusion.
+"""Hybrid retrieval (Phase 2): pgvector HNSW + Postgres full-text (ts_rank_cd), fused
+with weighted reciprocal rank fusion, optional cross-encoder reranking.
 
-NOT IMPLEMENTED YET. This package is a Phase 0 skeleton that only reserves its place
-in the monorepo. Its functionality is scheduled for Phase 2 of docs/BUILD_HANDOFF.md.
+Lightweight by design (no ML dependencies): query embeddings and reranking come from the
+model service through ``compliance_core.model_client``.
 """
 
-IMPLEMENTED = False
-PLANNED_PHASE = "Phase 2"
+IMPLEMENTED = True

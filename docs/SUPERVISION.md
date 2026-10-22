@@ -8,8 +8,8 @@ verification to Codex. The authoritative requirements are in `BUILD_HANDOFF.md`.
 | Phase | Implementation | Independently verified acceptance |
 |---|---|---|
 | 0 — Skeleton | Complete | Accepted: local gates and hosted CI passed |
-| 1 — Ingestion and viewer | Complete locally | Local gates accepted; hosted CI pending |
-| 2 — Retrieval | Not started | Pending |
+| 1 — Ingestion and viewer | Complete | Accepted: local gates and hosted CI passed |
+| 2 — Retrieval | In progress with Claude | Pending |
 | 3 — Trained model | Not started | Pending |
 | 4 — Agents and review UI | Not started | Pending |
 | 5 — MCP | Not started | Pending |
@@ -144,3 +144,61 @@ drift checks and production build. Production browser and fresh-volume automatic
 seed smoke both passed. The temporary acceptance project was removed; the main app
 and data are retained. Hosted CI and final commit hygiene remain pending before
 Phase 2 can begin. No full-project completion is claimed.
+
+## Phase 1 commit and hosted CI
+
+Commit `ec6c254b2fed4b33645aa060142ccdb4856efb2e` pushed to `main`, author JCHETAN26
+with the account-specific GitHub noreply email, no coauthor trailer. Worktree clean
+at push. Original handoff hash still matches the user attachment exactly.
+
+Run: https://github.com/JCHETAN26/compliance/actions/runs/39687462736
+Python and web jobs passed; Docker/clean startup/automatic artifact download/seed/
+smoke job pending at this entry. Phase 2 remains unstarted until the full run passes.
+
+## Phase 1 accepted
+
+Hosted run `39687462736` completed successfully for `ec6c254`: Python, web, and
+Docker build/automatic artifact downloads/clean seed/ingestion/smoke jobs all passed.
+Phase 2 is authorized to begin. The full project remains incomplete (Phases 2–6).
+
+## Independent Phase 2 verification (release pending)
+
+- Fusion/client unit subset: 36 passed.
+- Actual-model, PostgreSQL/FTS retrieval, model-service and search API subset: 95
+  passed in 43.78s. Isolation, model protocol failures, encoder mismatch, reranking
+  and exact stored source references checked.
+- Live Docker smoke: all five groups passed. Seven services healthy afterward.
+- Browser search flow passed: measured page-2 PDF highlight, spreadsheet row,
+  keyboard navigation, restored URL state, filters/empty state, mobile layout,
+  model outage causing hybrid 503 while keyword remains available, service restored.
+- Evaluator safety/metric subset: 19 passed. Unsafe identifiers and unmanaged DBs
+  preserved; evaluator ownership/concurrency lock checked; canonical wrapped long
+  sentences and gold offsets checked; metric random expectation checked exactly.
+- Full `make ci`: exit 0, 304 pytest, 83 Vitest, Ruff, strict mypy, ESLint, TypeScript,
+  schema drift and production web build passed. See `PHASE2_REVIEW.md` for commands.
+- Independent rerun of all 1,188 official TEST pairs reproduced saved keyword,
+  vector and hybrid metric dictionaries exactly using the unchanged frozen config.
+- Additional evaluation Ruff/mypy check passed (12 source files).
+
+Current observed TEST evidence recall@3: keyword .7885, vector .8109, hybrid .8160,
+hybrid+rerank .8603. Hybrid-versus-vector document-bootstrap interval includes zero;
+there is no statistically robust improvement claim over vector. Hybrid improves
+keyword. Rerank results are from actual benchmark execution, not the separate base
+metric recomputation. These are document-scoped evidence metrics; random recall@10
+is already .9187 because many documents have fewer than ten chunks. Query timings
+are warm in-process/localhost measurements with 17 memoized query embeddings and
+must not be described as cold HTTP or production latency.
+
+The final complete benchmark command exited 0 and reproduced the evidence metrics.
+Canonical DEV/TEST/sweep source fingerprint is ac6c9f740b87a2ad576d510bed5424e0cf3e0a3c679b62de7fad8abd0d183852.
+Figures were independently inspected, including shared ANN comparison axes.
+The app adopted DEV-selected k=5 / keyword weight=1.5 before the final run; the
+k60/equal configuration is a reference baseline. This corrects an earlier supervisor
+snapshot assumption. Hosted CI is still pending. Phase 2 remains unaccepted and
+Phase 3 has not started.
+
+Final Phase 2 local release gate passed after all review fixes: independent full
+`make ci` exit 0, 24 evaluator tests exit 0, final rebuilt-image smoke all five
+groups passed. Evidence is in `PHASE2_REVIEW.md` and
+`/tmp/compliance-supervision/phase2-release-checks.log`. Phase 2 is locally verified;
+hosted CI remains required before accepting the phase and starting Phase 3.

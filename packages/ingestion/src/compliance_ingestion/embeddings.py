@@ -40,6 +40,7 @@ from typing import Any
 import numpy as np
 from tokenizers import Tokenizer
 
+from compliance_core.config import Settings
 from compliance_core.downloads import sha256_file
 
 logger = logging.getLogger(__name__)
@@ -64,11 +65,16 @@ class ModelUnavailableError(RuntimeError):
     """The pinned embedding model is not present (and could not be fetched)."""
 
 
+class QueryTooLongError(ValueError):
+    """A query exceeds the encoder context; queries are rejected, never truncated."""
+
+
 @dataclass(frozen=True)
 class ModelSpec:
     repo_id: str
     revision: str
     safetensors_sha256: str
+    files: tuple[str, ...] = _REQUIRED_FILES
 
     @property
     def dirname(self) -> str:
@@ -80,9 +86,9 @@ def model_dir(cache_dir: Path, spec: ModelSpec) -> Path:
 
 
 def _verify(path: Path, spec: ModelSpec) -> None:
-    missing = [f for f in _REQUIRED_FILES if not (path / f).is_file()]
+    missing = [f for f in spec.files if not (path / f).is_file()]
     if missing:
-        raise ModelUnavailableError(f"embedding model at {path} is incomplete: missing {missing}")
+        raise ModelUnavailableError(f"model at {path} is incomplete: missing {missing}")
     actual = sha256_file(path / "model.safetensors")
     if actual != spec.safetensors_sha256:
         raise ModelUnavailableError(
@@ -98,7 +104,7 @@ def ensure_model(cache_dir: Path, spec: ModelSpec, *, allow_download: bool) -> P
         return target
     if not allow_download:
         raise ModelUnavailableError(
-            f"embedding model {spec.repo_id}@{spec.revision} is not in {cache_dir}. "
+            f"model {spec.repo_id}@{spec.revision} is not in {cache_dir}. "
             "Run `make fetch-artifacts` (or allow ARTIFACT_AUTO_DOWNLOAD)."
         )
     from huggingface_hub import snapshot_download  # imported lazily: network path only
@@ -110,7 +116,7 @@ def ensure_model(cache_dir: Path, spec: ModelSpec, *, allow_download: bool) -> P
             repo_id=spec.repo_id,
             revision=spec.revision,
             local_dir=staging,
-            allow_patterns=list(_REQUIRED_FILES),
+            allow_patterns=list(spec.files),
         )
         shutil.rmtree(staging / ".cache", ignore_errors=True)
         _verify(staging, spec)
@@ -136,7 +142,7 @@ def ensure_model(cache_dir: Path, spec: ModelSpec, *, allow_download: bool) -> P
     finally:
         shutil.rmtree(staging, ignore_errors=True)
     _verify(target, spec)
-    logger.info("embedding model ready", extra={"model": spec.repo_id, "revision": spec.revision})
+    logger.info("model ready", extra={"model": spec.repo_id, "revision": spec.revision})
     return target
 
 
@@ -216,6 +222,22 @@ class Embedder:
             start = starts[0] if starts else end
         return result
 
+    def embed_queries(self, queries: Sequence[str], instruction: str) -> list[list[float]]:
+        """Embed retrieval queries: ``instruction + query``, one encoder pass each.
+
+        Passages are embedded without any prefix (``embed``); BGE v1.5 recommends the
+        instruction for short queries against passages. Queries are never windowed:
+        one that exceeds the encoder context raises ``QueryTooLongError``.
+        """
+        texts = [instruction + query for query in queries]
+        for text in texts:
+            if self._count(text) > self.window_tokens:
+                raise QueryTooLongError(
+                    f"query exceeds the {self.window_tokens}-token encoder context"
+                )
+        vectors = self._encode(texts) if texts else np.zeros((0, EMBEDDING_DIM), dtype=np.float32)
+        return [[float(v) for v in row] for row in vectors]
+
     def _encode(self, texts: Sequence[str]) -> Any:
         return self._model.encode(
             list(texts),
@@ -250,10 +272,10 @@ class Embedder:
         return results
 
 
-def spec_from_settings() -> ModelSpec:
+def spec_from_settings(settings: Settings | None = None) -> ModelSpec:
     from compliance_core.config import get_settings
 
-    settings = get_settings()
+    settings = settings or get_settings()
     return ModelSpec(
         repo_id=settings.embedding_model_id,
         revision=settings.embedding_model_revision,

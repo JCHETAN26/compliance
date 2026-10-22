@@ -1,0 +1,1062 @@
+{
+  "stage": "hnsw_sweep",
+  "description": "HNSW parameter sweep: ANN recall@10 against exact neighbours vs query latency.\n\n    uv run python -m evals.retrieval.sweep\n\nCorpus: every stored chunk vector of the official train + dev splits in the isolated\neval database (test is never touched), copied into a sweep-only table\n``sweep_vectors`` in that database. Queries: the 17 ContractNLI hypotheses plus a seeded\nsample of DEV gold evidence-span texts, embedded as queries with the frozen query\ninstruction. Exact ground truth: brute-force cosine top-10 in numpy (float64).\n\nFor each (m, ef_construction) the index is rebuilt (build time and size recorded);\nfor each ef_search the plan is checked with EXPLAIN to be an HNSW index scan, 20\nwarm-up queries are run, then every query is timed once. Latency scope: client-side\nwall time of one ``SELECT id ... ORDER BY embedding <=> $1 LIMIT 10`` over asyncpg\non localhost (tmpfs Postgres), binary vector parameter, excluding query embedding.\n\nThis measures ANN quality (agreement with exact search), *not* evidence recall; the\nlatter is in ``retrieval_*.json``. With only a few thousand vectors the graph is small,\nso ANN recall saturates quickly and latencies are sub-millisecond-scale - the numbers\ndescribe this corpus size, not a large deployment.\n",
+  "corpus": {
+    "vectors": 4047,
+    "splits": [
+      "train",
+      "dev"
+    ],
+    "dimension": 384,
+    "distance": "cosine (vector_cosine_ops)"
+  },
+  "queries": {
+    "total": 300,
+    "hypotheses": 17,
+    "sampled_dev_evidence_spans": 283,
+    "query_instruction": "Represent this sentence for searching relevant passages: ",
+    "seed": 20261021
+  },
+  "k": 10,
+  "warmup_queries_per_setting": 20,
+  "latency_scope": "client wall time per SELECT over asyncpg on localhost, after warm-up; excludes query embedding; single connection, sequential",
+  "exact_reference": {
+    "plan": [
+      "Limit  (cost=970.04..970.07 rows=10 width=12)",
+      "  ->  Sort  (cost=970.04..980.16 rows=4047 width=12)",
+      "        Sort Key: ((embedding <=> '[0.013849869,-0.013433043,-0.044880606,-0.04876581,0.017241603,-0.012095518,0.037375264,-0.05997149,-0.057735045,0.020191135,0.027443964,-0.013758711,0.08854168,0.02148653,-0.016410058,0.015745113,4.531722e-05,-0.045650814,-0.033046428,0.098858215,0.08957096,-0.023115944,0.040230982,0.027396685,-0.012829891,0.07311535,-0.01737378,-0.048198838,-0.050293982,-0.07065942,0.01550319,-0.03541252,-0.11492381,0.0034927598,0.057732496,-0.05129308,-0.02423282,-0.047537975,-0.008094467,0.0058587585,-0.047607653,0.08551738,0.035773873,-0.039878555,0.032425966,-0.020445189,0.013083399,0.04072212,0.039816,-0.024006845,-0.03994023,0.013084077,0.0023541944,0.0028101807,-0.00701729,0.0440812,-0.005111869,-0.019856192,0.081849575,0.022106493,0.0042597125,0.08414778,-0.1774299,0.028242694,-0.017118597,0.03714525,-0.054782014,-0.02612748,-0.0044186967,-0.054274075,0.080965035,0.04112481,-0.035912953,0.008933655,-0.017704947,0.0070008305,-0.0007086888,-0.0043214527,-0.01636735,-0.022873951,-0.025748009,0.018134993,0.004397731,-0.02466412,-0.04009187,-0.053701505,-0.0033112136,-0.061227947,0.010414678,-0.0425142,-0.031198867,-0.07674069,-0.020772023,0.01584499,-0.027652713,0.018380549,-0.050246764,-0.030344898,-0.072248355,0.2790896,-0.06055053,0.03548118,-0.046470996,-0.035909876,0.030577067,-0.0064204135,-0.02603088,0.017038064,-0.01859534,0.035453502,4.0299074e-05,0.018577525,0.06441358,-0.03237584,-0.020655397,0.037542496,0.044688802,0.028978249,-0.02555187,-0.04861636,0.0063128937,0.020908166,-0.034540385,0.0910021,-0.01685778,0.017363403,-0.014574981,0.012570423,0.053431917,-0.013427338,-0.031310998,-0.043784082,0.007399747,-0.08164349,0.017757002,0.023388728,0.030046778,0.024796395,-0.0012782981,-0.034679648,-0.04149043,-0.047107328,-0.035048284,0.026043119,-0.0549296,0.07720007,-0.0423482,0.10458252,-0.02496751,0.059487756,-0.009681429,0.015065726,-0.012582048,-0.10743365,-0.0378504,-0.011747346,-0.0026094744,0.04528095,-0.07362308,0.0017325203,0.07083765,-0.043770198,0.040313162,0.15736823,-0.0039948304,-0.07217986,-0.024187172,0.014067169,0.0157049,-0.011982041,0.0053736526,0.0044575054,0.00900964,-0.054867398,0.049645666,0.02569965,0.07036716,-0.0017901645,-0.041953593,-0.009800614,-0.026724702,-0.00036830685,-0.015742535,-0.05483006,0.015885975,0.03581093,-0.027139995,-0.005236848,0.044750597,0.057886213,-0.07353621,0.064853884,-0.043845877,-0.011186441,-0.05123271,-0.08860014,-0.037294477,0.0077069504,-0.042210378,-0.020767214,0.0041953297,0.012258469,-0.06868646,0.08449739,0.032719962,0.024239749,-0.006616795,-0.057313897,-0.01525915,0.043336958,-0.028105538,-0.060104012,-0.04602888,-0.0603237,0.027153512,0.07197445,0.03129052,0.08037617,0.027011419,-0.02316841,-0.056845896,0.006344624,0.05019731,-0.27144462,0.05471304,-0.06223366,-0.017929746,-0.0019762863,0.043854065,0.03539086,-0.05259566,-0.098902024,0.17024407,0.055341586,0.0722822,-0.062375467,0.046970576,-0.024868663,-0.03203313,0.013478532,0.030265708,-0.0049506407,0.048046004,0.0049712155,0.022823768,-0.053178106,-0.024061996,0.0033294132,0.009562621,0.108417585,0.02709012,-0.036478117,-0.043284804,0.010172898,0.11684804,-0.0020382188,-0.14610031,-0.003784241,0.0039886357,-0.102801934,0.07068608,0.001123599,-0.01861073,0.008956026,-0.012696321,0.006225428,-0.06382927,-0.0060119657,-0.04933085,-0.052670527,0.016363248,-0.031090641,-0.008620559,-0.04265225,0.04162718,-0.012615654,0.08907029,0.101059444,-0.0012054114,0.021758128,-0.010973081,-0.006875831,-0.0012632911,-0.0023633614,0.01534752,0.03490514,-0.031166205,-0.030947577,-0.0010376631,-0.041649938,0.021899145,0.06931053,0.047104873,-0.007962939,0.098175615,0.046264466,-0.032276686,0.009577977,0.05249627,0.03743481,-0.03924809,-0.018581163,-0.00018662369,0.0555965,0.022228198,0.059677567,-0.021883646,0.02430361,0.0492092,-0.0027596846,0.06696019,-0.0336522,0.020287497,-0.014101154,-0.016110534,-0.043991894,0.020324342,0.080747455,-0.011021455,-0.20212139,-0.031342052,-0.04739195,0.04544273,-0.037980735,0.013568011,0.01374718,-0.04812833,-0.13405266,0.010705149,0.058902707,0.05675313,-0.05394252,0.011583059,0.04011732,-0.009434794,0.03321798,0.060344856,-0.05830534,-0.023918053,0.04787592,0.024873687,0.098554626,0.039454818,-0.03358891,0.0017068664,0.024386955,0.013373368,-0.027389523,-0.0010057332,-0.053458244,0.0071578096,0.034704678,0.022552334,0.0090510445,0.016985158,0.09258933,0.00685224,-0.01656786,0.0028954651,-0.09250638,0.023326412,0.10315845,0.03199025,0.038756426,0.040932834,-0.034702394,0.04903392,-0.009446858,0.028513897,-0.022716071,0.041268557,0.036793783,0.09814749,0.011620201,-0.0006478525,-0.0037118208,-0.006898628,0.029788313,-0.0029196774,0.008321687,-0.010920105,-0.04746706,0.011704022,-0.04212944]'::vector))",
+      "        ->  Seq Scan on sweep_vectors  (cost=0.00..882.59 rows=4047 width=12)"
+    ],
+    "recall@10_vs_numpy": 1.0,
+    "latency_ms": {
+      "p50": 1.142,
+      "p95": 1.468,
+      "mean": 1.179
+    }
+  },
+  "results": [
+    {
+      "m": 8,
+      "ef_construction": 32,
+      "ef_search": 10,
+      "ann_recall@10": 0.7497,
+      "latency_ms": {
+        "p50": 0.201,
+        "p95": 0.239,
+        "mean": 0.204
+      },
+      "index_build_s": 0.284,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 32,
+      "ef_search": 20,
+      "ann_recall@10": 0.852,
+      "latency_ms": {
+        "p50": 0.24,
+        "p95": 0.284,
+        "mean": 0.24
+      },
+      "index_build_s": 0.284,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 32,
+      "ef_search": 40,
+      "ann_recall@10": 0.9203,
+      "latency_ms": {
+        "p50": 0.259,
+        "p95": 0.325,
+        "mean": 0.262
+      },
+      "index_build_s": 0.284,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 32,
+      "ef_search": 80,
+      "ann_recall@10": 0.9587,
+      "latency_ms": {
+        "p50": 0.369,
+        "p95": 0.45,
+        "mean": 0.373
+      },
+      "index_build_s": 0.284,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 32,
+      "ef_search": 100,
+      "ann_recall@10": 0.966,
+      "latency_ms": {
+        "p50": 0.408,
+        "p95": 0.507,
+        "mean": 0.415
+      },
+      "index_build_s": 0.284,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 32,
+      "ef_search": 160,
+      "ann_recall@10": 0.9773,
+      "latency_ms": {
+        "p50": 0.553,
+        "p95": 0.684,
+        "mean": 0.565
+      },
+      "index_build_s": 0.284,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 64,
+      "ef_search": 10,
+      "ann_recall@10": 0.7587,
+      "latency_ms": {
+        "p50": 0.197,
+        "p95": 0.242,
+        "mean": 0.201
+      },
+      "index_build_s": 0.411,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 64,
+      "ef_search": 20,
+      "ann_recall@10": 0.865,
+      "latency_ms": {
+        "p50": 0.216,
+        "p95": 0.257,
+        "mean": 0.22
+      },
+      "index_build_s": 0.411,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 64,
+      "ef_search": 40,
+      "ann_recall@10": 0.9303,
+      "latency_ms": {
+        "p50": 0.266,
+        "p95": 0.314,
+        "mean": 0.269
+      },
+      "index_build_s": 0.411,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 64,
+      "ef_search": 80,
+      "ann_recall@10": 0.964,
+      "latency_ms": {
+        "p50": 0.327,
+        "p95": 0.425,
+        "mean": 0.334
+      },
+      "index_build_s": 0.411,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 64,
+      "ef_search": 100,
+      "ann_recall@10": 0.9737,
+      "latency_ms": {
+        "p50": 0.337,
+        "p95": 0.434,
+        "mean": 0.345
+      },
+      "index_build_s": 0.411,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 64,
+      "ef_search": 160,
+      "ann_recall@10": 0.986,
+      "latency_ms": {
+        "p50": 0.499,
+        "p95": 0.61,
+        "mean": 0.505
+      },
+      "index_build_s": 0.411,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 128,
+      "ef_search": 10,
+      "ann_recall@10": 0.7673,
+      "latency_ms": {
+        "p50": 0.185,
+        "p95": 0.233,
+        "mean": 0.188
+      },
+      "index_build_s": 0.618,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 128,
+      "ef_search": 20,
+      "ann_recall@10": 0.8767,
+      "latency_ms": {
+        "p50": 0.228,
+        "p95": 0.289,
+        "mean": 0.231
+      },
+      "index_build_s": 0.618,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 128,
+      "ef_search": 40,
+      "ann_recall@10": 0.9383,
+      "latency_ms": {
+        "p50": 0.276,
+        "p95": 0.335,
+        "mean": 0.281
+      },
+      "index_build_s": 0.618,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 128,
+      "ef_search": 80,
+      "ann_recall@10": 0.9777,
+      "latency_ms": {
+        "p50": 0.361,
+        "p95": 0.45,
+        "mean": 0.367
+      },
+      "index_build_s": 0.618,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 128,
+      "ef_search": 100,
+      "ann_recall@10": 0.9813,
+      "latency_ms": {
+        "p50": 0.381,
+        "p95": 0.468,
+        "mean": 0.388
+      },
+      "index_build_s": 0.618,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 128,
+      "ef_search": 160,
+      "ann_recall@10": 0.9873,
+      "latency_ms": {
+        "p50": 0.522,
+        "p95": 0.651,
+        "mean": 0.536
+      },
+      "index_build_s": 0.618,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 256,
+      "ef_search": 10,
+      "ann_recall@10": 0.773,
+      "latency_ms": {
+        "p50": 0.174,
+        "p95": 0.242,
+        "mean": 0.184
+      },
+      "index_build_s": 1.067,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 256,
+      "ef_search": 20,
+      "ann_recall@10": 0.873,
+      "latency_ms": {
+        "p50": 0.214,
+        "p95": 0.261,
+        "mean": 0.215
+      },
+      "index_build_s": 1.067,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 256,
+      "ef_search": 40,
+      "ann_recall@10": 0.9397,
+      "latency_ms": {
+        "p50": 0.279,
+        "p95": 0.362,
+        "mean": 0.288
+      },
+      "index_build_s": 1.067,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 256,
+      "ef_search": 80,
+      "ann_recall@10": 0.983,
+      "latency_ms": {
+        "p50": 0.413,
+        "p95": 0.566,
+        "mean": 0.47
+      },
+      "index_build_s": 1.067,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 256,
+      "ef_search": 100,
+      "ann_recall@10": 0.987,
+      "latency_ms": {
+        "p50": 0.46,
+        "p95": 0.599,
+        "mean": 0.476
+      },
+      "index_build_s": 1.067,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 8,
+      "ef_construction": 256,
+      "ef_search": 160,
+      "ann_recall@10": 0.9927,
+      "latency_ms": {
+        "p50": 0.582,
+        "p95": 1.02,
+        "mean": 0.667
+      },
+      "index_build_s": 1.067,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 16,
+      "ef_construction": 32,
+      "ef_search": 10,
+      "ann_recall@10": 0.846,
+      "latency_ms": {
+        "p50": 0.22,
+        "p95": 0.298,
+        "mean": 0.227
+      },
+      "index_build_s": 0.538,
+      "index_bytes": 8298496,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 16,
+      "ef_construction": 32,
+      "ef_search": 20,
+      "ann_recall@10": 0.918,
+      "latency_ms": {
+        "p50": 0.258,
+        "p95": 0.328,
+        "mean": 0.261
+      },
+      "index_build_s": 0.538,
+      "index_bytes": 8298496,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 16,
+      "ef_construction": 32,
+      "ef_search": 40,
+      "ann_recall@10": 0.957,
+      "latency_ms": {
+        "p50": 0.316,
+        "p95": 0.398,
+        "mean": 0.321
+      },
+      "index_build_s": 0.538,
+      "index_bytes": 8298496,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 16,
+      "ef_construction": 32,
+      "ef_search": 80,
+      "ann_recall@10": 0.9803,
+      "latency_ms": {
+        "p50": 0.496,
+        "p95": 0.676,
+        "mean": 0.522
+      },
+      "index_build_s": 0.538,
+      "index_bytes": 8298496,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 16,
+      "ef_construction": 32,
+      "ef_search": 100,
+      "ann_recall@10": 0.9833,
+      "latency_ms": {
+        "p50": 0.61,
+        "p95": 0.868,
+        "mean": 0.638
+      },
+      "index_build_s": 0.538,
+      "index_bytes": 8298496,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 16,
+      "ef_construction": 32,
+      "ef_search": 160,
+      "ann_recall@10": 0.9883,
+      "latency_ms": {
+        "p50": 0.701,
+        "p95": 0.95,
+        "mean": 0.731
+      },
+      "index_build_s": 0.538,
+      "index_bytes": 8298496,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 16,
+      "ef_construction": 64,
+      "ef_search": 10,
+      "ann_recall@10": 0.8607,
+      "latency_ms": {
+        "p50": 0.202,
+        "p95": 0.255,
+        "mean": 0.206
+      },
+      "index_build_s": 0.701,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": true
+    },
+    {
+      "m": 16,
+      "ef_construction": 64,
+      "ef_search": 20,
+      "ann_recall@10": 0.934,
+      "latency_ms": {
+        "p50": 0.229,
+        "p95": 0.302,
+        "mean": 0.234
+      },
+      "index_build_s": 0.701,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": true
+    },
+    {
+      "m": 16,
+      "ef_construction": 64,
+      "ef_search": 40,
+      "ann_recall@10": 0.965,
+      "latency_ms": {
+        "p50": 0.326,
+        "p95": 0.384,
+        "mean": 0.326
+      },
+      "index_build_s": 0.701,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": true
+    },
+    {
+      "m": 16,
+      "ef_construction": 64,
+      "ef_search": 80,
+      "ann_recall@10": 0.987,
+      "latency_ms": {
+        "p50": 0.406,
+        "p95": 0.494,
+        "mean": 0.408
+      },
+      "index_build_s": 0.701,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": true
+    },
+    {
+      "m": 16,
+      "ef_construction": 64,
+      "ef_search": 100,
+      "ann_recall@10": 0.9903,
+      "latency_ms": {
+        "p50": 0.473,
+        "p95": 0.588,
+        "mean": 0.48
+      },
+      "index_build_s": 0.701,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": true
+    },
+    {
+      "m": 16,
+      "ef_construction": 64,
+      "ef_search": 160,
+      "ann_recall@10": 0.9957,
+      "latency_ms": {
+        "p50": 0.644,
+        "p95": 0.809,
+        "mean": 0.654
+      },
+      "index_build_s": 0.701,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": true
+    },
+    {
+      "m": 16,
+      "ef_construction": 128,
+      "ef_search": 10,
+      "ann_recall@10": 0.862,
+      "latency_ms": {
+        "p50": 0.198,
+        "p95": 0.251,
+        "mean": 0.201
+      },
+      "index_build_s": 0.938,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 16,
+      "ef_construction": 128,
+      "ef_search": 20,
+      "ann_recall@10": 0.9417,
+      "latency_ms": {
+        "p50": 0.224,
+        "p95": 0.28,
+        "mean": 0.226
+      },
+      "index_build_s": 0.938,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 16,
+      "ef_construction": 128,
+      "ef_search": 40,
+      "ann_recall@10": 0.972,
+      "latency_ms": {
+        "p50": 0.295,
+        "p95": 0.364,
+        "mean": 0.296
+      },
+      "index_build_s": 0.938,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 16,
+      "ef_construction": 128,
+      "ef_search": 80,
+      "ann_recall@10": 0.99,
+      "latency_ms": {
+        "p50": 0.424,
+        "p95": 0.502,
+        "mean": 0.425
+      },
+      "index_build_s": 0.938,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 16,
+      "ef_construction": 128,
+      "ef_search": 100,
+      "ann_recall@10": 0.9933,
+      "latency_ms": {
+        "p50": 0.488,
+        "p95": 0.598,
+        "mean": 0.492
+      },
+      "index_build_s": 0.938,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 16,
+      "ef_construction": 128,
+      "ef_search": 160,
+      "ann_recall@10": 0.9973,
+      "latency_ms": {
+        "p50": 0.608,
+        "p95": 0.764,
+        "mean": 0.618
+      },
+      "index_build_s": 0.938,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 16,
+      "ef_construction": 256,
+      "ef_search": 10,
+      "ann_recall@10": 0.874,
+      "latency_ms": {
+        "p50": 0.208,
+        "p95": 0.261,
+        "mean": 0.212
+      },
+      "index_build_s": 1.365,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 16,
+      "ef_construction": 256,
+      "ef_search": 20,
+      "ann_recall@10": 0.9387,
+      "latency_ms": {
+        "p50": 0.248,
+        "p95": 0.29,
+        "mean": 0.25
+      },
+      "index_build_s": 1.365,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 16,
+      "ef_construction": 256,
+      "ef_search": 40,
+      "ann_recall@10": 0.974,
+      "latency_ms": {
+        "p50": 0.316,
+        "p95": 0.366,
+        "mean": 0.317
+      },
+      "index_build_s": 1.365,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 16,
+      "ef_construction": 256,
+      "ef_search": 80,
+      "ann_recall@10": 0.993,
+      "latency_ms": {
+        "p50": 0.448,
+        "p95": 0.592,
+        "mean": 0.46
+      },
+      "index_build_s": 1.365,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 16,
+      "ef_construction": 256,
+      "ef_search": 100,
+      "ann_recall@10": 0.9957,
+      "latency_ms": {
+        "p50": 0.493,
+        "p95": 0.595,
+        "mean": 0.499
+      },
+      "index_build_s": 1.365,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 16,
+      "ef_construction": 256,
+      "ef_search": 160,
+      "ann_recall@10": 0.9977,
+      "latency_ms": {
+        "p50": 0.651,
+        "p95": 0.788,
+        "mean": 0.659
+      },
+      "index_build_s": 1.365,
+      "index_bytes": 8241152,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 32,
+      "ef_construction": 64,
+      "ef_search": 10,
+      "ann_recall@10": 0.9147,
+      "latency_ms": {
+        "p50": 0.271,
+        "p95": 0.396,
+        "mean": 0.282
+      },
+      "index_build_s": 1.594,
+      "index_bytes": 8585216,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 32,
+      "ef_construction": 64,
+      "ef_search": 20,
+      "ann_recall@10": 0.96,
+      "latency_ms": {
+        "p50": 0.316,
+        "p95": 0.416,
+        "mean": 0.326
+      },
+      "index_build_s": 1.594,
+      "index_bytes": 8585216,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 32,
+      "ef_construction": 64,
+      "ef_search": 40,
+      "ann_recall@10": 0.9847,
+      "latency_ms": {
+        "p50": 0.404,
+        "p95": 0.528,
+        "mean": 0.412
+      },
+      "index_build_s": 1.594,
+      "index_bytes": 8585216,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 32,
+      "ef_construction": 64,
+      "ef_search": 80,
+      "ann_recall@10": 0.9923,
+      "latency_ms": {
+        "p50": 0.55,
+        "p95": 0.712,
+        "mean": 0.559
+      },
+      "index_build_s": 1.594,
+      "index_bytes": 8585216,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 32,
+      "ef_construction": 64,
+      "ef_search": 100,
+      "ann_recall@10": 0.9947,
+      "latency_ms": {
+        "p50": 0.6,
+        "p95": 0.765,
+        "mean": 0.611
+      },
+      "index_build_s": 1.594,
+      "index_bytes": 8585216,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 32,
+      "ef_construction": 64,
+      "ef_search": 160,
+      "ann_recall@10": 0.9977,
+      "latency_ms": {
+        "p50": 0.777,
+        "p95": 0.981,
+        "mean": 0.79
+      },
+      "index_build_s": 1.594,
+      "index_bytes": 8585216,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 32,
+      "ef_construction": 128,
+      "ef_search": 10,
+      "ann_recall@10": 0.919,
+      "latency_ms": {
+        "p50": 0.23,
+        "p95": 0.289,
+        "mean": 0.236
+      },
+      "index_build_s": 1.944,
+      "index_bytes": 8527872,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 32,
+      "ef_construction": 128,
+      "ef_search": 20,
+      "ann_recall@10": 0.962,
+      "latency_ms": {
+        "p50": 0.274,
+        "p95": 0.343,
+        "mean": 0.276
+      },
+      "index_build_s": 1.944,
+      "index_bytes": 8527872,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 32,
+      "ef_construction": 128,
+      "ef_search": 40,
+      "ann_recall@10": 0.9827,
+      "latency_ms": {
+        "p50": 0.357,
+        "p95": 0.469,
+        "mean": 0.363
+      },
+      "index_build_s": 1.944,
+      "index_bytes": 8527872,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 32,
+      "ef_construction": 128,
+      "ef_search": 80,
+      "ann_recall@10": 0.9947,
+      "latency_ms": {
+        "p50": 0.583,
+        "p95": 0.774,
+        "mean": 0.599
+      },
+      "index_build_s": 1.944,
+      "index_bytes": 8527872,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 32,
+      "ef_construction": 128,
+      "ef_search": 100,
+      "ann_recall@10": 0.997,
+      "latency_ms": {
+        "p50": 0.669,
+        "p95": 0.845,
+        "mean": 0.68
+      },
+      "index_build_s": 1.944,
+      "index_bytes": 8527872,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 32,
+      "ef_construction": 128,
+      "ef_search": 160,
+      "ann_recall@10": 0.998,
+      "latency_ms": {
+        "p50": 0.916,
+        "p95": 1.222,
+        "mean": 0.941
+      },
+      "index_build_s": 1.944,
+      "index_bytes": 8527872,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 32,
+      "ef_construction": 256,
+      "ef_search": 10,
+      "ann_recall@10": 0.9183,
+      "latency_ms": {
+        "p50": 0.246,
+        "p95": 0.343,
+        "mean": 0.251
+      },
+      "index_build_s": 2.641,
+      "index_bytes": 8454144,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 32,
+      "ef_construction": 256,
+      "ef_search": 20,
+      "ann_recall@10": 0.9667,
+      "latency_ms": {
+        "p50": 0.282,
+        "p95": 0.372,
+        "mean": 0.289
+      },
+      "index_build_s": 2.641,
+      "index_bytes": 8454144,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 32,
+      "ef_construction": 256,
+      "ef_search": 40,
+      "ann_recall@10": 0.9877,
+      "latency_ms": {
+        "p50": 0.363,
+        "p95": 0.476,
+        "mean": 0.369
+      },
+      "index_build_s": 2.641,
+      "index_bytes": 8454144,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 32,
+      "ef_construction": 256,
+      "ef_search": 80,
+      "ann_recall@10": 0.9957,
+      "latency_ms": {
+        "p50": 0.536,
+        "p95": 0.671,
+        "mean": 0.546
+      },
+      "index_build_s": 2.641,
+      "index_bytes": 8454144,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 32,
+      "ef_construction": 256,
+      "ef_search": 100,
+      "ann_recall@10": 0.9977,
+      "latency_ms": {
+        "p50": 0.614,
+        "p95": 0.759,
+        "mean": 0.622
+      },
+      "index_build_s": 2.641,
+      "index_bytes": 8454144,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    },
+    {
+      "m": 32,
+      "ef_construction": 256,
+      "ef_search": 160,
+      "ann_recall@10": 0.9987,
+      "latency_ms": {
+        "p50": 0.839,
+        "p95": 1.055,
+        "mean": 0.861
+      },
+      "index_build_s": 2.641,
+      "index_bytes": 8454144,
+      "plan_uses_hnsw": true,
+      "production_setting": false
+    }
+  ],
+  "skipped_combinations": [
+    {
+      "m": 32,
+      "ef_construction": 32,
+      "reason": "pgvector requires ef_construction >= 2 * m"
+    }
+  ],
+  "provenance": {
+    "timestamp_utc": "2026-10-22T00:14:30+00:00",
+    "command": "python -m evals.retrieval.sweep",
+    "git_head": "ec6c254b2fed4b33645aa060142ccdb4856efb2e",
+    "git_dirty": true,
+    "git_dirty_paths": 48,
+    "code_fingerprint": {
+      "sha256": "ac6c9f740b87a2ad576d510bed5424e0cf3e0a3c679b62de7fad8abd0d183852",
+      "files": 68,
+      "roots": [
+        "packages/core/src",
+        "packages/ingestion/src",
+        "packages/retrieval/src",
+        "apps/model-service/src",
+        "evals/retrieval"
+      ]
+    },
+    "seed": 20261021,
+    "python": "3.11.13",
+    "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+    "packages": {
+      "torch": "2.14.1+cpu",
+      "sentence_transformers": "6.2.0",
+      "numpy": "2.4.6"
+    }
+  }
+}

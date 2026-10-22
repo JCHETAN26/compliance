@@ -8,10 +8,12 @@ dependencies = [
     "fastapi>=0.120",
     "uvicorn[standard]>=0.35",
     "arq>=0.26",
+    "compliance-retrieval",
 ]
 
 [tool.uv.sources]
 compliance-core = { workspace = true }
+compliance-retrieval = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

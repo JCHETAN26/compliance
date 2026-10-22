@@ -57,7 +57,7 @@ jobs:
           uv run ruff check .
           uv run ruff format --check .
       - name: Typecheck (mypy --strict)
-        run: uv run mypy packages apps conftest.py scripts
+        run: uv run mypy packages apps conftest.py scripts evals
       - name: Tests (unit + integration against Postgres/pgvector + Redis)
         run: uv run pytest
 
@@ -105,11 +105,12 @@ jobs:
         run: docker compose ps
       - name: Wait for automatic demo seeding + ingestion (make seed is idempotent)
         run: docker compose exec -T worker python -m compliance_seed --wait 900
-      - name: Phase 0 + Phase 1 smoke tests
+      - name: Phase 0 + Phase 1 + Phase 2 smoke tests
         run: |
           uv sync --frozen
           uv run python scripts/smoke_phase0.py --web http://127.0.0.1:3000
           uv run python scripts/smoke_phase1.py --web http://127.0.0.1:3000
+          uv run python scripts/smoke_phase2.py --web http://127.0.0.1:3000 --model-service http://127.0.0.1:8010
       - name: Logs on failure
         if: failure()
         run: docker compose logs --no-color --tail 200

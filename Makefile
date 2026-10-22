@@ -40,7 +40,7 @@ format: ## Auto-format Python code
 
 .PHONY: typecheck
 typecheck: ## mypy --strict and tsc --noEmit
-	$(UV) run mypy packages apps conftest.py scripts
+	$(UV) run mypy packages apps conftest.py scripts evals
 	$(NPM) --prefix $(WEB) run typecheck
 
 .PHONY: test-infra-up
@@ -107,8 +107,9 @@ smoke: ## Phase 0 end-to-end smoke test against the running stack
 		--model-service http://127.0.0.1:$(MODEL_SERVICE_PORT) --mcp http://127.0.0.1:$(MCP_PORT)
 
 .PHONY: fetch-artifacts
-fetch-artifacts: ## Download + verify the pinned embedding model and ContractNLI into ./.cache
+fetch-artifacts: ## Download + verify the pinned embedding + reranker models and ContractNLI into ./.cache
 	ARTIFACT_CACHE_DIR=.cache $(UV) run python -m compliance_ingestion.embeddings fetch
+	ARTIFACT_CACHE_DIR=.cache $(UV) run python -m compliance_model_service.rerank fetch
 	ARTIFACT_CACHE_DIR=.cache $(UV) run python -m compliance_seed.fetch
 
 .PHONY: seed
@@ -119,6 +120,11 @@ seed: ## Seed demo user/workspace/register/NDAs in the running stack and wait fo
 smoke-phase1: ## Phase 1 end-to-end smoke test (upload -> ingest -> viewer data) against the stack
 	$(UV) run python scripts/smoke_phase1.py --web http://127.0.0.1:$(WEB_PORT)
 
+.PHONY: smoke-phase2
+smoke-phase2: ## Phase 2 end-to-end smoke test (hybrid search, exact spans, isolation) against the stack
+	$(UV) run python scripts/smoke_phase2.py --web http://127.0.0.1:$(WEB_PORT) \
+		--model-service http://127.0.0.1:$(MODEL_SERVICE_PORT)
+
 .PHONY: migrate
 migrate: ## Apply database migrations (uses DATABASE_URL)
 	$(UV) run python -m compliance_core.db.migrate upgrade head
@@ -126,9 +132,21 @@ migrate: ## Apply database migrations (uses DATABASE_URL)
 # ---------------------------------------------------------------- later phases
 NOT_IMPLEMENTED = @echo "make $@: not implemented yet ($(1) of docs/BUILD_HANDOFF.md)" >&2; exit 2
 
-.PHONY: train eval-model export-model eval-retrieval eval-all
-eval-retrieval: ## [Phase 2] Retrieval eval (not implemented)
-	$(call NOT_IMPLEMENTED,Phase 2)
+# Retrieval eval (Phase 2). Needs `make test-infra-up` (uses an isolated database
+# compliance_eval on the throwaway test Postgres; override with EVAL_DATABASE_URL) and
+# `make fetch-artifacts`. Writes evals/results/ and evals/retrieval/frozen_config.json.
+.PHONY: eval-retrieval eval-retrieval-dev eval-retrieval-test eval-hnsw-sweep
+eval-retrieval: ## ContractNLI retrieval eval: tune on DEV, freeze, measure TEST, HNSW sweep
+	$(UV) run python -m evals.retrieval.run all
+	$(UV) run python -m evals.retrieval.sweep
+eval-retrieval-dev: ## DEV tuning only (rewrites evals/retrieval/frozen_config.json)
+	$(UV) run python -m evals.retrieval.run dev
+eval-retrieval-test: ## TEST measurement with the frozen configuration only
+	$(UV) run python -m evals.retrieval.run test
+eval-hnsw-sweep: ## HNSW m / ef_construction / ef_search sweep (ANN recall vs latency)
+	$(UV) run python -m evals.retrieval.sweep
+
+.PHONY: train eval-model export-model eval-all
 train: ## [Phase 3] Train the rule-check model (not implemented)
 	$(call NOT_IMPLEMENTED,Phase 3)
 eval-model: ## [Phase 3] Model evaluation (not implemented)

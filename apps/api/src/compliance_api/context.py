@@ -16,13 +16,16 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from compliance_core.config import Settings
 from compliance_core.db.session import create_engine, create_session_factory
 from compliance_core.jobs import INGEST_DOCUMENT, QUEUE_NAME, ingest_job_id
+from compliance_core.model_client import ModelServiceClient
 from compliance_core.security.tokens import TokenSigner
 from compliance_core.services.session_store import (
+    FixedWindowLimiter,
     LoginThrottle,
     TokenRevocationList,
     UploadRateLimiter,
 )
 from compliance_core.storage import LocalStorage
+from compliance_retrieval.config import RetrievalConfig
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +41,9 @@ class AppContext:
     revocations: TokenRevocationList
     storage: LocalStorage
     upload_limiter: UploadRateLimiter
+    models: ModelServiceClient
+    search_limiter: FixedWindowLimiter
+    retrieval: RetrievalConfig
     queue: ArqRedis | None = None
 
     @classmethod
@@ -60,6 +66,11 @@ class AppContext:
             ),
             revocations=TokenRevocationList(redis),
             storage=LocalStorage(settings.storage_dir),
+            models=ModelServiceClient.from_settings(settings),
+            search_limiter=FixedWindowLimiter(
+                redis, "search", settings.search_rate_limit_per_minute, "searches"
+            ),
+            retrieval=RetrievalConfig.from_settings(settings),
             upload_limiter=UploadRateLimiter(
                 redis, settings.upload_rate_limit_per_minute, settings.upload_requests_per_minute
             ),
@@ -88,5 +99,6 @@ class AppContext:
     async def close(self) -> None:
         if self.queue is not None:
             await self.queue.aclose()
+        await self.models.aclose()
         await self.redis.aclose()
         await self.engine.dispose()

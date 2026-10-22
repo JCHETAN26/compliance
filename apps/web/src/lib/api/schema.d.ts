@@ -263,6 +263,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/search/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Capabilities
+         * @description What the search backend supports right now (e.g. whether reranking is enabled).
+         */
+        get: operations["capabilities_api_v1_search_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces": {
         parameters: {
             query?: never;
@@ -357,6 +377,28 @@ export interface paths {
         head?: never;
         /** Update Member */
         patch: operations["update_member_api_v1_workspaces__workspace_id__members__user_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace_id}/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Search
+         * @description Hybrid (pgvector HNSW + full-text ts_rank_cd, RRF-fused), vector-only or
+         *     keyword-only search. Results are stored chunk spans with exact document, page,
+         *     character, bounding-box and spreadsheet-row references.
+         */
+        post: operations["search_api_v1_workspaces__workspace_id__search_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
@@ -638,6 +680,19 @@ export interface components {
              */
             role: "reviewer" | "viewer";
         };
+        /** MethodScore */
+        MethodScore: {
+            /**
+             * Rank
+             * @description 1-based rank within that method's candidate list
+             */
+            rank: number;
+            /**
+             * Score
+             * @description Method-native score: cosine similarity or ts_rank_cd
+             */
+            score: number;
+        };
         /** PageRead */
         PageRead: {
             /** Char End */
@@ -656,6 +711,21 @@ export interface components {
             text?: string | null;
             /** Width */
             width: number;
+        };
+        /** Provenance */
+        Provenance: {
+            /**
+             * Fused Score
+             * @description Weighted RRF score (hybrid mode only)
+             */
+            fused_score?: number | null;
+            keyword?: components["schemas"]["MethodScore"] | null;
+            /**
+             * Rerank Score
+             * @description Cross-encoder logit
+             */
+            rerank_score?: number | null;
+            vector?: components["schemas"]["MethodScore"] | null;
         };
         /** ReadinessReport */
         ReadinessReport: {
@@ -708,6 +778,167 @@ export interface components {
             /** Sheet Name */
             sheet_name: string;
         };
+        /** SearchCapabilities */
+        SearchCapabilities: {
+            /** Default Top K */
+            default_top_k: number;
+            /** Embedding Model */
+            embedding_model: string;
+            /** Embedding Revision */
+            embedding_revision: string;
+            /** Max Top K */
+            max_top_k: number;
+            /** Modes */
+            modes: ("hybrid" | "vector" | "keyword")[];
+            /** Query Instruction */
+            query_instruction: string;
+            /** Rerank Available */
+            rerank_available: boolean;
+            /** Rerank Model */
+            rerank_model: string | null;
+        };
+        /** SearchHit */
+        SearchHit: {
+            /** Bboxes */
+            bboxes: components["schemas"]["BBoxRead"][];
+            /** Char End */
+            char_end: number;
+            /** Char Start */
+            char_start: number;
+            /**
+             * Chunk Id
+             * Format: uuid
+             */
+            chunk_id: string;
+            /** Chunk Index */
+            chunk_index: number;
+            /** Doc Type */
+            doc_type: string | null;
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /** File Format */
+            file_format: string;
+            /** Filename */
+            filename: string;
+            /** Page End */
+            page_end: number | null;
+            /** Page Start */
+            page_start: number | null;
+            provenance: components["schemas"]["Provenance"];
+            /** Rank */
+            rank: number;
+            /** Row Number */
+            row_number: number | null;
+            /** Section Path */
+            section_path: string | null;
+            /** Sheet Name */
+            sheet_name: string | null;
+            /** Table Row Id */
+            table_row_id: string | null;
+            /**
+             * Text
+             * @description The stored chunk text (canonical text slice)
+             */
+            text: string;
+            /** Token Count */
+            token_count: number;
+        };
+        /** SearchRequest */
+        SearchRequest: {
+            /** Doc Types */
+            doc_types?: components["schemas"]["DocType"][];
+            /** Document Ids */
+            document_ids?: string[];
+            /**
+             * Mode
+             * @default hybrid
+             * @enum {string}
+             */
+            mode: "hybrid" | "vector" | "keyword";
+            /** Query */
+            query: string;
+            /**
+             * Rerank
+             * @default false
+             */
+            rerank: boolean;
+            /**
+             * Top K
+             * @default 8
+             */
+            top_k: number;
+        };
+        /** SearchResponse */
+        SearchResponse: {
+            /**
+             * Candidates
+             * @description Candidate counts per method
+             */
+            candidates: {
+                [key: string]: number;
+            };
+            /**
+             * Excluded From Vector
+             * @description Ready documents embedded by a different encoder than the query encoder. They are excluded from vector ranking (still keyword-searchable); re-ingest to include them.
+             */
+            excluded_from_vector: components["schemas"]["StaleDocument"][];
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "hybrid" | "vector" | "keyword";
+            /** Query */
+            query: string;
+            /** Reranked */
+            reranked: boolean;
+            /** Results */
+            results: components["schemas"]["SearchHit"][];
+            settings: components["schemas"]["SearchSettings"];
+            timings: components["schemas"]["SearchTimings"];
+        };
+        /** SearchSettings */
+        SearchSettings: {
+            /** Candidate K */
+            candidate_k: number;
+            /** Ef Search */
+            ef_search: number;
+            /** Embedding Model */
+            embedding_model: string | null;
+            /** Embedding Revision */
+            embedding_revision: string | null;
+            /** Keyword Mode */
+            keyword_mode: string;
+            /** Keyword Weight */
+            keyword_weight: number;
+            /** Query Instruction */
+            query_instruction: string | null;
+            /** Rerank Candidates */
+            rerank_candidates: number | null;
+            /** Rerank Model */
+            rerank_model: string | null;
+            /** Rrf K */
+            rrf_k: number;
+            /** Top K */
+            top_k: number;
+            /** Vector Weight */
+            vector_weight: number;
+        };
+        /** SearchTimings */
+        SearchTimings: {
+            /** Embed Ms */
+            embed_ms?: number | null;
+            /** Keyword Ms */
+            keyword_ms?: number | null;
+            /** Rerank Ms */
+            rerank_ms?: number | null;
+            /** Total Ms */
+            total_ms: number;
+            /** Vector Ms */
+            vector_ms?: number | null;
+        };
         /** SessionRead */
         SessionRead: {
             /** Csrf Token */
@@ -733,6 +964,21 @@ export interface components {
             sheet_name: string;
             /** Truncated */
             truncated: boolean;
+        };
+        /** StaleDocument */
+        StaleDocument: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * Embedding Model
+             * @description Encoder identity stored at ingestion
+             */
+            embedding_model: string | null;
+            /** Filename */
+            filename: string;
         };
         /** UploadErrorBody */
         UploadErrorBody: {
@@ -1559,6 +1805,44 @@ export interface operations {
             };
         };
     };
+    capabilities_api_v1_search_capabilities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchCapabilities"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     list_workspaces_api_v1_workspaces_get: {
         parameters: {
             query?: never;
@@ -2196,6 +2480,95 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    search_api_v1_workspaces__workspace_id__search_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SearchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

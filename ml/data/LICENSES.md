@@ -28,8 +28,11 @@ containers).
 - **How this project uses it:**
   - Phase 1 `make seed` renders a small number of **test-split** NDAs into demo
     PDF/DOCX files, including one image-only "scanned" PDF.
-  - Phase 2/3 will use the official train/dev/test splits unchanged for retrieval
-    evaluation and model training.
+  - Phase 2 `make eval-retrieval` uses the official splits unchanged: dev for tuning,
+    test for the final retrieval numbers, train (+ dev) chunk vectors only as the HNSW
+    sweep corpus. It indexes the canonical text in an isolated database; nothing is
+    written to git except aggregate metrics in `evals/results/`.
+  - Phase 3 will use the official splits for model training.
   - Rendered demo documents are generated at seed time and never committed.
 - **Attribution (required by CC BY 4.0):** given in `seed/README.md`, the README and
   the generated vendor register's "Sources" sheet. Each generated document carries its
@@ -61,3 +64,10 @@ recorded here before first use.
 - `BAAI/bge-small-en-v1.5` (embeddings, Phase 1): MIT license per the Hugging Face model
   card. It is downloaded at a pinned revision into the git-ignored model cache and never
   committed.
+- `cross-encoder/ms-marco-MiniLM-L6-v2` (optional reranker, Phase 2): Apache-2.0 per the
+  Hugging Face model card. Pinned revision `233902d25c440f23af6f7d6e94d2946bac0bee0a`,
+  `model.safetensors` 90,870,598 bytes, SHA-256
+  `821d1aa69520101d6e0737f78a042ae25b19e5cb9160701909d10434f4aeb0ae`. Fetched by
+  `make fetch-artifacts` into the git-ignored model cache; never committed. It was
+  trained on MS MARCO passage ranking; the model is used here only for scoring, and the
+  MS MARCO data itself is not downloaded or used.

@@ -25,6 +25,7 @@ dev = [
     "ruff>=0.15",
     "mypy>=1.18",
     "pre-commit>=4.0",
+    "matplotlib>=3.10",
 ]
 
 [tool.uv]
@@ -147,6 +148,8 @@ testpaths = [
     "apps/api/tests",
     "apps/worker/tests",
     "apps/model-service/tests",
+    "packages/retrieval/tests",
+    "evals/retrieval/tests",
     "apps/mcp-server/tests",
     "packages/ingestion/tests",
     "seed/tests",

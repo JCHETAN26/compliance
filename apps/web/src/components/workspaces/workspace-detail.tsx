@@ -50,6 +50,7 @@ export function WorkspaceShell({ workspaceId, children }: { workspaceId: string;
   const base = `/workspaces/${workspaceId}`;
   const tabs = [
     { href: base, label: "Documents", active: pathname === base || pathname.startsWith(`${base}/documents`) },
+    { href: `${base}/search`, label: "Search", active: pathname.startsWith(`${base}/search`) },
     { href: `${base}/settings`, label: "Settings & members", active: pathname.startsWith(`${base}/settings`) },
   ] as const;
 

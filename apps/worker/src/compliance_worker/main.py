@@ -30,6 +30,7 @@ from compliance_core.config import AppEnv, get_settings
 from compliance_core.db.session import create_engine, create_session_factory
 from compliance_core.jobs import QUEUE_NAME, SEED_DEMO
 from compliance_core.logs import configure_logging
+from compliance_core.model_client import embedding_label
 from compliance_core.storage import LocalStorage
 from compliance_ingestion.embeddings import Embedder, ensure_model, spec_from_settings
 from compliance_seed.job import demo_workspace_exists, seed_demo
@@ -63,7 +64,7 @@ async def startup(ctx: dict[str, Any]) -> None:
         storage=LocalStorage(settings.storage_dir),
         embedder=embedder,
         tokenizer_path=model_path / "tokenizer.json",
-        model_label=f"{spec.repo_id}@{spec.revision[:12]}",
+        model_label=embedding_label(spec.repo_id, spec.revision),
         embed_lock=asyncio.Lock(),
     )
     logger.info(

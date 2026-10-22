@@ -105,3 +105,26 @@ class UploadRateLimiter:
     async def reserve_files(self, user_id: str, files: int) -> None:
         if files > 0:
             await self._reserve("files", user_id, files, self._files_per_minute, "files")
+
+
+class FixedWindowLimiter:
+    """Atomic per-key, per-minute request counter (INCR before work is done)."""
+
+    def __init__(self, redis: Redis, name: str, per_minute: int, noun: str) -> None:
+        self._redis = redis
+        self._name = name
+        self._per_minute = per_minute
+        self._noun = noun
+
+    async def reserve(self, key: str) -> None:
+        now = int(datetime.now(UTC).timestamp())
+        redis_key = f"ratelimit:{self._name}:{key}:{now // 60}"
+        async with self._redis.pipeline(transaction=True) as pipe:
+            pipe.incr(redis_key)
+            pipe.expire(redis_key, 120)
+            total, _ = await pipe.execute()
+        if int(total) > self._per_minute:
+            raise RateLimitedError(
+                f"Limit of {self._per_minute} {self._noun} per minute reached. Try again shortly.",
+                60 - now % 60,
+            )

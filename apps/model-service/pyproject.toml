@@ -1,16 +1,18 @@
 [project]
 name = "compliance-model-service"
 version = "0.1.0"
-description = "Rule-check model serving API"
+description = "Local model inference: query/passage embeddings, optional reranking; rule-check model (Phase 3)"
 requires-python = ">=3.11"
 dependencies = [
     "compliance-core",
     "fastapi>=0.120",
     "uvicorn[standard]>=0.35",
+    "compliance-ingestion",
 ]
 
 [tool.uv.sources]
 compliance-core = { workspace = true }
+compliance-ingestion = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

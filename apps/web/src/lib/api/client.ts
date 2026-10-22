@@ -18,6 +18,11 @@ export type SheetInfo = components["schemas"]["SheetRead"];
 export type RowInfo = components["schemas"]["RowRead"];
 export type EntitiesInfo = components["schemas"]["EntitiesResponse"];
 export type UploadResult = components["schemas"]["UploadResult"];
+export type SearchRequest = components["schemas"]["SearchRequest"];
+export type SearchResponse = components["schemas"]["SearchResponse"];
+export type SearchHit = components["schemas"]["SearchHit"];
+export type SearchMode = NonNullable<SearchRequest["mode"]>;
+export type SearchCapabilities = components["schemas"]["SearchCapabilities"];
 type ErrorEnvelope = components["schemas"]["ErrorResponse"];
 
 const AUTH_ENTRY_PATHS = ["/api/v1/auth/login", "/api/v1/auth/register"];
