@@ -52,6 +52,9 @@ token on GitHub when training is done.
    int8/fp32 TEST accuracy -> optional LLM baseline -> final evaluation and manifest refresh -> bundle.
 4. **Disconnects** are expected on Colab: rerun cells 1–5, then the interrupted cell. Training resumes
    from `checkpoints/last` (a different data version, tokenizer or training code is refused).
+   Rerunning in the same runtime is also fine: the source check in cell 2 still requires the exact
+   commit and an unchanged implementation, but ignores `ml/eval/results/`, which the pipeline itself
+   rewrites (`data_report.json`) and fills. Any other changed or untracked file stops the notebook.
 5. Training time on a T4 has not been measured yet; each run logs steps and elapsed time.
 
 ### Drive space plan (estimates from parameter counts, not yet measured)

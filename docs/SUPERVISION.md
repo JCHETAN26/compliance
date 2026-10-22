@@ -231,6 +231,8 @@ model superiority or real-provider performance.
 
 Full Phase3 is **not accepted**: Colab full GPU training/ablation/unseen-rule runs,
 real Anthropic baseline/cascade, full quantization results and independent imported
-artifact verification remain. Phase4 remains gated. Source handoff commit/hosted CI
-will be recorded after creation. Host disk remains constrained by ~2GB of this
+artifact verification remain. Phase4 remains gated. Hosted pipeline run39715788502 for84ecada passed all three jobs, including
+normal Docker build and the real CPU ML smoke. A final notebook-only resume-guard
+fix passed four independent tests; no training/metric logic changed. Exact handoff
+commit/latest CI are tracked in .cache/colab/HANDOFF.json and GitHub Actions. Host disk remains constrained by ~2GB of this
 project's cancelled BuildKit records; unrelated projects/caches were preserved.

@@ -502,3 +502,24 @@ pinned (~2GB), so model import still needs adequate free disk; no broad cleanup.
 No production trained weights, real Anthropic baseline or full model/calibration/
 quantization/cascade performance is complete. Colab+API execution and result import
 remain required; no Phase4 work is authorized until those results are verified.
+
+## Hosted pipeline verification and final Colab resume guard
+
+Hosted run39715788502 for84ecada2cf106b26df92b9efc0b025294b42cfe6 completed
+**success in all three jobs**: Python (including full real CPU ML smoke), web,
+and normal Docker build/clean startup/automatic seed/Phase0–3 smoke. This verifies
+the ordinary repository Docker path on a host with sufficient disk, supplementing
+the local RAM build route.
+
+A final notebook-only fix allows generated ml/eval/results/ outputs when re-running
+source checkout in the same Colab runtime, while still refusing tracked/untracked
+implementation changes elsewhere and requiring the exact expected commit. No model,
+training, metrics or provider logic changed. Codex independently ran the actual
+notebook guard's temporary-Git tests: **4 passed**, exit0, log
+/tmp/compliance-supervision/phase3-notebook-final-check.log. Full ML unit suite is
+now26 tests (previously25); the added test is the source guard. Final handoff commit
+and its CI outcome are recorded in .cache/colab/HANDOFF.json and GitHub Actions.
+
+Full GPU training, real Anthropic evaluation/cascade and trained-artifact import
+remain external and unaccepted. The pending Docker-restart question has not granted
+permission to interrupt unrelated projects.
