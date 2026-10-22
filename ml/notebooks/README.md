@@ -72,6 +72,48 @@ token on GitHub when training is done.
 After a run reports `run complete`, its `checkpoints/last` may be deleted to save about 2 GB
 (`checkpoints/best` must stay until export is done).
 
+### Recovering from the fp16 failure of source `4cd76d8`
+
+The first production run on `4cd76d8` stopped at its first optimizer step with
+`ValueError: Attempting to unscale FP16 gradients`. Cause: transformers 5 loads checkpoints
+with `dtype="auto"`, and DeBERTa-v3-base's `pytorch_model.bin` is stored in fp16, so the model
+had fp16 parameters. Fixed in a later commit: backbones are always built in float32 and
+training refuses to start otherwise; mixed precision comes only from autocast. That failed run
+wrote `run.json` but no training log and no checkpoint, so nothing is lost. To recover:
+
+1. Use the new commit, bundle and notebook copy the supervisor provides.
+2. Runtime -> **Disconnect and delete runtime** (the old checkout in `/content/compliance` does
+   not contain the new commit).
+3. In Google Drive, move the failed run folder `MyDrive/compliance-runs/deberta_v3_base` to
+   `MyDrive/compliance-runs/archive/deberta_v3_base-failed-4cd76d8-fp16` (keep it; do not delete
+   it). Leave `data-full/` and `baselines/` exactly where they are: the restored data keeps the
+   same `data_version`.
+4. Replace `MyDrive/compliance-runs/compliance.bundle` with the new bundle, then run all cells.
+
+Re-using the old run folder is refused by design (`ResumeIdentityError`: the training code
+changed); do not edit `run.json` or work around that check. GPU verification of the fix is still
+pending: the first `step 1` and, after 500 steps, the first `checkpoints/last` in the new run
+folder show the run has passed the point where `4cd76d8` failed.
+
+**Optional: recover in the same runtime** (keeps the CUDA environment, pinned weights and
+prepared data; the steps above remain the default). The supervisor provides
+`recover_fp16.py`, an operational script that is not part of the repository. Set `NEW_COMMIT` in
+it, upload it next to the new bundle in `MyDrive/compliance-runs/`, and run it in a new cell:
+`!python /content/drive/MyDrive/compliance-runs/recover_fp16.py`.
+
+- It first checks everything: the checkout is exactly `4cd76d8` (or already the new commit) with
+  no implementation changes outside `ml/eval/results/`; the bundle verifies and contains the new
+  commit, which descends from `4cd76d8`; and the `deberta_v3_base` folder is the step-1 failure
+  (not complete, started from `4cd76d8`, no checkpoint entries, empty or missing training log).
+  Anything else stops it without changes.
+- Only then does it check out the new commit and rename the failed folder to a unique
+  `deberta_v3_base.failed-fp16-4cd76d8-<timestamp>` sibling. It deletes nothing and never touches
+  `data-full/`, `baselines/` or the environment. Running it again changes nothing.
+- Afterwards do **not** rerun the source cell (it still holds the old `EXPECTED_COMMIT`). Rerun the
+  **first training cell** and then the following cells; `PY`, `RUNS`, `run()` and `assert_cuda()`
+  stay valid, and each `run()` starts a fresh process with the fixed code. For any later full
+  restart, use the new ready notebook with the new `EXPECTED_COMMIT`.
+
 ## 3. Optional: the Anthropic zero-shot baseline
 
 Either in Colab (cell 8, `RUN_LLM = True`, key stored as the Colab secret `ANTHROPIC_API_KEY`), or

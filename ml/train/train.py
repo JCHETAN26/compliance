@@ -60,6 +60,7 @@ from ml.train.backbone import (
     BackboneFiles,
     build_backbone,
     fetch_backbone,
+    require_float32,
     sentencepiece_fidelity,
 )
 from ml.train.config import TrainConfig, load_config
@@ -363,6 +364,8 @@ def run(
         build_backbone(cfg.backbone, files, seed=cfg.seed), dropout=cfg.training.dropout
     )
     model.to(device)
+    # float32 master weights before the optimizer exists; mixed precision only via autocast
+    require_float32(model)
 
     label_index = {label: i for i, label in enumerate(LABELS)}
     ev0, lab0 = build_epoch(

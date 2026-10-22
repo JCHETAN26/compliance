@@ -83,7 +83,10 @@ temperature (DEV NLL), evidence threshold (DEV segment F1), serving backbone (DE
 primary vs the ablation), cascade tau. TEST is predicted only after the selection is frozen and
 is never used to change a choice.
 
-Engineering safeguards: fp16 skipped updates don't advance the LR schedule; checkpoints are
+Engineering safeguards: parameters are always float32 (transformers 5 would otherwise load
+DeBERTa-v3's fp16 checkpoint as fp16 parameters, which broke the first Colab run of `4cd76d8`;
+mixed precision comes only from autocast, and training and export refuse non-float32 models);
+fp16 skipped updates don't advance the LR schedule; checkpoints are
 promoted atomically and recovered after an interrupted promotion; a resume must match the data
 version, derived tokenizer hash and training-code fingerprint; production configs refuse subset
 data and CPU; the derived DeBERTa tokenizer is verified against its pinned sources and converter

@@ -119,6 +119,30 @@ the supervisor reviews, commits and pushes it.
   independently by the supervisor: 8 concurrent requests, shared batches); it was then
   removed. Browser: smoke and fallback banners verified, no console errors.
 
+### Colab failure on `4cd76d8` (fp16 parameters) and fix
+
+The first production Colab run stopped at its first `scaler.unscale_` with `ValueError:
+Attempting to unscale FP16 gradients`; it wrote `run.json` only (no training log, no checkpoint).
+**Diagnosis:** transformers 5.20 resolves a missing `dtype` to `"auto"`, i.e. the checkpoint's
+dtype (`from_pretrained`) or the config's `dtype` (`from_config`). DeBERTa-v3-base's
+`pytorch_model.bin` is fp16 (371 MB for 184 M parameters), so the backbone had fp16 parameters
+and GradScaler (correctly) refused them. **Fix:** `build_backbone` and `build_architecture` pass
+`dtype=torch.float32`, and `require_float32` stops training (before the optimizer exists) and
+export if any floating-point parameter or buffer is not float32. autocast still provides fp16
+activations on CUDA; the scaler stays enabled and `allow_fp16` is not used. Export and the CPU
+benchmark rebuild the architecture from config, which is now float32 even for a config declaring
+float16, so the fp32 ONNX export and its PyTorch parity reference are float32; saved checkpoints
+are float32 (~0.74 GB for DeBERTa-v3-base, as in the Drive plan).
+**Tests** (`ml/tests/test_fp32_master_weights.py`, CPU): a tiny DeBERTa-v2 checkpoint saved as an
+fp16 `.bin` with an fp16 config loads as fp16 with transformers' default (the hazard) and as
+float32 through all three project paths, keeping the checkpoint's values; a real, enabled CPU
+GradScaler reproduces the exact `ValueError` with fp16 parameters through the production
+`optimizer_update`, and with the fixed backbone in the real two-head model under bf16 autocast it
+applies the update and advances the schedule. A mutation run (explicit dtype removed) makes both
+fix tests fail. ML unit tests 29 passed; ruff/format clean; strict mypy clean (166 files).
+**Pending:** GPU verification on Colab (no GPU here); the tool-overlay ML smoke was not re-run for
+this change. Recovery steps: `ml/notebooks/README.md` ("Recovering from the fp16 failure").
+
 ### Storage incident and how it was resolved
 
 The normal web image build needs ~1.1 GB transient (`npm ci` layer) plus build output, more

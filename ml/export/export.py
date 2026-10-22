@@ -49,7 +49,7 @@ from ml.common import provenance
 from ml.common.io import read_json, write_json
 from ml.data.store import load_dataset
 from ml.eval.infer import TokenCache, TorchForward
-from ml.train.backbone import build_architecture, fetch_backbone
+from ml.train.backbone import build_architecture, fetch_backbone, require_float32
 from ml.train.config import TrainConfig
 from ml.train.model import RuleCheckModel
 from ml.train.train import _load_weights
@@ -82,6 +82,7 @@ def load_model(run_dir: Path) -> tuple[RuleCheckModel, TrainConfig, InputEncoder
     files = fetch_backbone(cfg.backbone, need_weights=False)
     model = RuleCheckModel(build_architecture(cfg.backbone, files), dropout=cfg.training.dropout)
     _load_weights(model, run_dir / "checkpoints" / "best" / "model.safetensors")
+    require_float32(model)  # the fp32 ONNX export and parity reference must be float32
     model.eval()
     encoder = InputEncoder.from_file(run_dir / "tokenizer.json", cfg.encoder.to_config())
     return model, cfg, encoder

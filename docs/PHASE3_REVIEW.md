@@ -523,3 +523,22 @@ and its CI outcome are recorded in .cache/colab/HANDOFF.json and GitHub Actions.
 Full GPU training, real Anthropic evaluation/cascade and trained-artifact import
 remain external and unaccepted. The pending Docker-restart question has not granted
 permission to interrupt unrelated projects.
+
+### Colab FP16 failure: independent fix review
+
+The first full Colab run at `4cd76d8` failed on the first optimizer update with
+`Attempting to unscale FP16 gradients`. The user's traceback and Drive inventory
+show a run record and empty training log, with no checkpoint. Claude reproduced
+transformers 5 loading FP16 checkpoint parameters by default, explicitly selected
+FP32 parameters in pretrained/random/config-only loaders, and added early dtype
+checks to training and export. AMP and GradScaler remain enabled for CUDA.
+
+Supervisor reviewed the implementation and real regression tests: default FP16
+loading and the exact enabled-GradScaler exception are reproduced; loading the
+same weights in FP32 preserves their values and permits a real optimizer update.
+Independent ML unit plus full pipeline smoke: **43 passed** (29 unit + 14 smoke,
+119.23 seconds). This includes actual tiny training, resume identity checks,
+FP32/int8 ONNX export/parity and service inference. Ruff and format checks passed.
+The initial independent smoke invocation lacked the pinned ML tool overlay; after
+restoring it, the complete suite passed. No full production GPU result is claimed:
+Colab must still demonstrate successful CUDA updates and complete all runs.

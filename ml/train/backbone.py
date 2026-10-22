@@ -174,29 +174,64 @@ def check_tokenizer_parity(hf_tokenizer: Any, tokenizer_json: Path) -> None:
             )
 
 
+# Parameters are always float32 ("master weights"). transformers 5 loads with dtype="auto"
+# by default, i.e. in the checkpoint's or config's dtype: microsoft/deberta-v3-base ships an
+# fp16 pytorch_model.bin, so the default gives fp16 parameters and GradScaler then refuses to
+# unscale their fp16 gradients. Mixed precision comes from torch.autocast (fp16 activations
+# on CUDA), never from low-precision parameters; export and inference also expect fp32.
+PARAM_DTYPE_NAME = "float32"
+
+
+class ParameterDtypeError(RuntimeError):
+    pass
+
+
+def require_float32(model: Any) -> None:
+    """Fail unless every floating-point parameter and buffer of ``model`` is float32."""
+    import torch
+
+    wrong = [
+        f"{name}:{tensor.dtype}"
+        for name, tensor in [*model.named_parameters(), *model.named_buffers()]
+        if tensor.is_floating_point() and tensor.dtype != torch.float32
+    ]
+    if wrong:
+        raise ParameterDtypeError(
+            f"{len(wrong)} tensors are not float32 (e.g. {wrong[:3]}); "
+            "trainable master weights must be float32 (use autocast for fp16 activations)"
+        )
+
+
 def build_architecture(spec: BackboneSpec, files: BackboneFiles) -> Any:
     """The backbone architecture from its pinned config only (weights loaded afterwards)."""
+    import torch
     from transformers import AutoConfig, AutoModel
 
     config = AutoConfig.from_pretrained(str(files.root), local_files_only=True)
     for key, value in (spec.tiny_overrides or {}).items():
         setattr(config, key, value)
-    return AutoModel.from_config(config)  # type: ignore[no-untyped-call]
+    return AutoModel.from_config(config, dtype=torch.float32)  # type: ignore[no-untyped-call]
 
 
 def build_backbone(spec: BackboneSpec, files: BackboneFiles, *, seed: int) -> Any:
-    """The backbone ``transformers`` model: pinned pretrained weights or seeded random tiny."""
+    """The backbone ``transformers`` model in float32: pinned pretrained weights or seeded
+    random tiny. The dtype is explicit (see ``PARAM_DTYPE_NAME``)."""
     import torch
     from transformers import AutoConfig, AutoModel
 
     os.environ.setdefault("HF_HUB_OFFLINE", "1")
     if spec.kind == "pretrained":
-        return AutoModel.from_pretrained(str(files.root), local_files_only=True)
-    config = AutoConfig.from_pretrained(str(files.root), local_files_only=True)
-    for key, value in (spec.tiny_overrides or {}).items():
-        setattr(config, key, value)
-    torch.manual_seed(seed)
-    return AutoModel.from_config(config)  # type: ignore[no-untyped-call]
+        model = AutoModel.from_pretrained(
+            str(files.root), local_files_only=True, dtype=torch.float32
+        )
+    else:
+        config = AutoConfig.from_pretrained(str(files.root), local_files_only=True)
+        for key, value in (spec.tiny_overrides or {}).items():
+            setattr(config, key, value)
+        torch.manual_seed(seed)
+        model = AutoModel.from_config(config, dtype=torch.float32)  # type: ignore[no-untyped-call]
+    require_float32(model)
+    return model
 
 
 def sentencepiece_fidelity(
