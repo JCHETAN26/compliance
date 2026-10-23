@@ -134,6 +134,24 @@ and the ML tool pins are added. All later steps call `.venv/bin/python` directly
 - Nothing becomes durable automatically. A file outlives its session only if it is in a saved
   version's output or you have downloaded it.
 
+### Training finished but a later step failed (e.g. evaluation)
+
+Example: the `96a78b1` run, where `ml.eval.evaluate` failed on Kaggle's inherited
+`MPLBACKEND` (fixed in `ml/eval/plots.py`). The fix does not touch the training code, so the
+saved runs are reused and nothing is retrained:
+
+1. Do not change or delete the failed version. Its output is the only copy of the trained runs.
+   Read-only check first: every `compliance-runs/<run>/run.json` there should say
+   `"status": "complete"` with training-code fingerprint `a74ec481…`.
+2. Add a new version of the source dataset whose only bundle is the fixed commit.
+3. In the notebook: **Add Input** -> the failed version's output, pinned to that version (not
+   "latest"). In the settings cell set `EXPECTED_COMMIT` (the fixed commit),
+   `IMPORT_PREVIOUS_OUTPUT` (the `/kaggle/input/...` path shown for that input) and
+   **`TRAIN_RUNS = ()`**. Keep GPU T4 x2 and Internet on, then Save & Run All.
+4. `TRAIN_RUNS = ()` guarantees nothing is retrained. If a run is not imported, section 9 reports
+   "need three complete runs" and stops there; it does not start a 2-hour training from step 0.
+   Section 6 lists what was imported.
+
 ### The failed Colab run
 
 Leave Google Drive and the failed Colab run folder as they are; nothing here reads from or writes

@@ -878,7 +878,10 @@ def _previous_output(root: Path) -> Path:
     return root
 
 
-def test_import_copies_only_verified_reusable_parts_without_overwriting(tmp_path: Path) -> None:
+def test_import_copies_only_verified_reusable_parts_without_overwriting(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(rt, "free_bytes", lambda path: 10**12)  # independent of the host disk
     source = _previous_output(tmp_path / "input" / "previous-version")
     before = _tree(source)
     runs = tmp_path / "working" / "compliance-runs"
@@ -909,7 +912,16 @@ def test_import_copies_only_verified_reusable_parts_without_overwriting(tmp_path
     assert all(v.startswith(("kept", "skipped")) for v in again.values())
 
 
-def test_import_refuses_other_code_other_data_and_over_budget(tmp_path: Path) -> None:
+def test_import_refuses_other_code_other_data_and_over_budget(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(rt, "free_bytes", lambda path: 0)
+    with pytest.raises(RuntimeError, match="Nothing was copied"):
+        rt.import_previous_output(
+            _previous_output(tmp_path / "low"), tmp_path / "runs0", training_fingerprint=FINGERPRINT
+        )
+    assert not any(p.is_file() for p in (tmp_path / "runs0").rglob("*"))
+    monkeypatch.setattr(rt, "free_bytes", lambda path: 10**12)
     source = _previous_output(tmp_path / "prev")
     runs = tmp_path / "runs"
     other = rt.import_previous_output(source, runs, training_fingerprint="0" * 64)

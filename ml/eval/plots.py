@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
+# Figures are only ever written to files, so the backend is always the headless Agg, chosen
+# BEFORE matplotlib is imported: an inherited MPLBACKEND that the project environment cannot
+# load (Jupyter/Kaggle/Colab set module://matplotlib_inline.backend_inline) makes
+# `import matplotlib` itself raise.
+os.environ["MPLBACKEND"] = "Agg"
+
 import matplotlib
 
-matplotlib.use("Agg")
+matplotlib.use("Agg")  # also if matplotlib was already imported with another backend
 import matplotlib.pyplot as plt
 
 from compliance_model_service.rule_check.labels import LABELS
