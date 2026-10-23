@@ -143,6 +143,33 @@ fix tests fail. ML unit tests 29 passed; ruff/format clean; strict mypy clean (1
 **Pending:** GPU verification on Colab (no GPU here); the tool-overlay ML smoke was not re-run for
 this change. Recovery steps: `ml/notebooks/README.md` ("Recovering from the fp16 failure").
 
+### First `36eb2eb` Colab run: no resumable checkpoint visible
+
+**Confirmed (user's live inventory):** the `deberta_v3_base` run (Drive mode) reached step ~7,700
+in its third epoch in ~83 min on a T4 and was interrupted; the rerun stopped in `recover_last`
+with `CheckpointError` (only an incomplete `.last-staging`). Drive was 100 % full (147 MB free of
+15 GB); under `checkpoints/` only `best/model.safetensors` (740,088,360 bytes) exists, with no
+`COMPLETE`, `state.json` or `trainer.pt`; no training process was running. The visible files do
+not permit an exact resume. **Not established:** how the newer checkpoints disappeared
+(hypotheses: Trash filling the quota, mount reconciliation after the interrupt). A complete
+checkpoint in Drive Trash is possible, not guaranteed; the user has not reported on Trash yet. No
+new training is authorized until that decision.
+
+**Changed (notebook, runbook, notebook tests only; training code, configs and the training-code
+fingerprint `a74ec481c62e6b5f8d24ce97aded422e61df6febf10f015298ab6ba4e8fdc64d` unchanged):**
+`RUN_LOCATION = "local"` by default (runs and checkpoints on the runtime's disk, resumable within
+the same runtime; Drive read for bundle/data/baselines and written only by space-checked, verified
+backups into new folders; nothing on Drive deleted); `stream()`/`run()` show stdout+stderr live,
+log to `RUNS/logs/`, raise on failure, and stop and reap the child on an interrupt or a failing
+output relay; the source cell can update an existing checkout from a verified bundle (clean
+implementation required). ML unit tests 41 passed (16 notebook tests). The supervisor's operational
+`preserve_failed_run.py` (read-only, verified local copy of the failed run) lives outside the
+repository. **Pending:** behaviour in a live Colab runtime (display, stop button, Drive free space
+through the mount) is unverified.
+
+**Known CI failure, not addressed here:** hosted run 39866518635 failed because concurrent API
+startups seeded the Demo workspace twice (duplicate). Follow-up required.
+
 ### Storage incident and how it was resolved
 
 The normal web image build needs ~1.1 GB transient (`npm ci` layer) plus build output, more
@@ -176,8 +203,8 @@ exact id) or by another approved route.
    for hosted CI, and generates the git bundle plus a notebook copy with `EXPECTED_COMMIT`
    filled in (configuration only; no logic change).
 2. User: Colab training per `ml/notebooks/README.md` (upload the bundle to
-   `MyDrive/compliance-runs/`, T4 runtime, ~10 GB Drive; three runs, evaluation, export, CPU
-   latency, int8/fp32 TEST accuracy, results bundle).
+   `MyDrive/compliance-runs/`, T4 runtime, local run mode; three runs, evaluation, export, CPU
+   latency, int8/fp32 TEST accuracy, results bundle downloaded or backed up to Drive).
 3. User: Anthropic key as the Colab secret `ANTHROPIC_API_KEY` (or typed into their own shell
    with `read -rs`); dry run first, then DEV and TEST.
 4. Free disk headroom, then `make import-colab-bundle BUNDLE=…`, restart model-service,

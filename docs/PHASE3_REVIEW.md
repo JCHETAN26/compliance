@@ -542,3 +542,43 @@ FP32/int8 ONNX export/parity and service inference. Ruff and format checks passe
 The initial independent smoke invocation lacked the pinned ML tool overlay; after
 restoring it, the complete suite passed. No full production GPU result is claimed:
 Colab must still demonstrate successful CUDA updates and complete all runs.
+
+### Production Colab evidence and Drive quota failure
+
+User-provided live logs establish that the FP32 loading fix worked on the T4:
+7,700 optimizer updates, epoch index 2, elapsed 5,003.7 seconds. A stale Drive API
+listing had shown much earlier checkpoints; the supervisor's interruption advice
+was premature and has been corrected. Treat the runtime's filesystem/process/log
+inventory as the immediate diagnostic evidence, not cloud listing timestamps.
+
+The later live inventory shows only `checkpoints/best/model.safetensors`
+(740,088,360 bytes), no complete resume checkpoint, no training process, 60 GB
+free on local `/content`, but only 147 MB free on the 15 GB Drive mount. Quota
+exhaustion is confirmed. The precise file-loss/synchronization sequence and any
+recoverability from Trash are not yet established. Do not create completion
+markers, fabricate optimizer state, weaken resume identity, or label a warm start
+as an exact resume. Preserve existing files and investigate Trash before deletion.
+
+A Claude-authored operational preservation script copies the run to a unique
+local directory with per-file SHA-256 verification and no Drive-source mutations.
+Supervisor independently ran its eight tests successfully. A small copy of the
+script was uploaded to the project Drive folder (12,047 bytes fits the remaining
+space); uploading model/checkpoint data there remains unsafe. The local backup
+will be lost on runtime deletion and does not replace a durable download.
+
+Hosted CI 39866518635 for 36eb2eb failed in the compose smoke: concurrent startup
+seeding produced two Demo workspaces. This is an outstanding application issue,
+separate from the verified ML unit/pipeline checks and from Colab storage.
+Phase 3 remains unaccepted; no completed production run/results are claimed.
+
+The notebook recovery workflow is now independently reviewed and locally verified:
+local-disk runs by default; separate Drive input paths; visible stdout/stderr tee;
+child cleanup on interruption or output/log failure; verified, space-checked
+backups that never delete Drive data; and verified-bundle updates of an existing
+clean source checkout. Real subprocess and temporary Git-bundle tests exercise
+these behaviours. Supervisor final run: **49 passed** (41 ML units, including 16
+notebook tests, plus eight preservation tests), 9.87 seconds; targeted strict mypy,
+ruff and formatting passed. Training-code fingerprint remains
+`a74ec481c62e6b5f8d24ce97aded422e61df6febf10f015298ab6ba4e8fdc64d`.
+Live Colab verification of the revised notebook and the user's Trash/preservation
+results remain pending. No fresh training has been started by the supervisor.
