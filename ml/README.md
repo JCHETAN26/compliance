@@ -26,6 +26,7 @@ service runs in untrained fallback mode and the web app shows a banner.
 | `export/` | ONNX fp32 + int8 export with parity (`export.py`), CPU latency (`bench.py`), ONNX accuracy (`eval_onnx.py`) |
 | `colab/bundle.py` | Results bundle Colab -> repository (pack / verified import / artifact install) |
 | `notebooks/colab_train.ipynb` | Thin Colab wrapper over the same scripts |
+| `notebooks/kaggle_train.ipynb`, `notebooks/kaggle_runtime.py`, `notebooks/KAGGLE.md` | Thin Kaggle wrapper over the same scripts, its stdlib runtime helpers and runbook |
 | `requirements-tools.txt` | Pinned tool overlay (onnx, onnxscript, sentencepiece, anthropic) |
 | `tests/` (base env), `smoke/tests/` (tool overlay) | Unit tests; end-to-end CPU smoke |
 

@@ -1,6 +1,8 @@
 # Colab runbook: training the rule-check model (Phase 3 external step)
 
 `colab_train.ipynb` runs the repository's own scripts on a Colab T4 GPU. It adds no modelling code.
+For Kaggle (same pipeline, Kaggle paths, private source dataset instead of Drive) see
+[`KAGGLE.md`](KAGGLE.md) and `kaggle_train.ipynb`.
 This page lists everything a person has to do, in order. Nothing here requires pasting a token or
 API key into a chat, a notebook cell, a file or a command line.
 
