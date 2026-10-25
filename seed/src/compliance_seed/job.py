@@ -4,7 +4,9 @@ Re-running never resets anything a person may have changed:
 - an existing demo user keeps its password (only a missing user is created);
 - an existing demo workspace is reused; missing seed files are added, and files already
   present (same SHA-256 in the workspace) are left alone;
-- seeding is refused in production.
+- seeding is refused in production;
+- concurrent seeds (the worker's automatic job and ``python -m compliance_seed``) are
+  serialized with a Postgres advisory lock, so they create one user and one workspace.
 
 Automatic seeding at worker start only happens when the demo workspace does not exist
 yet (a clean install). ``make seed`` re-runs it explicitly.
@@ -21,7 +23,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from compliance_core.config import AppEnv, Settings
@@ -34,10 +36,13 @@ from compliance_core.services import auth as auth_service
 from compliance_core.services import documents as document_service
 from compliance_core.services import workspaces as workspace_service
 from compliance_core.storage import LocalStorage
-from compliance_seed.generate import generate_seed_files, load_manifest
+from compliance_seed.generate import GeneratedFile, generate_seed_files, load_manifest
 
 logger = logging.getLogger("compliance_seed")
 Enqueue = Callable[[uuid.UUID, int], Awaitable[None]]
+
+# Arbitrary constant, distinct from the migration lock (7_362_918_401).
+SEED_ADVISORY_LOCK_ID = 7_362_918_402
 
 
 class SeedRefusedError(RuntimeError):
@@ -104,49 +109,16 @@ async def run_seed(
     )
     with tempfile.TemporaryDirectory(prefix="seed-") as tmp:
         files = await asyncio.to_thread(generate_seed_files, archive, Path(tmp))
-        async with session_factory() as session:
-            user = await session.scalar(select(User).where(User.email == demo["email"]))
-            if user is None:
-                created_user = await auth_service.register_user(
-                    session, RegisterRequest(email=demo["email"], password=demo["password"])
-                )
-                user_id = created_user.id
-                summary.user_created = True
-            else:
-                user_id = user.id  # never touch an existing password
-            workspace_id = await session.scalar(
-                select(Workspace.id).where(
-                    Workspace.owner_id == user_id, Workspace.name == demo["workspace"]
-                )
+        # The services commit after each step, so the lock is held by a separate
+        # transaction that touches no table; it is released when that transaction ends,
+        # after this seed's user, workspace and documents are committed.
+        async with session_factory() as lock_session, lock_session.begin():
+            await lock_session.execute(
+                text("SELECT pg_advisory_xact_lock(:lock_id)"), {"lock_id": SEED_ADVISORY_LOCK_ID}
             )
-            if workspace_id is None:
-                workspace = await workspace_service.create_workspace(
-                    session, user_id, WorkspaceCreate(name=demo["workspace"])
-                )
-                workspace_id = workspace.id
-                summary.workspace_created = True
-            summary.workspace_id = workspace_id
-            for item in files:
-                # Uploads go through the same validation and registration path as the API.
-                fmt = await asyncio.to_thread(detect_format, item.path, item.filename, zip_limits)
-                digest = await asyncio.to_thread(sha256_file, item.path)
-                registered = await document_service.register_upload(
-                    session,
-                    storage,
-                    workspace_id=workspace_id,
-                    user_id=user_id,
-                    filename=item.filename,
-                    fmt=fmt,
-                    staged_path=item.path,
-                    sha256=digest,
-                    size=item.path.stat().st_size,
-                )
-                summary.document_ids.append(registered.document.id)
-                if registered.created:
-                    summary.created.append(item.filename)
-                    await enqueue(registered.document.id, 1)
-                else:
-                    summary.already_present.append(item.filename)
+            await _seed_database(
+                session_factory, storage, files, zip_limits, demo, summary, enqueue
+            )
     logger.info(
         "demo seed complete",
         extra={
@@ -157,6 +129,61 @@ async def run_seed(
         },
     )
     return summary
+
+
+async def _seed_database(
+    session_factory: async_sessionmaker[AsyncSession],
+    storage: LocalStorage,
+    files: list[GeneratedFile],
+    zip_limits: ZipLimits,
+    demo: dict[str, str],
+    summary: SeedSummary,
+    enqueue: Enqueue,
+) -> None:
+    """Create what is missing; must run while holding the seed advisory lock."""
+    async with session_factory() as session:
+        user = await session.scalar(select(User).where(User.email == demo["email"]))
+        if user is None:
+            created_user = await auth_service.register_user(
+                session, RegisterRequest(email=demo["email"], password=demo["password"])
+            )
+            user_id = created_user.id
+            summary.user_created = True
+        else:
+            user_id = user.id  # never touch an existing password
+        workspace_id = await session.scalar(
+            select(Workspace.id).where(
+                Workspace.owner_id == user_id, Workspace.name == demo["workspace"]
+            )
+        )
+        if workspace_id is None:
+            workspace = await workspace_service.create_workspace(
+                session, user_id, WorkspaceCreate(name=demo["workspace"])
+            )
+            workspace_id = workspace.id
+            summary.workspace_created = True
+        summary.workspace_id = workspace_id
+        for item in files:
+            # Uploads go through the same validation and registration path as the API.
+            fmt = await asyncio.to_thread(detect_format, item.path, item.filename, zip_limits)
+            digest = await asyncio.to_thread(sha256_file, item.path)
+            registered = await document_service.register_upload(
+                session,
+                storage,
+                workspace_id=workspace_id,
+                user_id=user_id,
+                filename=item.filename,
+                fmt=fmt,
+                staged_path=item.path,
+                sha256=digest,
+                size=item.path.stat().st_size,
+            )
+            summary.document_ids.append(registered.document.id)
+            if registered.created:
+                summary.created.append(item.filename)
+                await enqueue(registered.document.id, 1)
+            else:
+                summary.already_present.append(item.filename)
 
 
 async def seed_demo(ctx: dict[str, Any]) -> dict[str, Any]:

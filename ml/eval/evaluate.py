@@ -214,14 +214,26 @@ def load_baselines(
                 break
             per_split[split] = rows
         else:
-            systems[name] = per_split
-            notes[name] = {
-                "meta": {
-                    k: v
-                    for k, v in load_system(baselines_dir, name, "test")[1].items()
-                    if k != "provenance"
-                }
+            meta = {
+                k: v
+                for k, v in load_system(baselines_dir, name, "test")[1].items()
+                if k != "provenance"
             }
+            if name == "llm_zero_shot":
+                usability = cascade.llm_usability(per_split)
+                if not usability["usable"]:
+                    # Rejected requests are not answers: not a baseline, not cascade input.
+                    notes[name] = {
+                        "excluded": "unusable: too few answered pairs (see usability); not "
+                        "scored as a baseline and not used for the cascade",
+                        "usability": usability,
+                        "meta": meta,
+                    }
+                    continue
+                notes[name] = {"meta": meta, "usability": usability}
+            else:
+                notes[name] = {"meta": meta}
+            systems[name] = per_split
     return systems, notes
 
 
@@ -353,7 +365,17 @@ def main(argv: list[str] | None = None) -> int:
     tau = cascade.select_tau(curves["dev"], llm_dev_acc)
     inference["tau"] = tau["tau"]
     inference["tau_provisional"] = tau["provisional"]
+    # The exporter serves a tau only with this explicit evidence of a usable LLM baseline.
+    inference["llm_baseline_usable"] = llm is not None
+    llm_note = baseline_notes.get("llm_zero_shot") or "not available"
+    if llm:
+        llm_status = "usable"
+    elif isinstance(llm_note, dict):
+        llm_status = llm_note.get("excluded", "not available")
+    else:
+        llm_status = llm_note
     cascade_out = {
+        "llm_baseline": llm_status,
         "tau_selection": tau,
         "test_at_tau": cascade.at_tau(curves["test"], tau["tau"]),
         "dev_at_tau": cascade.at_tau(curves["dev"], tau["tau"]),

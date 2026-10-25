@@ -24,7 +24,7 @@ from typing import Any
 
 import numpy as np
 
-from compliance_model_service.rule_check.artifact import load_artifact
+from compliance_model_service.rule_check.artifact import verify_artifact
 from compliance_model_service.rule_check.encoding import (
     InputEncoder,
     sigmoid,
@@ -80,9 +80,10 @@ def main(argv: list[str] | None = None) -> int:
     import torch
 
     torch.set_num_threads(args.threads)
-    artifact = load_artifact(args.artifact_dir, variant="int8", allow_smoke=True)
-    manifest = artifact.manifest
-    encoder = InputEncoder.from_file(artifact.tokenizer_path, manifest.encoder.to_config())
+    manifest, _ = verify_artifact(args.artifact_dir)  # measured, not served: no quality gate
+    encoder = InputEncoder.from_file(
+        args.artifact_dir / manifest.files.tokenizer.path, manifest.encoder.to_config()
+    )
     data_dir = args.data_dir or provenance.REPO / ".cache" / "ml" / "data" / (
         "full" if manifest.kind == "production" else "smoke"
     )

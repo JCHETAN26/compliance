@@ -137,6 +137,24 @@ re-exporting weights. `make install-model` / `make import-colab-bundle` verify a
 `RULE_CHECK_VARIANT=fp32`), refuses smoke artifacts unless `RULE_CHECK_ALLOW_SMOKE=true`, and
 micro-batches rows across concurrent requests.
 
+Guards from the first production run (int8 collapsed; every LLM request was rejected):
+
+- **int8 quality gate.** A production int8 file is refused for serving unless the export's DEV
+  parity shows label agreement >= 0.9 and top-k agreement >= 0.75 with PyTorch; the error names
+  `RULE_CHECK_VARIANT=fp32` when fp32 exists. The export reports `int8_ok` and refuses
+  `--drop-fp32` when int8 fails.
+- **fp32 recovery.** `python -m ml.export.recover_fp32 --source <artifact> --out <new dir>
+  --quantization-eval <quantization_eval.json> [--params <inference_params.json>]` writes a
+  verified fp32-only artifact (copies, never links) after checking recorded fp32 parity and
+  full-split ONNX fidelity; the source is untouched.
+- **Cascade tau.** An LLM baseline answering < 95 % of pairs on a split is excluded (not a
+  baseline, not cascade input) and `select_tau` refuses LLM-only DEV accuracy 0. The exporter
+  serves a tau only when `inference_params.json` records `llm_baseline_usable: true`.
+- **LLM request errors.** Each rejected attempt stores a sanitized `error_detail` (status, API
+  error type, truncated message with credentials redacted, request id). A one-request preflight
+  and a 10-consecutive-rejection breaker stop the run (exit 3, no predictions written).
+- Where symlinks are unsupported (exFAT), installation makes `current` a verified copy.
+
 ## Make targets
 
 ```bash

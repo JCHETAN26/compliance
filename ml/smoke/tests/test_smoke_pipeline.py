@@ -526,7 +526,8 @@ def test_manifest_refresh_changes_version_not_weights(
     sh.copytree(pipeline["artifact"], artifact)
     before = load_artifact(artifact, variant="int8", allow_smoke=True).manifest
     params = read_json(pipeline["results"] / "inference_params.json")
-    params.update(tau=0.8, tau_provisional=False)  # e.g. a final DEV cascade selection
+    # e.g. a final DEV cascade selection against a usable LLM baseline
+    params.update(tau=0.8, tau_provisional=False, llm_baseline_usable=True)
     params_path = tmp_path / "params.json"
     params_path.write_text(json.dumps(params))
     assert (

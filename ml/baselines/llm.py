@@ -23,8 +23,18 @@ wrong), never dropped; claimed evidence ids that were not shown are counted as e
 false positives.
 
 ``--limit N`` runs only the first N pairs and writes the system ``llm_zero_shot_partial``
-which evaluation reports as a sanity check only, never as the baseline result.
+which evaluation reports as a sanity check only, never as the baseline result
+(``--limit 1`` is the bounded one-request check before a full paid run).
 The API key is read only from ``ANTHROPIC_API_KEY`` and is never printed or stored.
+
+Systemic request errors fail fast. Every rejected attempt records a sanitized
+``error_detail`` (HTTP status, API error type, a truncated message with credentials
+redacted, request id; never the prompt). The first pair is sent alone as a preflight:
+if the API rejects it with a non-retryable status, nothing else is sent. During the run,
+``SYSTEMIC_FAILURE_LIMIT`` consecutive non-retryable rejections stop all remaining
+requests. Either way the recorded attempts stay in the cache, the reason is printed, no
+predictions are written (a baseline made of rejected requests is not a baseline), and
+the exit status is 3.
 """
 
 from __future__ import annotations
@@ -34,6 +44,7 @@ import asyncio
 import hashlib
 import json
 import os
+import re
 import sys
 import time
 from datetime import UTC, datetime
@@ -189,6 +200,78 @@ def usable_answer(
 
 RETRY_STATUS = {408, 409, 429, 500, 502, 503, 504, 529}
 MAX_ATTEMPTS = 5
+# Consecutive non-retryable rejections (no success in between) that stop the whole run.
+SYSTEMIC_FAILURE_LIMIT = 10
+MAX_DIAGNOSTIC_CHARS = 300
+_REDACTIONS = (
+    (re.compile(r"sk-ant-[A-Za-z0-9_\-]+"), "[redacted-key]"),
+    (re.compile(r"(?i)\b(bearer\s+)[A-Za-z0-9._~+/\-]+=*"), r"\1[redacted]"),
+    (re.compile(r"(?i)(x-api-key[\"']?\s*[:=]\s*[\"']?)[^\s\"',}]+"), r"\1[redacted]"),
+)
+
+
+class SystemicRequestError(RuntimeError):
+    """The API rejects the request itself (not one pair's content); stop spending."""
+
+    def __init__(self, reason: str, detail: dict[str, Any]) -> None:
+        super().__init__(reason)
+        self.reason = reason
+        self.detail = detail
+
+
+def _sanitize(value: object) -> str | None:
+    """Printable, bounded text with anything credential-like redacted."""
+    if value is None:
+        return None
+    text = " ".join(str(value).split())  # also removes control characters/newlines
+    for pattern, replacement in _REDACTIONS:
+        text = pattern.sub(replacement, text)
+    if len(text) > MAX_DIAGNOSTIC_CHARS:
+        text = text[:MAX_DIAGNOSTIC_CHARS] + "...[truncated]"
+    return text
+
+
+def api_error_detail(exc: Any) -> dict[str, Any]:
+    """Actionable, sanitized summary of an API status error, safe to log and to cache.
+
+    Reads the API's error body (``{"type": "error", "error": {"type", "message"},
+    "request_id"}``) when present; never includes request headers or the prompt.
+    """
+    body = getattr(exc, "body", None)
+    error = body.get("error") if isinstance(body, dict) else None
+    error = error if isinstance(error, dict) else {}
+    message = error.get("message")
+    if message is None and isinstance(body, str):
+        message = body
+    request_id = getattr(exc, "request_id", None)
+    if request_id is None and isinstance(body, dict):
+        request_id = body.get("request_id")
+    status = getattr(exc, "status_code", None)
+    return {
+        "status": status,
+        "error_class": type(exc).__name__,
+        "error_type": _sanitize(error.get("type")),
+        "message": _sanitize(message) or "(no error message in the response body)",
+        "request_id": _sanitize(request_id),
+        "retryable": status in RETRY_STATUS,
+    }
+
+
+def describe_detail(detail: dict[str, Any]) -> str:
+    parts = [f"HTTP {detail.get('status')}"]
+    if detail.get("error_type"):
+        parts.append(str(detail["error_type"]))
+    text = " ".join(parts) + f": {detail.get('message')}"
+    if detail.get("request_id"):
+        text += f" (request id {detail['request_id']})"
+    return text
+
+
+def is_systemic_rejection(row: dict[str, Any]) -> bool:
+    """A non-retryable client-side rejection: retrying the same request cannot help."""
+    detail = row.get("error_detail") or {}
+    status = detail.get("status")
+    return isinstance(status, int) and 400 <= status < 500 and status not in RETRY_STATUS
 
 
 async def call(client: Any, model: str, effort: str, prompt: str) -> dict[str, Any]:
@@ -227,12 +310,17 @@ async def run_pairs(
     effort: str,
     concurrency: int,
     cache_path: Path,
+    client: Any | None = None,
 ) -> list[dict[str, Any]]:
     """Request every pair without a usable answer; record EVERY attempt.
 
     The SDK's internal retries are disabled (``max_retries=0``) so that each HTTP attempt,
     including rate-limit/overload retries, is one recorded row with its own latency and,
     when the API returned it, its usage.
+
+    Raises ``SystemicRequestError`` (after recording every attempt made) when the
+    preflight pair or ``SYSTEMIC_FAILURE_LIMIT`` consecutive pairs end in a non-retryable
+    rejection; pairs not yet started are then never requested.
     """
     import anthropic  # type: ignore[import-not-found,unused-ignore]  # tool overlay
 
@@ -244,23 +332,30 @@ async def run_pairs(
         if usable_answer(attempts, req_hash, prompt_hash(user_prompt(dataset, p))) is None
     ]
     log(f"  {len(pairs) - len(todo)} answered in cache, {len(todo)} to request")
-    client = anthropic.AsyncAnthropic(max_retries=0, timeout=120.0)  # key from the environment
+    if client is None:  # key from the environment
+        client = anthropic.AsyncAnthropic(max_retries=0, timeout=120.0)
     semaphore = asyncio.Semaphore(concurrency)
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     handle = cache_path.open("a", encoding="utf-8")
     finished = 0
+    consecutive_rejections = 0
+    stop: SystemicRequestError | None = None
 
     def record(row: dict[str, Any]) -> None:
         handle.write(json.dumps(row) + "\n")
         handle.flush()
         attempts.append(row)
 
-    async def one(pair: Pair) -> None:
+    async def one(pair: Pair) -> dict[str, Any] | None:
+        """All attempts for one pair; the last recorded row (None if never started)."""
         nonlocal finished
         prompt = user_prompt(dataset, pair)
+        row: dict[str, Any] | None = None
         async with semaphore:
+            if stop is not None:
+                return None
             for attempt in range(1, MAX_ATTEMPTS + 1):
-                row: dict[str, Any] = {
+                row = {
                     "pair_id": pair.pair_id,
                     "request_hash": req_hash,
                     "prompt_sha256": prompt_hash(prompt),
@@ -276,6 +371,7 @@ async def run_pairs(
                         row["error"] = f"stop_reason={row['response']['stop_reason']}"
                 except anthropic.APIStatusError as exc:
                     row["error"] = f"api_status_{exc.status_code}: {type(exc).__name__}"
+                    row["error_detail"] = api_error_detail(exc)
                     row["usage_unknown"] = True
                     if exc.status_code in RETRY_STATUS:
                         header = exc.response.headers.get("retry-after")
@@ -296,12 +392,43 @@ async def run_pairs(
         finished += 1
         if finished % 50 == 0:
             log(f"  {finished}/{len(todo)} pairs finished")
+        return row
+
+    def check_systemic(pair: Pair, row: dict[str, Any] | None, *, preflight: bool) -> None:
+        nonlocal consecutive_rejections, stop
+        if row is None or stop is not None:
+            return
+        if not is_systemic_rejection(row):
+            consecutive_rejections = 0
+            return
+        consecutive_rejections += 1
+        detail = row["error_detail"]
+        if preflight:
+            reason = (
+                f"preflight request (pair {pair.pair_id}) was rejected: {describe_detail(detail)}"
+            )
+        elif consecutive_rejections >= SYSTEMIC_FAILURE_LIMIT:
+            reason = (
+                f"{consecutive_rejections} consecutive requests were rejected; last: "
+                f"{describe_detail(detail)}"
+            )
+        else:
+            return
+        stop = SystemicRequestError(reason, detail)
+
+    async def tracked(pair: Pair) -> None:
+        check_systemic(pair, await one(pair), preflight=False)
 
     try:
-        await asyncio.gather(*(one(p) for p in todo))
+        if todo:
+            check_systemic(todo[0], await one(todo[0]), preflight=True)
+            if stop is None:
+                await asyncio.gather(*(tracked(p) for p in todo[1:]))
     finally:
         handle.close()
         await client.close()
+    if stop is not None:
+        raise stop
     return attempts
 
 
@@ -339,6 +466,30 @@ def billing(
             "max": max(latencies) if latencies else None,
         },
     }
+
+
+def error_diagnostics(
+    attempts: list[dict[str, Any]], pair_ids: set[str], limit: int = 10
+) -> list[dict[str, Any]]:
+    """Distinct sanitized API rejections (status, type, message) with attempt counts."""
+    counts: dict[tuple[Any, ...], dict[str, Any]] = {}
+    for a in attempts:
+        detail = a.get("error_detail")
+        if a["pair_id"] not in pair_ids or not detail:
+            continue
+        key = (detail.get("status"), detail.get("error_type"), detail.get("message"))
+        entry = counts.setdefault(
+            key,
+            {
+                "status": key[0],
+                "error_type": key[1],
+                "message": key[2],
+                "attempts": 0,
+                "example_request_id": detail.get("request_id"),
+            },
+        )
+        entry["attempts"] += 1
+    return sorted(counts.values(), key=lambda e: -e["attempts"])[:limit]
 
 
 def to_predictions(
@@ -393,6 +544,9 @@ def to_predictions(
         "pairs": len(pairs),
         "answered": sum(p.label is not None for p in preds),
         "errors": errors,
+        "error_diagnostics": error_diagnostics(
+            [a for a in attempts if a.get("request_hash") == req_hash], pair_ids
+        ),
         "invalid_evidence_ids_claimed": invalid_total,
         "billing_this_request_identity": billing(
             [a for a in attempts if a.get("request_hash") == req_hash], price, pair_ids
@@ -465,16 +619,26 @@ def main(argv: list[str] | None = None) -> int:
         CACHE / "llm" / dataset.data_version[:16] / f"{args.model}-{args.effort}-{args.split}.jsonl"
     )
     started = time.perf_counter()
-    attempts = asyncio.run(
-        run_pairs(
-            dataset,
-            pairs,
-            model=args.model,
-            effort=args.effort,
-            concurrency=args.concurrency,
-            cache_path=cache_path,
+    try:
+        attempts = asyncio.run(
+            run_pairs(
+                dataset,
+                pairs,
+                model=args.model,
+                effort=args.effort,
+                concurrency=args.concurrency,
+                cache_path=cache_path,
+            )
         )
-    )
+    except SystemicRequestError as exc:
+        log(
+            f"STOPPED: {exc.reason}\n"
+            "  The API is rejecting the request itself, so the remaining pairs were not sent "
+            "and no predictions were written. Fix the request (model, parameters) or the "
+            "account (key, workspace, credit) and rerun; first a bounded check with "
+            f"--limit 1. Every attempt made is recorded in {cache_path}."
+        )
+        return 3
     preds, summary = to_predictions(
         dataset, pairs, attempts, price, request_hash(args.model, args.effort)
     )
