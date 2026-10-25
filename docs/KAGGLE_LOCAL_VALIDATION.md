@@ -211,3 +211,41 @@ docker rm -f cw-ms-fp32-check   # cleanup
 
 Note: `crun.sh` unsets `ARTIFACT_CACHE_DIR`, so commands without `env ARTIFACT_CACHE_DIR=…`
 after `--` read the cache as `/src/.cache`. That is the same SSD directory, read-only.
+
+## Runtime recovery and real provider check (2026-10-25, later)
+
+This supersedes the "NOT changed" live-stack section and blocker 4 above.
+
+- Runtime recovery was applied by Codex with the no-sudo kit
+  `../kaggle-recovery/runtime-recovery/` (log `../kaggle-recovery/logs/runtime-recovery-apply.log`).
+  The worker and the model-service were recreated, using the baseline image IDs, `/cache` and
+  `/src` read-only from the SSD, and `RULE_CHECK_VARIANT=fp32`. Restart these two services only
+  through `cd ../kaggle-recovery/runtime-recovery && python3 -I rr.py compose ...`. A plain
+  `docker compose up` reapplies the int8/auto-download defaults. Result: all 7 local
+  services are healthy, and worker and model-service have 0 restarts. `/metadata` reports
+  `rule-check-deberta_v3_base-0e28e064-e9245464-pf1e1842f`, production, fp32, tau `None`.
+- Live HTTP check (`../kaggle-recovery/logs/codex-live-recovery-check.json`): 4 concurrent real
+  requests, all answered (`entailment`), `escalate: null`, 0.24 s. Batcher: 2 multi-request
+  batches, 8 rows, max 4, 0 rejected/failed.
+- Hosted CI for `dcc1e2f`: run 40207127703, success.
+- One real Anthropic request (`../kaggle-recovery/provider-diagnostic/result.json`; run once,
+  `REQUEST_STARTED` prevents reruns). Pair `dev:3:nda-1`, `claude-sonnet-5-5`, effort low,
+  `max_tokens` 4096, SDK 2.1.0, official endpoint, 0 retries, 1 attempt, request hash
+  `c8be3bb4…`, data `693b452e…`.
+  - Outcome: HTTP success, `end_turn`, 2.39 s. Request `req_011CgPDTv6uV55FbtP3mg6N3`.
+  - Answer: valid JSON. Label `entailment` = gold. Evidence S1, S2 (segments 16, 17; 16 is
+    gold). No invalid ids.
+  - Usage: input 730, cache write 603, cache read 0, output 27. Cost $0.003237 at the pinned
+    pricing ($2/$10/$2.50/$0.10 per MTok, retrieved 2026-10-21).
+  - The current production request works. This record does not identify the cause of the
+    earlier HTTP 400s in the Kaggle run, and one request is not a full-baseline acceptance.
+- Codex's rough full-run estimate (`../kaggle-recovery/logs/full-baseline-cost-estimate.json`):
+  3128 pairs, about $8.3–25.8 depending on output length. It is not a bound.
+- Prepared, NOT run: a budget-bounded full DEV+TEST runner, `../kaggle-recovery/provider-baseline/`
+  (README with the invocation and the offline evaluation steps that follow). It has a $30
+  cumulative hard cap with a durable reservation ledger and uses the production
+  `run_pairs`/`save_system` path. 9 offline fake-client checks passed.
+
+Phase 3 remains unaccepted. Outstanding: the full LLM baseline (1037 DEV + 2091 TEST), then
+`ml.eval.evaluate` for the DEV-selected cascade tau and serving it, int8 (or adopting fp32), and
+final review.

@@ -10,7 +10,7 @@ verification to Codex. The authoritative requirements are in `BUILD_HANDOFF.md`.
 | 0 — Skeleton | Complete | Accepted: local gates and hosted CI passed |
 | 1 — Ingestion and viewer | Complete | Accepted: local gates and hosted CI passed |
 | 2 — Retrieval | Complete | Accepted: local gates and hosted CI passed |
-| 3 — Trained model | Local pipeline verified; Colab/API runs pending | Not accepted; external runs/results required |
+| 3 — Trained model | Kaggle-trained DeBERTa recovered (fp32) and served by the healthy local stack; real one-request Anthropic check passed | Not accepted; full LLM baseline (DEV+TEST), cascade tau, int8 and final review outstanding |
 | 4 — Agents and review UI | Not started | Pending |
 | 5 — MCP | Not started | Pending |
 | 6 — Evaluation and polish | Not started | Pending |
@@ -236,3 +236,15 @@ normal Docker build and the real CPU ML smoke. A final notebook-only resume-guar
 fix passed four independent tests; no training/metric logic changed. Exact handoff
 commit/latest CI are tracked in .cache/colab/HANDOFF.json and GitHub Actions. Host disk remains constrained by ~2GB of this
 project's cancelled BuildKit records; unrelated projects/caches were preserved.
+
+## Phase 3 Kaggle recovery status (2026-10-25)
+
+This supersedes the "Colab ... pending" wording above. Full GPU training ran on Kaggle,
+not Colab. The fp32 DeBERTa artifact was recovered
+(`rule-check-deberta_v3_base-0e28e064-e9245464-pf1e1842f`). The live worker and
+model-service were recreated with the no-sudo recovery kit. All seven local services are
+healthy, and the model-service serves that artifact as production fp32 with tau `None`.
+One real Anthropic request passed. Hosted CI passed for `dcc1e2f` (run 40207127703).
+Details: `KAGGLE_LOCAL_VALIDATION.md`. Phase 3 is still **not accepted**. Still
+outstanding: the full LLM baseline (1037 DEV + 2091 TEST), the cascade tau, int8 and
+final review.
