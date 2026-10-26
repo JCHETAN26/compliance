@@ -9,6 +9,7 @@ export const FORWARDED_REQUEST_HEADERS = [
   "accept-language",
   "content-type",
   "cookie",
+  "last-event-id",
   "user-agent",
   "x-csrf-token",
   "x-request-id",

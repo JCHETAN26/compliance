@@ -28,6 +28,8 @@ import { ApiError, api, errorMessage, unwrap, type Workspace } from "@/lib/api/c
 import { fetchWorkspace, queryKeys } from "@/lib/api/queries";
 import { formatDate } from "@/lib/utils";
 
+import { ReviewSettingsCard } from "@/components/reviews/review-settings-card";
+
 import { MembersPanel } from "./members-panel";
 import { RoleBadge } from "./role-badge";
 import { WORKSPACE_NAME_MAX } from "./workspace-list";
@@ -51,6 +53,8 @@ export function WorkspaceShell({ workspaceId, children }: { workspaceId: string;
   const tabs = [
     { href: base, label: "Documents", active: pathname === base || pathname.startsWith(`${base}/documents`) },
     { href: `${base}/search`, label: "Search", active: pathname.startsWith(`${base}/search`) },
+    { href: `${base}/rule-packs`, label: "Rule packs", active: pathname.startsWith(`${base}/rule-packs`) },
+    { href: `${base}/reviews`, label: "Reviews", active: pathname.startsWith(`${base}/reviews`) },
     { href: `${base}/settings`, label: "Settings & members", active: pathname.startsWith(`${base}/settings`) },
   ] as const;
 
@@ -76,7 +80,7 @@ export function WorkspaceShell({ workspaceId, children }: { workspaceId: string;
             <h1 className="text-2xl font-semibold tracking-tight break-words">{workspace.data.name}</h1>
             <RoleBadge role={workspace.data.role} />
           </div>
-          <nav aria-label="Workspace sections" className="-mt-2 flex gap-1 border-b">
+          <nav aria-label="Workspace sections" className="-mt-2 flex gap-1 overflow-x-auto border-b">
             {tabs.map((tab) => (
               <Link
                 key={tab.href}
@@ -148,6 +152,7 @@ function LoadedWorkspace({ workspace }: { workspace: Workspace }) {
           )}
         </CardContent>
       </Card>
+      <ReviewSettingsCard workspace={workspace} />
       <MembersPanel workspace={workspace} />
       {isOwner ? <DangerZone workspace={workspace} /> : null}
     </>
