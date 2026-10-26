@@ -337,9 +337,10 @@ Independent checks, with logs under `../kaggle-recovery/logs/`:
 - Packaging and rule-pack tests after the Docker-context fix: **11 passed in 0.27s**
   (`codex-phase4-packaging-tests.log`).
 - Visually inspected the PDF citation: source quote and measured line highlights align.
-  Claude's isolated production browser walkthrough passed upload, human review,
+  Codex independently reran the isolated production browser walkthrough: upload, human review,
   audited decision, resume, report, citation navigation and mobile layout without
-  console/page errors. Its mock smoke produced 58 findings (40 satisfied, 5 violated,
+  console/page errors all passed (`codex-phase4-browser.log`; screenshots retained next
+  to the log). The mock smoke produced 58 findings (40 satisfied, 5 violated,
   13 needs_review), 27 mock calls, $0, with SSE replay and cross-user isolation checks.
 
 Claude's latest static gates pass (Ruff/format, strict mypy), as do frontend lint,
@@ -353,3 +354,19 @@ the proposed synthetic-only Haiku run has $0.25 and 400,000-token caps. No new p
 key was read or paid request made. Phase 5 remains unstarted. All seven original live
 services remain healthy on the accepted Phase 3 source pin; Phase 4 uses a separate
 preview at ports 13300/18000.
+
+## Phase 4 hosted CI import correction
+
+Initial PR #2 CI run `40341052392` passed web but failed Python collection: three old
+test modules imported constants directly from `conftest`. Loading the new agents
+conftest removes that generic module name under pytest's importlib mode, and the console
+entry point does not add the repo root to `sys.path`; the local test overlay had hidden
+the defect. Claude replaced those imports with the existing `test_settings` fixture
+and added Ruff `TID251` to prevent direct conftest imports. Import mode and test coverage
+were retained. Codex independently confirmed **444 tests collect** with only workspace
+package paths injected (`codex-phase4-ci-collection.log`). Full console-entry-point
+verification reported 443 passes and one local read-only-mount failure: a readiness
+test's default `.data` directory was inside `/src:ro`. Codex reran all six readiness/API
+health tests with a writable temporary `.data` mount, matching CI's writable checkout:
+**6 passed in 3.44s** (`codex-phase4-ci-readiness.log`). The empty host mountpoint was
+removed. The next hosted CI run remains pending at this entry.

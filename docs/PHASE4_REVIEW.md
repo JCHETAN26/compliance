@@ -214,6 +214,10 @@ UV_CACHE_DIR=/dev/shm/p4/uvcache uv pip install --target /dev/shm/cw/overlay4 --
 # all application tests (test Postgres 55432 / Redis 56379, artifact cache read-only)
 TP=$(python3 -c 'import tomllib;print(" ".join("/src/"+p for p in tomllib.load(open("pyproject.toml","rb"))["tool"]["pytest"]["ini_options"]["testpaths"]))')
 PT_TIMEOUT=2700 PT_INNER=2600 /dev/shm/cw/bin/pyt.sh $TP
+# CI-like: console entry point, repo root not on sys.path (pyt.sh's .pth adds /src and can
+# hide import errors). Collection exactly as `uv run pytest`, then a writable-cwd full run:
+/dev/shm/cw/bin/pyt_ci.sh --collect-only -q
+PT_WORKDIR=/tmp PT_TIMEOUT=3000 PT_INNER=2900 /dev/shm/cw/bin/pyt_ci.sh -c /src/pyproject.toml --rootdir /src -q $TP
 # web (RAM copy of apps/web; node_modules never on the SSD)
 /dev/shm/cw/bin/web.sh install && for s in lint typecheck test build; do /dev/shm/cw/bin/web.sh run $s; done
 ```
@@ -235,6 +239,18 @@ Entries are appended as gates run.
 
 Independent manager checks (2026-10-26, working tree; final acceptance pending):
 
+- Final mock browser workflow independently rerun by Codex: all steps passed with no
+  console/page errors. Log: `kaggle-recovery/logs/codex-phase4-browser.log`; screenshots:
+  `kaggle-recovery/logs/codex-phase4-browser-shots/`.
+- CI-style console entry point, repo root absent from injected paths: **444 tests
+  collected** after Claude removed direct conftest imports. Log:
+  `kaggle-recovery/logs/codex-phase4-ci-collection.log`. Initial hosted CI run
+  `40341052392` failed those imports; the full corrected run is still pending here.
+- Corrected console-entry-point full run: **443 passed**, one readiness test failed only
+  because the verification checkout is mounted read-only and default `.data` was absent.
+  Independent rerun of the entire readiness/API health file with temporary writable data:
+  **6 passed in 3.44s** (`codex-phase4-ci-readiness.log`). Hosted CI uses a writable
+  checkout; the next hosted run is required before claiming a clean final CI result.
 - Full application suite against isolated DB `compliance_codex_phase4_test` and Redis
   index 12: **436 passed in 337.31s**. Late concurrency/packaging corrections were still
   under review and require their focused rerun. Log:
@@ -371,6 +387,67 @@ context):
   `pip` from an sdist) still fails, because the sdist does not contain `../../rule_packs`.
   Nothing in the repository, Dockerfile or CI builds core from an sdist; publishing an
   sdist would need the packs moved into the package or added to the sdist target.
+
+Hosted CI failure and fix (Claude Code, 2026-10-26; working tree on top of `ae782cb`, logs
+under `/dev/shm/cw/logs/claude-ci-collect-fix-*`):
+
+- **Failure.** Hosted CI run `40341052392` at `ae782cb`: Ruff and mypy passed, the web job
+  passed, and `uv run pytest` stopped at **collection** with three
+  `ModuleNotFoundError: No module named 'conftest'` errors —
+  `apps/api/tests/test_documents.py:18` (`from conftest import TEST_MAX_FILE_BYTES`),
+  `evals/retrieval/tests/test_corpus_safety.py:11` and `test_sweep_grid.py:14`
+  (`from conftest import TEST_DATABASE_URL`). Because the Python job failed, the Docker
+  build/compose smoke did not run.
+- **Cause (reproduced).** pytest 9.1.1 registers the root `conftest.py` as
+  `sys.modules["conftest"]`, and before importing any other non-package conftest it
+  deletes that entry (`_pytest/config/__init__.py`, `_importconftest`). Phase 4 added the
+  first nested one, `packages/agents/tests/conftest.py`. Under `--import-mode=importlib` it
+  is imported as `packages.agents.tests.conftest`, so no module named `conftest` remains.
+  Initial conftests are loaded for every `testpaths` entry, so `--ignore` does not help:
+  `test_documents.py` collected together with `packages/agents/tests` fails, while it collects
+  on its own. `uv run pytest` runs a console entry point, so `sys.path[0]` is the venv
+  `bin` directory and the repo root is not importable either. My local runs missed it
+  because `zz_compliance_src.pth` puts `/src` (the repo root) on `sys.path`, so
+  `/src/conftest.py` was found as a top-level module (`pyt.sh` collects the same set without
+  error).
+- **CI-like runner** `pyt_ci.sh` (`/dev/shm/cw/bin`, durable copy in
+  `../kaggle-recovery/validation-scripts/` with `ci/`): runs pytest's real console entry
+  point (`_pytest.config:_console_main`, as in `entry_points.txt`) from `/ci`. The
+  `.pth` adds only the ten package `src` directories, never the repo root, and the default
+  cwd is the repo root, as in CI. `ci/syspath_probe` printed the container's `sys.path`:
+  repo root absent. On `ae782cb` it reproduces CI exactly: **414 collected, 3 errors**,
+  the same three `ModuleNotFoundError`s.
+- **Fix.** The three modules no longer import `conftest`. They request the existing
+  session `test_settings` fixture (built from the same `TEST_DATABASE_URL` /
+  `TEST_MAX_FILE_BYTES`): `test_size_limits` uses `test_settings.max_upload_file_bytes`;
+  `test_skip_rule_matches_pgvector` uses `test_settings.database_url`; and
+  `test_corpus_safety.py` gets a `server` URL fixture from `test_settings.database_url`.
+  Its helpers take that URL, and its three copied `asyncpg.connect` blocks are now one
+  `connect()` helper. Assertions are unchanged; import mode, `testpaths` and the
+  conftests are unchanged; nothing is skipped.
+- **Guard.** Ruff `TID251` (banned-api) bans importing `conftest`, with a message
+  pointing to fixtures (`pyproject.toml`). Run on the `ae782cb` versions of the three files,
+  it reports each import, so a regression would fail the Ruff step, before tests run.
+- **Validation (fixed tree).**
+  - CI-like collection (cwd repo root, no args, so `testpaths`): **444 collected, 0 errors**.
+  - Changed modules (`test_documents.py`, `evals/retrieval/tests`) on `compliance_test`
+    / Redis 15: **37 passed in 6.22 s**.
+  - Ruff 0.17.1 (the `uv.lock` version): `ruff check .` and `ruff format --check .`
+    passed (261 files).
+  - mypy, exact CI arguments (`packages apps conftest.py scripts evals ml`): **no issues
+    in 225 source files**; with `seed` added: **no issues in 232**.
+  - Full suite, first CI-like run (cwd `/src`): 443 passed, 1 failed. The failure is
+    `test_health_and_errors.py::test_readiness_fails_when_dependencies_are_down`
+    (`OSError: Read-only file system: '/src/.data'`). That test, unchanged in this fix,
+    leaves `storage_dir` at its default `./.data/storage` relative to the cwd. My
+    container mounts the source read-only; CI's checkout is writable (`.data/` is
+    gitignored). It is a runner artifact, not a CI failure.
+  - Full suite, rerun with a writable cwd (`PT_WORKDIR=/tmp`, `-c /src/pyproject.toml
+    --rootdir /src`, explicit `testpaths`; the console entry point never adds the cwd to
+    `sys.path`): FULLRESULT
+- Not run here: hosted CI (manager pushes), Docker build/compose smoke, ML suites and web
+  checks (unchanged by this fix). No provider call, key read, live restart, source-pin
+  change, commit or push.
 
 ## Manager review checks (Codex)
 
@@ -587,3 +664,11 @@ implementer response; hosted Docker build/smoke is still required to confirm the
   fails on the pre-fix file [`packages/core/tests/test_packaging.py`]. Hosted CI Docker
   build/compose smoke (which seeds the built-in packs) remains the image-level check; an
   sdist-based core build is still unsupported (see evidence, packaging correction).
+- **Hosted CI collection failure** (run `40341052392`, `ae782cb`) — three test modules
+  imported constants with `from conftest import …`. That only worked while the root conftest
+  was the only one and the repo root was on `sys.path`; the new
+  `packages/agents/tests/conftest.py` evicts `sys.modules["conftest"]`, and `uv run pytest`
+  does not put the root on the path. The modules now use the `test_settings` fixture, and
+  Ruff `TID251` bans `conftest` imports. Validated with a CI-like console-entry runner with
+  no repo root on `sys.path` (evidence log, hosted CI failure and fix). Green hosted CI,
+  including the Docker smoke it skipped, is still required.
