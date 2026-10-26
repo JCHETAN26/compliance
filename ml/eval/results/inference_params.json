@@ -1,0 +1,13 @@
+{
+  "run": "primary",
+  "run_dir": "/media/grv22/Extreme SSD2/project/kaggle-recovery/eval-haiku-inputs/runs/deberta_v3_base",
+  "backbone": "microsoft/deberta-v3-base",
+  "top_k": 4,
+  "temperature": 2.730689612466158,
+  "evidence_threshold": 0.87,
+  "tau": 0.3,
+  "tau_provisional": false,
+  "llm_baseline_usable": true,
+  "data_version": "693b452eef54fdd46c84125278db3c430fbb68f1ed85f098edb5ab4e1675a70f",
+  "scope": "Official ContractNLI splits; all pairs; every choice fitted on DEV only, no TEST feedback"
+}

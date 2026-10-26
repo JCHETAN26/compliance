@@ -4,8 +4,9 @@ A full-stack, multi-agent compliance review workspace: upload contracts and vend
 registers, run a versioned rule pack, and get a report whose findings cite the exact
 source passage. The full specification is in [`docs/BUILD_HANDOFF.md`](docs/BUILD_HANDOFF.md).
 
-> **Status: Phase 0 and Phase 1 accepted; Phase 2 (hybrid retrieval + search UI +
-> retrieval eval) implemented and awaiting independent verification.**
+> **Status: Phases 0–2 accepted. Phase 3 (rule-check model) implemented, trained and
+> evaluated; its acceptance is recorded by the independent supervisor in
+> [`docs/SUPERVISION.md`](docs/SUPERVISION.md). Phases 4–6 not started.**
 >
 > - **Phase 0** (skeleton, auth, workspaces, compose, CI): accepted, hosted GitHub
 >   Actions run 39678264159 (commit `e6b709e`).
@@ -25,17 +26,18 @@ source passage. The full specification is in [`docs/BUILD_HANDOFF.md`](docs/BUIL
 >     ingestion;
 >   - `make eval-retrieval`: ContractNLI evidence retrieval with parameters selected
 >     only on DEV and frozen before TEST, plus an HNSW sweep (results below).
-> - **Phase 3** (local pipeline implemented and verified; hosted CI pending; acceptance
->   blocked on external Colab training and a real Anthropic baseline): the rule-check
->   model pipeline (`ml/`):
->   official ContractNLI data and the 17-rule `nda_standard` pack, a DeBERTa-v3
+> - **Phase 3** (implementation, training and evaluation complete; acceptance per
+>   [`docs/SUPERVISION.md`](docs/SUPERVISION.md)): the rule-check model pipeline
+>   (`ml/`): official ContractNLI data and the 17-rule `nda_standard` pack, a DeBERTa-v3
 >   evidence + label cross-encoder with a ModernBERT ablation and an unseen-rule run,
 >   majority / TF-IDF / Anthropic zero-shot baselines, calibration, cascade analysis,
->   ONNX fp32/int8 export with parity, a micro-batching `/v1/check` and a Colab
->   notebook. **No model has been trained yet** (GPU training runs on Colab; see
->   [`ml/notebooks/README.md`](ml/notebooks/README.md)) and the LLM baseline needs an
->   API key, so the model service runs in honest *untrained fallback* mode (`/v1/check`
->   503, no verdicts) and the web app shows a banner.
+>   ONNX fp32 and weight-only quantized ("int8") export with parity, and a
+>   micro-batching `/v1/check`. Full GPU training ran on Kaggle; the full Claude Haiku 5.5
+>   baseline (all DEV + TEST pairs) and the offline evaluation are complete (results
+>   below). The local stack serves the fp32 artifact with the DEV-selected tau 0.3. The
+>   quantized file passed full DEV and TEST but is slower than fp32 on CPU, so fp32 stays
+>   served (user decision). Hosted CI passed for the latest code commit `5fe419d`
+>   (run 40271320856).
 > - **Not implemented yet:** agents/reviews/reports and entity extraction (Phase 4), MCP
 >   tools (Phase 5), the end-to-end eval suite and dashboard (Phase 6). The services and
 >   panels reserved for them say so explicitly instead of returning fake results.
@@ -229,20 +231,44 @@ in [`evals/README.md`](evals/README.md).
 - **Scope:** this is an isolated text-retrieval eval. It does not cover PDF/OCR
   extraction or report quality.
 
-## Results: rule-check model (Phase 3, partial)
+## Results: rule-check model (Phase 3)
 
-No trained-model or LLM result exists yet. Measured so far on the full official
-ContractNLI TEST split (2,091 pairs, `make baselines`, choices made on DEV only):
+Official ContractNLI TEST split, all 2,091 pairs, data version `693b452e…`. Every choice
+was made on DEV only. Source: `ml/eval/results/` (evaluated 2026-10-25 at `49550f2`;
+provenance in each JSON):
 
-| Baseline | Accuracy | Macro-F1 |
-|---|---:|---:|
-| Majority (global) | 0.463 | 0.211 |
-| Majority per hypothesis | 0.659 | 0.617 |
-| TF-IDF + logistic regression (BGE top-8 candidates; C=30 balanced, DEV-chosen) | 0.763 | 0.723 |
+| System | Input | Accuracy | Macro-F1 |
+|---|---|---:|---:|
+| Majority (global) | none | 0.463 | 0.211 |
+| Majority per hypothesis | none | 0.659 | 0.617 |
+| TF-IDF + logistic regression (C=30 balanced) | BGE top-8 segments | 0.764 | 0.724 |
+| Claude Haiku 5.5 zero-shot (effort low) | BGE top-8 segments | 0.739 | 0.703 |
+| Trained DeBERTa-v3-base, label head on BGE top-8 | BGE top-8 segments | 0.815 | 0.769 |
+| **Trained DeBERTa-v3-base, full pipeline (served)** | all segments | **0.853** | **0.814** |
+
+- Model minus TF-IDF: +0.089 macro-F1 (document-bootstrap 95% CI 0.067–0.111). The
+  input scopes differ, so the top-8 row (+0.045, CI 0.020–0.070) is the like-for-like
+  comparison.
+- Cascade: the DEV rule selected tau 0.3. Coverage is 1.0 on DEV and TEST, so no pair is
+  escalated to Haiku and the cascade equals the model. It brings no accuracy gain over the
+  model alone. It is also not faster: on the Kaggle CPU bench the model takes 10.0 s per
+  pair (p50 of the original dynamic int8 file, since replaced; the latency `cascade.json`
+  uses) or 13.4 s (fp32 p50, the served variant), while Haiku averaged 1.16 s per TEST
+  request.
+- Quantization: the original dynamic int8 export collapsed (TEST macro-F1 0.063) and is
+  not used. The repaired weight-only file (8-bit matrix weights, 4-bit embedding, float32
+  activations; 213 MB vs 741 MB) scores TEST macro-F1 0.816 against 0.814 for the
+  PyTorch run, but is about 20 % slower than fp32 on CPU, so fp32 is served
+  ([`docs/INT8_QUANTIZATION.md`](docs/INT8_QUANTIZATION.md)).
+- Haiku run: $0.371 in total, including the $0.003 Sonnet diagnostic. All 3,128 pairs
+  were answered, with 0 errors.
+- Unseen hypotheses (4 held out of training): TEST macro-F1 0.324, against 0.783 for the
+  model trained with them.
 
 The handoff's claim that `not_mentioned` dominates is wrong for the official TRAIN split
 (entailment 3,530 / not_mentioned 2,820 / contradiction 841); loss weights use the actual
-counts. Method, provenance and the remaining external steps: [`ml/README.md`](ml/README.md).
+counts. Method, full provenance and caveats: [`ml/README.md`](ml/README.md) and
+[`docs/HAIKU_EVALUATION_PLAN.md`](docs/HAIKU_EVALUATION_PLAN.md).
 
 ## Development
 
@@ -309,10 +335,12 @@ The vendor register's access levels and dates are synthetic; see
 
 ## Limitations
 
-- No trained rule-check model yet (Colab training pending), no agents, reviews, MCP tools
-  or end-to-end evals; see the phase plan in the handoff.
-- **Rule-check model (when trained):** dynamic int8 quantization makes a row's output
-  depend slightly on the rows batched with it; evaluation is on canonical ContractNLI
+- No agents, reviews, MCP tools or end-to-end evals yet (Phases 4–6); see the phase plan
+  in the handoff.
+- **Rule-check model:** served as CPU fp32 (ONNX fp32 p50 13.4 s per pair on the Kaggle
+  CPU bench); the validated quantized file is smaller but slower on CPU and is not served.
+  The repository default `RULE_CHECK_VARIANT=int8` refuses the fp32-only artifact, so
+  serving it needs `RULE_CHECK_VARIANT=fp32`. Rules unseen in training score poorly (macro-F1 0.32). Evaluation is on canonical ContractNLI
   text, not PDF/OCR output; the 17 hypotheses are the only model-supported rules (custom
   rules go to the LLM in Phase 4).
 - **Search:**

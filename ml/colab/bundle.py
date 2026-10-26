@@ -21,7 +21,8 @@ Import refuses unsafe archive members (absolute paths, ``..``, links, devices), 
 into a staging directory on the same filesystem, verifies every hash, then installs by
 renames (no duplicate copies). A local dataset with a different ``data_version`` is kept
 aside, never overwritten. The artifact is installed under ``.cache/models/rule-check/``
-and ``current`` is pointed at it only after ``load_artifact`` verification.
+and ``current`` is pointed at it only after ``verify_artifact`` verification. Where the
+filesystem refuses symlinks (exFAT), ``current`` is a verified copy instead.
 """
 
 from __future__ import annotations
@@ -34,11 +35,17 @@ import re
 import shutil
 import sys
 import tarfile
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from compliance_model_service.rule_check.artifact import load_artifact
+from compliance_model_service.rule_check.artifact import (
+    ArtifactError,
+    Manifest,
+    int8_quality_problem,
+    verify_artifact,
+)
 from ml.common import provenance
 from ml.common.io import CACHE, RESULTS, read_json, write_json
 
@@ -197,8 +204,7 @@ def install_artifact(source: Path, *, move: bool) -> Path:
     stay inside the models directory. An existing different artifact of the same version
     is kept as a backup, never deleted.
     """
-    artifact = load_artifact(source, variant="int8", allow_smoke=True)
-    manifest = artifact.manifest
+    manifest, _ = verify_artifact(source)
     target = MODELS / _artifact_name(manifest.model_version)
     src, dst = source.resolve(), target.resolve()
     if src != dst and (dst.is_relative_to(src) or src.is_relative_to(dst)):
@@ -220,19 +226,56 @@ def install_artifact(source: Path, *, move: bool) -> Path:
     target.chmod(0o755)
     for path in target.iterdir():
         path.chmod(0o644)  # read by the model-service container's own uid
-    load_artifact(target, variant="int8", allow_smoke=True)
+    _, present = verify_artifact(target)
     link = MODELS / "current"
-    tmp_link = MODELS / f".current-new-{os.getpid()}"
-    tmp_link.unlink(missing_ok=True)
-    tmp_link.symlink_to(target.name)  # relative: also valid inside the container mount
-    os.replace(tmp_link, link)
+    _point_current(link, target)
     note = (
         " (SMOKE artifact: the service refuses it unless RULE_CHECK_ALLOW_SMOKE=true)"
         if manifest.kind == "smoke"
         else ""
     )
     log(f"installed {manifest.model_version} ({manifest.kind}) as {link}{note}")
+    log(f"  servable variants: {', '.join(servable_variants(manifest, present)) or 'NONE'}")
     return target
+
+
+def servable_variants(manifest: Manifest, present: tuple[str, ...]) -> list[str]:
+    """Present variants the service would load (int8 of production needs passing parity)."""
+    out = []
+    for variant in present:
+        problem = (
+            int8_quality_problem(manifest.provenance.get("parity"))
+            if variant == "int8" and manifest.kind == "production"
+            else None
+        )
+        if problem is None:
+            out.append(variant)
+        else:
+            log(f"  int8 will be refused by the service: {problem}")
+    return out
+
+
+def _point_current(link: Path, target: Path) -> None:
+    """``current`` -> target: a relative symlink, or a verified copy where links fail."""
+    # A fresh, uniquely named directory owned by this call holds the new link or copy; an
+    # existing directory (a crashed earlier install's, or anyone else's) is never touched.
+    staging = Path(tempfile.mkdtemp(prefix=".current-new-", dir=MODELS))
+    tmp_link = staging / "current"
+    try:
+        try:
+            # Relative, resolved from wherever the link lives: valid once moved to ``link``
+            # and inside the container mount.
+            tmp_link.symlink_to(target.name)
+        except OSError as exc:
+            log(f"symlinks unsupported here ({type(exc).__name__}); installing current as a copy")
+            shutil.copytree(target, tmp_link)
+            if _tree_digest(tmp_link) != _tree_digest(target):
+                raise ArtifactError(f"copy of {target} does not match the original") from exc
+            if link.exists() and not link.is_symlink():
+                link.rename(_backup_name(link))  # a previous copy is kept, never deleted
+        os.replace(tmp_link, link)
+    finally:
+        shutil.rmtree(staging)  # this call's own staging directory (empty after success)
 
 
 def _preflight(staging: Path) -> dict[str, Any]:
@@ -275,9 +318,9 @@ def _preflight(staging: Path) -> dict[str, Any]:
             raise BundleError(f"unexpected result file {path.name}")
         plan["results"].append((path, _inside(RESULTS, RESULTS / path.name)))
     if (staging / "artifact").is_dir():
-        artifact = load_artifact(staging / "artifact", variant="int8", allow_smoke=True)
-        _artifact_name(artifact.manifest.model_version)
-        if artifact.manifest.provenance.get("data_version") != version:
+        artifact_manifest, _ = verify_artifact(staging / "artifact")
+        _artifact_name(artifact_manifest.model_version)
+        if artifact_manifest.provenance.get("data_version") != version:
             raise BundleError("the artifact was trained on another data version")
         plan["artifact"] = staging / "artifact"
     return plan

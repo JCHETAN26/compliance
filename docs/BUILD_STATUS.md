@@ -2,20 +2,92 @@
 
 Implementer log for `docs/BUILD_HANDOFF.md`. The independent verification ledger is
 kept by the supervisor in `docs/SUPERVISION.md` and `docs/PHASE0_REVIEW.md` …
-`PHASE3_REVIEW.md`; this file does not restate it as fact. Phase 3 work is uncommitted;
-the supervisor reviews, commits and pushes it.
+`PHASE3_REVIEW.md`; this file does not restate it as fact. Phase acceptance is recorded
+only by the supervisor (Codex).
+
+Current as of the latest code commit `5fe419d` (branch `fix/phase3-kaggle-recovery`, draft
+PR #1), whose hosted CI run 40271320856 passed all three jobs (Web; Python; Docker build +
+compose smoke), 2026-10-26 04:52–05:00 UTC.
 
 | Phase | Status |
 |---|---|
 | 0 — Skeleton | **Accepted.** Hosted GitHub Actions run 39678264159 passed all jobs for `e6b709e`. |
 | 1 — Ingestion + viewer | **Accepted.** Hosted GitHub Actions run 39687462736 passed all jobs for `ec6c254` (auto download, seeding, ingestion, smoke). |
 | 2 — Hybrid retrieval, search UI, retrieval eval | **Accepted.** Hosted run 39699615208 passed all jobs for `c61eab2`. |
-| 3 — Rule-check model | **Local pipeline implemented and verified; hosted CI pending; acceptance BLOCKED** on external work: full Colab GPU training, the real Anthropic baseline, the resulting cascade/calibration/quantization results on the full splits, and verification of the imported artifact. No trained-model or LLM result exists. See "Phase 3" below. |
-| 4–6 | Not started (Phase 4 gated on Phase 3 acceptance). |
+| 3 — Rule-check model | **Implementation, training and evaluation complete.** Acceptance is decided by the supervisor (Codex) and recorded only in `docs/SUPERVISION.md`; this log does not accept it. GPU training ran on Kaggle; the full Claude Haiku 5.5 baseline (1037 DEV + 2091 TEST) and the offline evaluation are done. TEST macro-F1: trained model 0.813778, TF-IDF 0.724374, Haiku 0.703409. fp32 is served locally with the DEV-selected tau 0.3. See "Phase 3 — current status" below. |
+| 4–6 | Not started. Phase 4 is gated on Phase 3 acceptance. |
 
-## Phase 3 — rule-check model
+**Dates.** The client's timezone is America/Phoenix (UTC−7). Section dates in the Phase 3
+records are mostly local; times marked `Z`/UTC are UTC. Entries dated 2026-10-26 (UTC)
+happened on the evening of 2026-10-25 local time. Historical timestamps are left as
+recorded.
 
-### Delivered (code, configs, tests, docs)
+## Phase 3 — current status
+
+Sources: `docs/KAGGLE_LOCAL_VALIDATION.md`, `docs/HAIKU_EVALUATION_PLAN.md`,
+`docs/INT8_QUANTIZATION.md` and the aggregate outputs in `ml/eval/results/` (evaluated at
+2026-10-26T01:25:36Z on `49550f2`). This section supersedes the historical Phase 3 sections
+below where they disagree.
+
+- **GPU training: complete, on Kaggle** (not Colab): primary `deberta_v3_base`, the
+  `modernbert_base` ablation and the `deberta_v3_base_unseen4` run. DeBERTa was selected
+  on DEV (macro-F1 0.8020 vs 0.7872).
+- **LLM baseline: complete.** Claude Haiku 5.5 (effort low) answered all 1037 DEV and 2091
+  TEST pairs with 0 errors and 0 usage-less attempts. Total committed spend $0.371269985
+  (about 37 cents) against the $2 cap, including the $0.0032375 Sonnet diagnostic. No
+  further provider requests are planned. No full Sonnet baseline was run.
+- **Final TEST macro-F1** (official TEST, 2,091 pairs, all choices on DEV):
+
+  | System | TEST macro-F1 |
+  |---|---:|
+  | Trained DeBERTa-v3-base, full pipeline (training-run predictions) | 0.813778 |
+  | ONNX fp32 export (served) | 0.812763 |
+  | Same weights, label head on the BGE top 8 | 0.769167 |
+  | TF-IDF + logistic regression | 0.724374 |
+  | Claude Haiku 5.5 zero-shot, BGE top 8 | 0.703409 |
+
+  Model minus TF-IDF: +0.0894 (document-bootstrap 95% CI 0.0670–0.1114), so the handoff
+  criterion is met on the numbers; acceptance remains the supervisor's decision. The
+  TF-IDF figure 0.722885 in the historical section below is from the earlier local run on
+  data version `620358b5…`; the final evaluation's 0.724374 is on `693b452e…`.
+- **Cascade:** DEV-selected tau 0.3 (`provisional: false`). Coverage is 1.0 on DEV and TEST,
+  so nothing escalates to Haiku: no accuracy gain over the model, $0 LLM cost, and no
+  latency gain (model 10.01 s per pair in `cascade.json` — the Kaggle CPU p50 of the
+  original dynamic int8 file — or 13.36 s fp32 p50, against 1.165 s mean per Haiku
+  request).
+- **Quantization:** the original dynamic int8 export collapsed and is not used. The
+  exporter now produces a weight-only file (8-bit `MatMulNBits` weights, 4-bit embedding,
+  float32 activations; candidate C1). C1 passed full DEV (0.7989 vs 0.8020) and full TEST
+  (macro-F1 0.815580 vs PyTorch 0.813778; label agreement 0.9919) and is 213 MB vs 741 MB,
+  but about 20 % slower than fp32 on this CPU (43.1 s vs 35.9 s on the fixed DEV sample).
+  **Decision (user): keep fp32 served.** C1 is not built into a production artifact and
+  is not served.
+- **Serving:** the local model-service serves
+  `rule-check-deberta_v3_base-0e28e064-e9245464-paa1268cf`, production, fp32, tau 0.3
+  (installed 2026-10-26 02:32–02:34 UTC; smoke OK; a `/v1/check` request returned
+  `escalate: false`). All 7 application services (web, api, worker, model-service,
+  mcp-server, postgres, redis) are healthy; the "9 services" in the smoke log also counts
+  the 2 test-infrastructure containers (test Postgres/Redis).
+- **Serving configuration caveat:** the repository default stays
+  `RULE_CHECK_VARIANT=int8` (`docker-compose.yml`, `.env.example`). The installed artifact is
+  fp32-only, so int8 is refused; the live worker and model-service run with
+  `RULE_CHECK_VARIANT=fp32` through the runtime-recovery kit (`../kaggle-recovery/runtime-recovery/rr.py`).
+  A plain `docker compose up` would reapply the int8 default and leave rule-check
+  unavailable.
+- **Hosted CI:** `f0548aa` run 40263437150 and the latest code commit `5fe419d` run
+  40271320856 passed all jobs.
+- **Acceptance:** the supervisor's final review and decision are recorded in
+  `docs/SUPERVISION.md`. Phase 4 has not started.
+
+## Phase 3 — rule-check model (historical record, superseded)
+
+> **Historical.** The subsections below record the local pipeline build and the Colab
+> attempts (before the Kaggle recovery). Statements in them such as "no trained model or
+> LLM result exists", "hosted CI pending", "uncommitted" and "dynamic int8" describe that
+> time and are superseded by "Phase 3 — current status" above. They are kept unchanged
+> as the record.
+
+### Delivered (code, configs, tests, docs) — historical
 
 - **Rule pack** `rule_packs/nda_standard.yaml`: the 17 ContractNLI hypotheses verbatim as
   `model_supported` per-document rules (test checks every text against the dataset).
@@ -52,7 +124,7 @@ the supervisor reviews, commits and pushes it.
   CPU smoke and `scripts/smoke_phase3.py`. `uv.lock` and every `pyproject.toml` are
   unchanged (the ML tools are a pinned overlay, `ml/requirements-tools.txt`).
 
-### Measured results (real runs, full official data)
+### Measured results before training (historical; superseded by the current status)
 
 `make baselines`, `data_version 620358b51ef96fac…`, TEST 2,091 pairs, choices on DEV only:
 
@@ -71,7 +143,7 @@ the supervisor reviews, commits and pushes it.
   yet.** Smoke runs use a tiny random backbone; their numbers are meaningless and are never
   written to `ml/eval/results`.
 
-### Commands run and outcomes (with failures)
+### Commands run and outcomes (with failures) — historical
 
 - **Full data prep** `python -m ml.data.prepare` (CPU, ~25 min; TRAIN ranking 920 s): written
   with the old gzip writer, which embedded random temp names in gzip headers (supervisor
@@ -119,7 +191,7 @@ the supervisor reviews, commits and pushes it.
   independently by the supervisor: 8 concurrent requests, shared batches); it was then
   removed. Browser: smoke and fallback banners verified, no console errors.
 
-### Colab failure on `4cd76d8` (fp16 parameters) and fix
+### Colab failure on `4cd76d8` (fp16 parameters) and fix — historical
 
 The first production Colab run stopped at its first `scaler.unscale_` with `ValueError:
 Attempting to unscale FP16 gradients`; it wrote `run.json` only (no training log, no checkpoint).
@@ -143,7 +215,7 @@ fix tests fail. ML unit tests 29 passed; ruff/format clean; strict mypy clean (1
 **Pending:** GPU verification on Colab (no GPU here); the tool-overlay ML smoke was not re-run for
 this change. Recovery steps: `ml/notebooks/README.md` ("Recovering from the fp16 failure").
 
-### First `36eb2eb` Colab run: no resumable checkpoint visible
+### First `36eb2eb` Colab run: no resumable checkpoint visible — historical
 
 **Confirmed (user's live inventory):** the `deberta_v3_base` run (Drive mode) reached step ~7,700
 in its third epoch in ~83 min on a T4 and was interrupted; the rerun stopped in `recover_last`
@@ -170,7 +242,7 @@ through the mount) is unverified.
 **Known CI failure, not addressed here:** hosted run 39866518635 failed because concurrent API
 startups seeded the Demo workspace twice (duplicate). Follow-up required.
 
-### Storage incident and how it was resolved
+### Storage incident and how it was resolved — historical
 
 The normal web image build needs ~1.1 GB transient (`npm ci` layer) plus build output, more
 than this host had free. Two attempts were made with a watchdog that cancels below 200/250 MB
@@ -197,7 +269,7 @@ bundle size plus ~300 MB (the importer checks and refuses otherwise). With ~150 
 space must be made first, e.g. once BuildKit releases the three records above (prune them by
 exact id) or by another approved route.
 
-### External steps (exact; nothing faked meanwhile)
+### External steps (historical; superseded: training ran on Kaggle, see the current status)
 
 1. Supervisor commits/pushes Phase 3 to the private `JCHETAN26/compliance` repository, waits
    for hosted CI, and generates the git bundle plus a notebook copy with `EXPECTED_COMMIT`
@@ -211,7 +283,7 @@ exact id) or by another approved route.
    `make smoke-phase3` (expects `model_kind=production`); supervisor reviews
    `ml/eval/results/*` and the handoff criterion (model TEST macro-F1 vs TF-IDF 0.722885).
 
-### Phase 3 supervisor validation commands
+### Phase 3 supervisor validation commands (historical; old checkout path)
 
 ```bash
 cd /home/grv22/projects/compliance

@@ -5,13 +5,15 @@ predicts **entailment / contradiction / not_mentioned** (app status satisfied / 
 not_mentioned), the evidence spans and a calibrated confidence. Everything here is code and
 configuration; datasets, checkpoints and exported weights are never committed.
 
-**Status.** The local pipeline is implemented and verified (unit tests, the full CPU smoke
-with a tiny *random* backbone, live Docker serving in fallback and with a smoke artifact);
-hosted CI is pending. **Phase 3 acceptance is blocked** on external work: no production model
-has been trained (the DeBERTa-v3 runs need a GPU, see the Colab runbook
-[`notebooks/README.md`](notebooks/README.md)), the zero-shot baseline needs an Anthropic API key,
-and the cascade, calibration and quantization results on the full splits and the import of a
-trained artifact follow from those. Until a verified production artifact is installed, the model
+**Status (2026-10-25).** The three production runs trained on Kaggle (GPU; runbook
+[`notebooks/KAGGLE.md`](notebooks/KAGGLE.md)). The full Claude Haiku 5.5 zero-shot baseline
+ran on all DEV and TEST pairs, and `ml.eval.evaluate` ran offline on them. The results are in
+`eval/results/` (see Evaluation below). The local stack serves the fp32 artifact with the
+evaluated `inference_params.json` (tau 0.3; installed and smoke-checked 2026-10-26 UTC).
+The repaired quantized file passed full DEV and TEST but is slower than fp32 on CPU, so
+fp32 stays served (user decision; `docs/INT8_QUANTIZATION.md`). Hosted CI passed for the
+latest code commit `5fe419d` (run 40271320856). Phase acceptance is recorded by the
+supervisor in `docs/SUPERVISION.md`. Without a verified production artifact, the model
 service runs in untrained fallback mode and the web app shows a banner.
 
 ## Layout
@@ -63,6 +65,8 @@ tools run as a pinned overlay: `uv run --frozen --with-requirements ml/requireme
 - The processed full dataset in use has `data_version 620358b51ef96fac…`. It was re-serialized from
   the original preparation (`f93f4647…`) after a gzip-header determinism fix: rows identical,
   documents/pairs equal a fresh rebuild, and all 1,037 DEV rankings re-embedded exactly.
+  The Kaggle training, the Haiku baseline and the final evaluation used the data the
+  Kaggle notebook prepared, `data_version 693b452e…` (see `docs/KAGGLE_RECOVERY_STATUS.md`).
 
 ## Model
 
@@ -110,7 +114,49 @@ Candidate scopes differ (stated in `baselines_comparison.json`): TF-IDF and LLM 
 the model scores all segments. A `rule_check_model_top8_candidates` variant (same weights, label
 top-k restricted to the BGE top 8) isolates head quality.
 
-### Classic baselines (measured)
+### Final results (2026-10-25)
+
+Files: `eval/results/{model_eval,baselines_comparison,cascade,ablation,generalization_unseen,inference_params}.json`
+and the four PNG plots. They were copied unchanged from
+`../kaggle-recovery/eval-haiku-final/results/` (SHA-256 checked). Run details:
+
+- evaluated at git `49550f2` with a clean tree, Python 3.11.13 on the local CPU;
+- data version `693b452e…`, 2026-10-26 01:25 UTC;
+- inputs: the Kaggle results bundle of source commit `556eeb5` (runs, classic baselines,
+  CPU bench) and the Haiku predictions;
+- command and provenance: [`docs/KAGGLE_LOCAL_VALIDATION.md`](../docs/KAGGLE_LOCAL_VALIDATION.md).
+
+TEST, 2,091 pairs:
+
+| System | Accuracy | Macro-F1 | Evidence segment F1 |
+|---|---:|---:|---:|
+| Majority (global TRAIN label: entailment) | 0.463 | 0.211 | — |
+| Majority per hypothesis | 0.659 | 0.617 | — |
+| TF-IDF + logistic regression (C=30, balanced; DEV-chosen) | 0.764 | 0.724 | 0.695 |
+| Claude Haiku 5.5 zero-shot (`claude-haiku-5-5`, effort low) | 0.739 | 0.703 | 0.597 |
+| `rule_check_model_top8_candidates` (same weights, BGE top 8) | 0.815 | 0.769 | 0.679 |
+| `rule_check_model` (DeBERTa-v3-base, k=4, all segments; served) | 0.853 | 0.814 (CI 0.796–0.831) | 0.796 |
+| ModernBERT-base ablation (not served: DEV 0.787 vs 0.802) | 0.846 | 0.806 | — |
+
+- Handoff criterion met: model minus TF-IDF macro-F1 is +0.089 (95% CI 0.067–0.111). For
+  the like-for-like top-8 variant it is +0.045 (0.020–0.070). Model minus Haiku is +0.110
+  (0.088–0.134).
+- Calibration: temperature 2.73 (fitted on DEV). TEST ECE falls from 0.127 to 0.034.
+  Evidence threshold 0.87 (DEV segment F1).
+- Cascade: tau 0.3 was selected on DEV (`provisional: false`, `llm_baseline_usable: true`).
+  Coverage is 1.0 on both DEV and TEST, so nothing escalates, the cascade adds no accuracy
+  over the model, and the LLM cost is $0. It is not faster either. The latency
+  `cascade.json` reports (10.0 s per pair) is the Kaggle CPU bench's p50 for the original
+  dynamic int8 file (since replaced); the served
+  fp32 p50 is 13.4 s. Haiku averaged 1.16 s per TEST request.
+- Unseen hypotheses (nda-1/8/16/18 held out): macro-F1 0.324 on them, against 0.783 for the
+  primary run trained with them. On the seen hypotheses the unseen run scores 0.787.
+- Haiku baseline: DEV and TEST were fully answered with 0 errors. Total cost $0.3713,
+  including the Sonnet diagnostic. Details: [`docs/HAIKU_EVALUATION_PLAN.md`](../docs/HAIKU_EVALUATION_PLAN.md).
+- The TF-IDF row differs slightly from the table below (0.7244 vs 0.7229) because it was
+  refitted on the Kaggle data version.
+
+### Classic baselines (earlier local measurement)
 
 `make baselines` on the full official data (`data_version 620358b51ef96fac`), TEST, 2,091 pairs:
 
@@ -122,20 +168,39 @@ top-k restricted to the BGE top 8) isolates head quality.
 
 These were also recomputed independently with scikit-learn by the supervisor (exact agreement).
 The TF-IDF label grid was extended to C ∈ {30, 100} after an earlier run selected its upper edge
-(C=10) on DEV; that extension was DEV-driven. No model or LLM result exists yet.
+(C=10) on DEV; that extension was DEV-driven. (Superseded by the final results above.)
 
 ## Export and serving
 
 `make export-model` exports the selected checkpoint to ONNX fp32 (TorchScript exporter, opset 17)
-and int8 (ONNX Runtime dynamic quantization), checks parity against PyTorch on seeded DEV pairs
-(fails above 1e-3 for fp32), measures int8 **batch sensitivity** (dynamic int8 activation scales
-are per input tensor, so int8 outputs depend slightly on co-batched rows) and writes a manifest
-with SHA-256 of every file. The model version includes a hash of the served parameters; after a
+and int8 (ONNX Runtime weight-only blockwise quantization: 8-bit `MatMulNBits` weights, 4-bit
+word-embedding table, float32 activations; dynamic quantization collapsed DeBERTa-v3, see
+[`docs/INT8_QUANTIZATION.md`](../docs/INT8_QUANTIZATION.md)), checks parity against PyTorch on
+seeded DEV pairs (fails above 1e-3 for fp32), measures int8 **batch sensitivity** (batched vs
+one row at a time) and writes a manifest with SHA-256 of every file. The model version includes a hash of the served parameters; after a
 later DEV selection (e.g. the final cascade tau) `--refresh-manifest` updates parameters without
 re-exporting weights. `make install-model` / `make import-colab-bundle` verify and install it as
 `.cache/models/rule-check/current`; the model service loads it (int8 by default, fp32 with
 `RULE_CHECK_VARIANT=fp32`), refuses smoke artifacts unless `RULE_CHECK_ALLOW_SMOKE=true`, and
 micro-batches rows across concurrent requests.
+
+Guards from the first production run (int8 collapsed; every LLM request was rejected):
+
+- **int8 quality gate.** A production int8 file is refused for serving unless the export's DEV
+  parity shows label agreement >= 0.9 and top-k agreement >= 0.75 with PyTorch; the error names
+  `RULE_CHECK_VARIANT=fp32` when fp32 exists. The export reports `int8_ok` and refuses
+  `--drop-fp32` when int8 fails.
+- **fp32 recovery.** `python -m ml.export.recover_fp32 --source <artifact> --out <new dir>
+  --quantization-eval <quantization_eval.json> [--params <inference_params.json>]` writes a
+  verified fp32-only artifact (copies, never links) after checking recorded fp32 parity and
+  full-split ONNX fidelity; the source is untouched.
+- **Cascade tau.** An LLM baseline answering < 95 % of pairs on a split is excluded (not a
+  baseline, not cascade input) and `select_tau` refuses LLM-only DEV accuracy 0. The exporter
+  serves a tau only when `inference_params.json` records `llm_baseline_usable: true`.
+- **LLM request errors.** Each rejected attempt stores a sanitized `error_detail` (status, API
+  error type, truncated message with credentials redacted, request id). A one-request preflight
+  and a 10-consecutive-rejection breaker stop the run (exit 3, no predictions written).
+- Where symlinks are unsupported (exFAT), installation makes `current` a verified copy.
 
 ## Make targets
 
@@ -154,7 +219,11 @@ make import-colab-bundle BUNDLE=<tar>            # verified import of Colab resu
 
 ## Limitations (current)
 
-- No production training run or real Anthropic result exists yet (external steps).
-- Dynamic int8 is batch-dependent; static calibrated quantization would remove that.
+- fp32 is served. The repaired quantized file (TEST macro-F1 0.816) is 213 MB vs 741 MB but
+  about 20 % slower on this CPU, so it is not served; the first dynamic int8 export collapsed
+  (`docs/INT8_QUANTIZATION.md`). The repository default `RULE_CHECK_VARIANT=int8` refuses
+  an fp32-only artifact; set `RULE_CHECK_VARIANT=fp32`. CPU fp32 latency is about 13 s per pair.
+- The LLM row is Haiku only. No full Sonnet baseline was run.
+- The model generalizes poorly to hypotheses unseen in training (macro-F1 0.32).
 - The evaluation is on canonical ContractNLI text, not PDF/OCR output.
 - CUAD is not used in this phase (the clause-extraction evaluation belongs to Phase 4).

@@ -15,11 +15,17 @@ Tau is selected on DEV only, with a rule fixed before any result was seen:
   cascade accuracy or cost is claimed.
 
 The selected tau is then applied unchanged to TEST.
+
+LLM predictions count only when the baseline is usable (``llm_usability``): at least
+``MIN_LLM_ANSWERED_FRACTION`` of the pairs answered on each split. Rejected or failed
+requests are unanswered (scored wrong), so an all-failed baseline has accuracy 0 and
+would "select" full model coverage; that is not a cascade result, and ``select_tau``
+refuses it rather than label it final.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 import numpy as np
@@ -29,6 +35,36 @@ from ml.eval import metrics
 TAU_GRID = tuple(round(x, 3) for x in np.arange(0.30, 1.0001, 0.01))
 TOLERANCE = 0.01
 PROVISIONAL_TARGET = 0.90
+MIN_LLM_ANSWERED_FRACTION = 0.95
+
+
+class UnusableLLMBaselineError(ValueError):
+    """LLM predictions that cannot support a final cascade selection."""
+
+
+def llm_usability(splits: Mapping[str, Sequence[Any]]) -> dict[str, Any]:
+    """Answered fraction per split (rows with a non-null ``label``) and the error counts.
+
+    ``usable`` requires every split to reach ``MIN_LLM_ANSWERED_FRACTION``.
+    """
+    report: dict[str, Any] = {"min_answered_fraction": MIN_LLM_ANSWERED_FRACTION, "splits": {}}
+    for split, rows in splits.items():
+        errors: dict[str, int] = {}
+        for r in rows:
+            if r.label is None:
+                key = str(r.error or "no answer").split(":")[0]
+                errors[key] = errors.get(key, 0) + 1
+        answered = sum(r.label is not None for r in rows)
+        report["splits"][split] = {
+            "pairs": len(rows),
+            "answered": answered,
+            "answered_fraction": answered / len(rows) if rows else 0.0,
+            "errors": errors,
+        }
+    report["usable"] = bool(report["splits"]) and all(
+        s["answered_fraction"] >= MIN_LLM_ANSWERED_FRACTION for s in report["splits"].values()
+    )
+    return report
 
 
 def curve(
@@ -77,6 +113,11 @@ def select_tau(
     dev_curve: list[dict[str, Any]], llm_only_dev_accuracy: float | None
 ) -> dict[str, Any]:
     if llm_only_dev_accuracy is not None:
+        if not 0.0 < llm_only_dev_accuracy <= 1.0:
+            raise UnusableLLMBaselineError(
+                f"LLM-only DEV accuracy is {llm_only_dev_accuracy}; the LLM baseline produced "
+                "no usable answers, so no final cascade tau can be selected against it"
+            )
         floor = llm_only_dev_accuracy - TOLERANCE
         ok = [r for r in dev_curve if r["cascade_accuracy"] >= floor]
         chosen = min(ok, key=lambda r: r["tau"]) if ok else max(dev_curve, key=lambda r: r["tau"])

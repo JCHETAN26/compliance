@@ -53,6 +53,8 @@ def _write_artifact(root: Path, tokenizer: Path, **override: Any) -> dict[str, A
         "encoder": EncoderConfig().to_dict(),
         "inference": {"top_k": 2, "temperature": 1.5, "evidence_threshold": 0.5, "tau": 0.6},
         "files": {"tokenizer": entry("tokenizer.json"), "onnx_int8": entry("model.int8.onnx")},
+        # A passing export parity record: production int8 is served only with one.
+        "provenance": {"parity": {"int8": {"label_argmax_agreement": 1.0, "top_k_agreement": 1.0}}},
     }
     for key, value in override.items():
         manifest[key] = value
