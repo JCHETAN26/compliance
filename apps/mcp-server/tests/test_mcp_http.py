@@ -97,9 +97,12 @@ async def test_requests_without_a_valid_bearer_token_are_challenged(
         for header in (f"Basic {token}", token, "Bearer", f"Bearer {token}x", "Bearer cwmcp_x"):
             response = await http.post(url, json=INIT, headers=ACCEPT | {"Authorization": header})
             assert response.status_code == 401, header
+        # The last character carries only 4 bits (16 values): never "change" it to itself.
+        wrong = token[:-1] + ("A" if token[-1] != "A" else "B")
         invalid = await http.post(
-            url, json=INIT, headers=ACCEPT | {"Authorization": f"Bearer {token[:-1]}A"}
+            url, json=INIT, headers=ACCEPT | {"Authorization": f"Bearer {wrong}"}
         )
+        assert invalid.status_code == 401
         assert invalid.headers["www-authenticate"].endswith('error="invalid_token"')
         assert token not in invalid.text
         # Tokens in URLs are refused outright (they leak into logs and histories).
