@@ -116,6 +116,29 @@ def assign_sections(raw: list[RawBlock], text: str) -> list[BlockInfo]:
     return blocks
 
 
+def line_runs(boxes: list[CharBox], tolerance: float = 1.5) -> list[list[float]]:
+    """Visual line runs over the whole text, with their character ranges:
+    ``[page, char_start, char_end, x0, y0, x1, y1]`` (same grouping rule as
+    :func:`merge_char_boxes`). Citations use them to highlight an exact range by line."""
+    runs: list[list[float]] = []
+    for index, box in enumerate(boxes):
+        if box is None:
+            continue
+        page, x0, y0, x1, y1 = box
+        if runs:
+            cur = runs[-1]
+            overlap = min(cur[6], y1) - max(cur[4], y0)
+            min_height = max(min(cur[6] - cur[4], y1 - y0), 0.01)
+            rightwards = x0 >= cur[3] - tolerance and x0 <= cur[5] + 40
+            if cur[0] == page and overlap >= 0.5 * min_height and rightwards:
+                cur[2] = index + 1
+                cur[3], cur[4] = min(cur[3], x0), min(cur[4], y0)
+                cur[5], cur[6] = max(cur[5], x1), max(cur[6], y1)
+                continue
+        runs.append([page, index, index + 1, x0, y0, x1, y1])
+    return [[int(r[0]), int(r[1]), int(r[2]), *(round(v, 2) for v in r[3:])] for r in runs]
+
+
 def merge_char_boxes(
     boxes: list[CharBox], start: int, end: int, tolerance: float = 1.5
 ) -> list[BBox]:

@@ -9,7 +9,7 @@ from typing import Literal
 
 from compliance_ingestion.chunking import ChunkOptions, build_chunks
 from compliance_ingestion.docx_parser import extract_docx
-from compliance_ingestion.layout import assign_sections
+from compliance_ingestion.layout import assign_sections, line_runs
 from compliance_ingestion.pdf import PdfOptions, extract_pdf
 from compliance_ingestion.spreadsheet import SpreadsheetExtraction, extract_csv, extract_xlsx
 from compliance_ingestion.tokens import TokenCounter
@@ -118,6 +118,7 @@ def extract_document(
         pages=pages,
         blocks=blocks,
         chunks=chunks,
+        line_boxes=line_runs(char_boxes) if char_boxes else [],
         warnings=warnings,
         stats=ExtractionStats(
             pages=len(pages),

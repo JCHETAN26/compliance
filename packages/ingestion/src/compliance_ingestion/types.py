@@ -106,6 +106,8 @@ class ExtractionResult(_Frozen):
     sheets: list[SheetInfo] = Field(default_factory=list)
     rows: list[RowInfo] = Field(default_factory=list)
     chunks: list[ChunkInfo] = Field(default_factory=list)
+    # PDF only: [page, char_start, char_end, x0, y0, x1, y1] per visual line run.
+    line_boxes: list[list[float]] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     stats: ExtractionStats
 
