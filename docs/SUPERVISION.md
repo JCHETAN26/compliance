@@ -11,7 +11,7 @@ verification to Codex. The authoritative requirements are in `BUILD_HANDOFF.md`.
 | 1 — Ingestion and viewer | Complete | Accepted: local gates and hosted CI passed |
 | 2 — Retrieval | Complete | Accepted: local gates and hosted CI passed |
 | 3 — Trained model | Full Kaggle training, real Haiku baseline, calibration/cascade evaluation, exports and batching verified; fp32 remains served by user decision | Accepted: independent final review passed; final cleaned head `ccfff28` passed hosted CI `40277029790` |
-| 4 — Agents and review UI | Implemented through Claude Code; mock workflow independently reviewed on `feat/phase4-agents` | Pending: hosted CI and separately approved real-provider flagship |
+| 4 — Agents and review UI | Implemented through Claude Code; mock workflow independently reviewed; hosted CI passed for source `081089b` (run `40343922911`) | Pending: separately approved real-provider flagship |
 | 5 — MCP | Not started | Pending |
 | 6 — Evaluation and polish | Not started | Pending |
 
@@ -345,8 +345,9 @@ Independent checks, with logs under `../kaggle-recovery/logs/`:
 
 Claude's latest static gates pass (Ruff/format, strict mypy), as do frontend lint,
 TypeScript, 104 Vitest tests, OpenAPI/type generation and the production Next build.
-The lightweight installed core wheel was verified outside the checkout; hosted CI
-must still verify the complete Docker build and startup.
+The lightweight installed core wheel was verified outside the checkout. Hosted CI run
+`40343922911` subsequently verified the complete Docker build, clean startup, automatic
+seeding and Phase 0–4 smoke tests for source `081089b`.
 
 This accepts the local mock implementation for publication as a draft PR, not Phase 4
 as a whole. The real-provider flagship remains unstarted and needs separate approval;
@@ -369,4 +370,9 @@ verification reported 443 passes and one local read-only-mount failure: a readin
 test's default `.data` directory was inside `/src:ro`. Codex reran all six readiness/API
 health tests with a writable temporary `.data` mount, matching CI's writable checkout:
 **6 passed in 3.44s** (`codex-phase4-ci-readiness.log`). The empty host mountpoint was
-removed. The next hosted CI run remains pending at this entry.
+removed. Hosted CI run `40343922911` then passed all three jobs at `081089b`: **444
+application tests**, **116 ML tests plus one optional Anthropic-SDK skip**, **15 ML CPU
+smoke tests**, web lint/types/104 tests/build, and Docker build/startup/seed/Phase 0–4
+smoke. The complete local ML suite had independently passed all 117 tests with that SDK
+available. Final source is reviewable in draft PR #2; Phase 4 acceptance still needs the
+approved real-provider flagship. No paid request has been made for Phase 4.

@@ -163,15 +163,17 @@ isolated preview stack (ports 18000/13300, DB `compliance_preview`).
 **Expected requests.** The mock run of the same corpus made 27 LLM steps (9 extractions,
 9 custom-rule verdicts, 9 support checks). With the real model, support checks of
 model-decided findings use the model, so at most 27 successful requests are expected;
-with the 3-attempt limit the hard ceiling is 81 attempts. Escalations below tau 0.3 are
-expected to be none (they would add at most one verdict and one support check each).
+with the 3-attempt limit this normal path permits up to 81 attempts. Model-service
+failures or inputs the model cannot accept can add fallback verdict/support calls, so
+81 is not a global request ceiling. Escalations below tau 0.3 are expected to be none.
+The enforced limits are the run's USD and token caps, including all retries/fallbacks.
 
 **Cost estimate.** Built-in Haiku prices $0.10 / $0.50 per MTok (cache write $0.125,
 read $0.01). The mock's character-based estimate for the 27 steps was 15,388 tokens;
 allowing for structured-output framing, expect roughly 15k–40k input and 3k–8k output
 tokens: **about $0.002–$0.01**. The ledger's provable per-attempt bound (UTF-8 body bytes
 + 4,096 tokens at the cache-write rate, plus 1,024 output tokens) is about $0.0013 for
-these prompts, so even 81 attempts stay under $0.11. **Hard caps for the run: $0.25 and
+these prompts, so the normal 81-attempt path stays under $0.11. **Hard caps for the run: $0.25 and
 400,000 tokens**, enforced before each request; measured usage above a reservation stops
 the run.
 
@@ -239,6 +241,17 @@ Entries are appended as gates run.
 
 Independent manager checks (2026-10-26, working tree; final acceptance pending):
 
+- **Hosted CI passed for final product source `081089b`:** run
+  [40343922911](https://github.com/JCHETAN26/compliance/actions/runs/40343922911), all
+  three jobs green. Python: 444 application tests; 116 ML tests and one optional
+  Anthropic-SDK skip; 15 CPU training/export/service smoke tests. Web: lint, types,
+  104 Vitest tests, generated schema and production build. Docker: image build,
+  clean startup, seed, and Phase 0–4 smoke. The clean CI stack has no trained artifact
+  and used 72 mock fallback calls; its 58 findings were 40 satisfied, 5 violated and
+  13 needs_review, cost $0, unknown calls 0. This differs from the local mock-model
+  preview's 27 mock LLM calls and is not real-provider evidence. The complete local
+  ML suite passed all 117 tests with the optional SDK present. This final record
+  supersedes earlier entries that say hosted verification was pending.
 - Final mock browser workflow independently rerun by Codex: all steps passed with no
   console/page errors. Log: `kaggle-recovery/logs/codex-phase4-browser.log`; screenshots:
   `kaggle-recovery/logs/codex-phase4-browser-shots/`.
@@ -389,7 +402,7 @@ context):
   sdist would need the packs moved into the package or added to the sdist target.
 
 Hosted CI failure and fix (Claude Code, 2026-10-26; working tree on top of `ae782cb`, logs
-under `/dev/shm/cw/logs/claude-ci-collect-fix-*`):
+under `/dev/shm/cw/logs/claude-ci-collect-fix-*`, copied to `kaggle-recovery/logs/`):
 
 - **Failure.** Hosted CI run `40341052392` at `ae782cb`: Ruff and mypy passed, the web job
   passed, and `uv run pytest` stopped at **collection** with three
@@ -444,7 +457,14 @@ under `/dev/shm/cw/logs/claude-ci-collect-fix-*`):
     gitignored). It is a runner artifact, not a CI failure.
   - Full suite, rerun with a writable cwd (`PT_WORKDIR=/tmp`, `-c /src/pyproject.toml
     --rootdir /src`, explicit `testpaths`; the console entry point never adds the cwd to
-    `sys.path`): FULLRESULT
+    `sys.path`). A first attempt (3 failed, 1 error: a `TRUNCATE` deadlock and "cached
+    statement plan is invalid due to a database schema change") ran 07:51–07:57 local, while
+    the manager's readiness rerun (`codex-phase4-ci-readiness.log`, written 07:52) was using
+    the shared `compliance_test`. Its `migrated_database` fixture downgrades and re-upgrades
+    the schema, which matches both errors (cause inferred from timing and error signatures).
+    The attempt is discarded as contaminated, not counted. Repeated on a
+    quiet DB at committed `081089b` with a clean tree: **444 passed in 358.32 s**
+    (`claude-ci-collect-fix-full3.log`).
 - Not run here: hosted CI (manager pushes), Docker build/compose smoke, ML suites and web
   checks (unchanged by this fix). No provider call, key read, live restart, source-pin
   change, commit or push.
