@@ -9,7 +9,8 @@ Phase 4 on `feat/phase4-agents` (based on accepted Phase 3 head `ccfff28`) is ac
 the supervisor: final head `6ea1588` passed all three hosted CI jobs in run 40346107207
 and the approved real Haiku flagship completed. Phase 5 (MCP server, API tokens) is
 implemented on `feat/phase5-mcp` (draft PR #3) and under supervisor review; it is not
-accepted, and its Claude Desktop device check on the user's Mac has not been run. Phase 3
+accepted, and its interactive Claude Desktop check has not been run (possible on the
+Linux host with the official Linux beta, or on the user's Mac). Phase 3
 PR #1's final cleaned head passed all hosted CI jobs in run 40277029790.
 
 | Phase | Status |
@@ -19,7 +20,7 @@ PR #1's final cleaned head passed all hosted CI jobs in run 40277029790.
 | 2 — Hybrid retrieval, search UI, retrieval eval | **Accepted.** Hosted run 39699615208 passed all jobs for `c61eab2`. |
 | 3 — Rule-check model | **Accepted by the supervisor** (`docs/SUPERVISION.md`, "Phase 3 final independent acceptance"). GPU training ran on Kaggle; the full Claude Haiku 5.5 baseline (1037 DEV + 2091 TEST) and the offline evaluation are done. TEST macro-F1: trained model 0.813778, TF-IDF 0.724374, Haiku 0.703409. fp32 is served locally with the DEV-selected tau 0.3. See "Phase 3 — current status" below. |
 | 4 — Agents and review UI | **Accepted by the supervisor** (`docs/SUPERVISION.md`, "Phase 4 approved real-provider acceptance"). Hosted run 40346107207 passed all jobs for `6ea1588`; approved Haiku flagship run `abdc0cff-0431-4394-94f8-4070b2ae4dad` completed for $0.006062 (application ledger) under a $0.25 cap. Plan, checklist and evidence: `docs/PHASE4_REVIEW.md`. |
-| 5 — MCP server and API tokens | **Implemented, under supervisor review; not accepted.** Hosted run 40369092514 passed all jobs for `54d0647` (draft PR #3). The Claude Desktop device check on the user's Mac is pending. Plan, checklist and evidence: `docs/PHASE5_REVIEW.md`. |
+| 5 — MCP server and API tokens | **Implemented, under supervisor review; not accepted.** Hosted run 40394225222 passed all three jobs for `eba716c` (draft PR #3); earlier, run 40369092514 passed for `54d0647`. The interactive Claude Desktop check (search, review, report) is pending; it can be run with the official [Claude Desktop for Linux beta](https://code.claude.com/docs/en/desktop-linux) on the Linux host or on the user's Mac. Plan, checklist and evidence: `docs/PHASE5_REVIEW.md`. |
 | 6 | Not started. |
 
 **Dates.** The client's timezone is America/Phoenix (UTC−7). Section dates in the Phase 3

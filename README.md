@@ -8,9 +8,12 @@ source passage. The full specification is in [`docs/BUILD_HANDOFF.md`](docs/BUIL
 > Phase 4 (agents, live run, report, overrides) was accepted after the user-approved real
 > Claude Haiku flagship run and passing hosted CI for head `6ea1588`
 > ([`docs/PHASE4_REVIEW.md`](docs/PHASE4_REVIEW.md)). Phase 5 (MCP server) is
-> implemented and under supervisor review; hosted CI passed for head `54d0647`
-> ([`docs/PHASE5_REVIEW.md`](docs/PHASE5_REVIEW.md)). It is not accepted: its Claude
-> Desktop check needs the user's Mac and has not been run. Phase 6 has not started.**
+> implemented and under supervisor review; hosted CI run 40394225222 passed all three
+> jobs for head `eba716c` ([`docs/PHASE5_REVIEW.md`](docs/PHASE5_REVIEW.md)). It is not
+> accepted: the interactive Claude Desktop check (search, review, report) has not been
+> run. It can be run with the official
+> [Claude Desktop for Linux beta](https://code.claude.com/docs/en/desktop-linux) on the
+> Linux host or on the user's Mac. Phase 6 has not started.**
 >
 > - **Phase 0** (skeleton, auth, workspaces, compose, CI): accepted, hosted GitHub
 >   Actions run 39678264159 (commit `e6b709e`).
@@ -413,8 +416,8 @@ The vendor register's access levels and dates are synthetic; see
 
 - No end-to-end evals yet (Phase 6); see the phase plan in the handoff.
 - **MCP (Phase 5):** tested over stdio (as Desktop launches it, including `docker exec`)
-  and HTTP with the mock LLM. It has **not** been exercised from Claude Desktop itself,
-  or over the Mac-to-Linux SSH hop the guide describes. API tokens are this app's own
+  and HTTP with the mock LLM. It has **not** been exercised from Claude Desktop itself
+  (Linux beta or Mac), or over the Mac-to-Linux SSH hop the guide describes. API tokens are this app's own
   bearer tokens, not OAuth, so Desktop's remote "connector" flow (which expects OAuth) is
   not supported: use stdio. The HTTP endpoint binds to localhost; do not expose it
   without TLS. The MCP container learns which providers the worker holds keys for from a

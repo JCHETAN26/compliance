@@ -12,7 +12,7 @@ verification to Codex. The authoritative requirements are in `BUILD_HANDOFF.md`.
 | 2 — Retrieval | Complete | Accepted: local gates and hosted CI passed |
 | 3 — Trained model | Full Kaggle training, real Haiku baseline, calibration/cascade evaluation, exports and batching verified; fp32 remains served by user decision | Accepted: independent final review passed; final cleaned head `ccfff28` passed hosted CI `40277029790` |
 | 4 — Agents and review UI | Implemented through Claude Code; mock and real-provider workflows independently verified; final head `6ea1588` passed hosted CI `40346107207` | Accepted: approved Haiku flagship completed within $0.25 cap on 2026-10-26 |
-| 5 — MCP | Implemented through Claude Code Max; independent transport, token, browser and wrapper checks passed | Pending: actual Claude Desktop search/review/report check on the user's Mac |
+| 5 — MCP | Implemented through Claude Code Max; independent transport, token, browser and wrapper checks passed | Pending: actual Claude Desktop search/review/report check (Linux or Mac) |
 | 6 — Evaluation and polish | Not started | Pending |
 
 No phase is accepted solely on the implementer's report. Checks must be run and
@@ -457,3 +457,32 @@ SSH hop or Claude Desktop behavior. The user must perform search, review and rep
 retrieval in Claude Desktop using the prepared handoff. Final mobile-fix hosted CI is
 tracked on PR #3. Phase 6 implementation remains unstarted until that device gate is met;
 pre-existing document/workspace mobile layout issues are recorded for its polish work.
+
+
+## Phase 5 final code CI and Desktop platform correction
+
+Final code head `eba716c` passed all three hosted jobs in run `40394225222`, including
+Docker image builds and the complete Phase 0–5 smoke suite. The source tree was clean
+after publication. No additional product defect remains from this independent review.
+
+The earlier assumption that this Linux host cannot run Claude Desktop was incorrect.
+Codex checked the current official Linux Desktop documentation
+(https://code.claude.com/docs/en/desktop-linux) and the local installation: native
+`claude-desktop` **2.7032.0** is installed. A normal new-chat window was opened for
+readiness checking and then closed. No account, sign-in or MCP configuration was
+changed, no private chat or authentication storage was inspected, and no model prompt
+was submitted. The app rejected debugging flags; that restriction was respected.
+Its normal accessibility interface was not exposed to the available test tools.
+
+The correct remaining gate is an actual interactive **Claude Desktop** search, review
+and report check, on Linux or on the user's Mac. Native-app availability alone does not
+satisfy that gate; sign-in status was not established. The prepared Mac SSH path remains
+optional and unverified. A secret-free concrete Mac configuration is retained outside
+the checkout at `kaggle-recovery/claude-desktop-preview.json`; no device token file was
+created. The installed `~/bin/compliance-mcp-stdio` matches the reviewed source.
+
+Claude Code completed a read-only Phase 6 readiness audit, retained outside the checkout
+at `kaggle-recovery/PHASE6_READINESS.md`. It is a plan, not implemented work or verified
+evaluation results. Proposed future paid evaluations require separate authorization;
+the Phase 4 $0.25 approval has not been reused. Any future key loading must use the
+existing private-file pattern rather than a literal shell command.

@@ -4,8 +4,8 @@ Implementer: Claude Code. Reviewer and acceptance authority: Codex (`SUPERVISION
 This file is the implementer's plan, acceptance checklist and evidence log. Nothing here
 accepts the phase. Status values: `todo`, `in progress`, `implemented` (code and tests
 written), `verified locally` (named command ran and passed; output recorded below),
-`blocked` (with the reason), `device gate` (needs a real client device; cannot be
-claimed from this host).
+`blocked` (with the reason), `device gate` (needs an interactive check in a real client;
+cannot be claimed from mock or stdio tests).
 
 Requirements come from `BUILD_HANDOFF.md` §9, §11 (settings API tokens), §12 (Settings
 page), §13 and §14 (Phase 5); from the read-only readiness audit (2026-10-26); and from the
@@ -41,7 +41,7 @@ manager's Phase 5 decisions (2026-10-26), summarised here:
 | H4 | MCP tools call the same service layer as REST (no duplicated logic) | implemented; existing REST suites pass unchanged on the refactor (E1) |
 | H5 | stdio integration test that runs the server over stdio and calls every tool (and both resources) | verified locally (`apps/mcp-server/tests/test_mcp_stdio.py`) |
 | H6 | `apps/mcp-server/README.md` with a ready-to-paste Claude Desktop config | implemented (Desktop configs for local Docker and Mac-to-Linux SSH; not run on a real Desktop) |
-| H7 | From Claude Desktop: search documents, run a review, fetch the report | **device gate**: needs the user's Mac running Claude Desktop. Not claimable from mock, stdio tests or this Linux host. |
+| H7 | From Claude Desktop: search documents, run a review, fetch the report | **device gate**: needs an interactive check in Claude Desktop, either on this Linux host (official Linux beta, installed) or on the user's Mac. Not claimable from mock or stdio tests. |
 
 ### Shared service layer (WS1)
 
@@ -107,14 +107,26 @@ manager's Phase 5 decisions (2026-10-26), summarised here:
   an MCP container on 18020 runs `smoke_phase5.py`. The live seven containers, their
   `.pth` pin and the model artifacts are not touched.
 
-## Remaining device gate (not claimable here)
+## Remaining device gate (not yet verified)
 
-Claude Desktop runs on the user's Mac. This Linux host cannot run Claude Desktop, so
 "From Claude Desktop: search, run a review, fetch the report" stays **unverified** until
-the user pastes one of the README configs on the Mac and runs those three steps. The
+someone runs those three steps interactively in Claude Desktop. That can be done on this
+Linux host or on the user's Mac. The
 stdio integration test and the `docker exec` stdio smoke exercise the same server
 process and transport that Desktop launches. They do not prove Desktop's own client
 behaviour, the SSH hop from the Mac, or Desktop's UI.
+
+**Correction (2026-10-26).** Earlier versions of this file said that Claude Desktop runs
+only on the user's Mac and that this Linux host cannot run it. That was wrong. There is an
+official Claude Desktop for Linux beta
+([download](https://claude.com/download),
+[Linux docs](https://code.claude.com/docs/en/desktop-linux)), and `dpkg` shows
+`claude-desktop` 2.7032.0 installed here at `/usr/bin/claude-desktop`. The manager opened
+it normally to a new chat to check readiness, then quit. No sign-in or MCP configuration
+was changed and no model prompt was sent, so whether it is signed in is unknown. The
+application refused debug flags (this was respected). The test tools could not reach it
+through normal accessibility. The Desktop search, review and report check is therefore
+still unverified. The Mac SSH handoff below is still a valid option, not the only one.
 
 ## Evidence log
 
@@ -186,7 +198,8 @@ provider key was read.
 
 ## Device-gate handoff (isolated mock preview)
 
-This is what the user can run from the Mac. Nothing here touches the original seven
+This is what the user can run from the Mac (one option; see the correction under
+"Remaining device gate"). Nothing here touches the original seven
 live containers: their MCP container is still the Phase 0 skeleton, so the generic
 `docker compose exec mcp-server` configuration does not apply to them yet. The preview
 is mock only (mock LLM, mock rule-check backend, no provider key) and lives in RAM
