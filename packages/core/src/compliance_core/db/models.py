@@ -7,6 +7,7 @@ plus the ``extracted_entities`` table the viewer reads (populated from Phase 4).
 Phase 4: rule packs and rules, per-workspace review settings, review runs with their
 tasks, findings, citations, human overrides, agent events, the LLM budget ledger, step
 memoization, report snapshots and the LangGraph checkpoint tables.
+Phase 5: per-user API tokens for the MCP server (only SHA-256 hashes are stored).
 """
 
 from __future__ import annotations
@@ -37,7 +38,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy import text as sql_text
-from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TSVECTOR, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 NAMING_CONVENTION = {
@@ -83,6 +84,50 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+
+
+API_TOKEN_SCOPES = ("read", "review", "upload")
+API_TOKEN_NAME_MAX = 100
+
+
+class ApiToken(Base):
+    """A per-user MCP API token. The plaintext is shown once at creation; only its
+    SHA-256 hash is stored. ``workspace_ids`` NULL means every workspace the user is a
+    member of (membership is re-checked on every use)."""
+
+    __tablename__ = "api_tokens"
+    __table_args__ = (
+        CheckConstraint(
+            f"char_length(btrim(name)) between 1 and {API_TOKEN_NAME_MAX}", name="name_length"
+        ),
+        CheckConstraint(
+            "scopes <@ ARRAY['read', 'review', 'upload']::varchar[] AND 'read' = ANY(scopes)",
+            name="scopes_valid",
+        ),
+        CheckConstraint(
+            "workspace_ids IS NULL OR cardinality(workspace_ids) > 0", name="allowlist_non_empty"
+        ),
+        CheckConstraint("expires_at > created_at", name="expires_after_creation"),
+        Index("ix_api_tokens_user_created", "user_id", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=sql_text("gen_random_uuid()")
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(API_TOKEN_NAME_MAX), nullable=False)
+    token_prefix: Mapped[str] = mapped_column(String(16), nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    scopes: Mapped[list[str]] = mapped_column(ARRAY(String(16)), nullable=False)
+    workspace_ids: Mapped[list[uuid.UUID] | None] = mapped_column(ARRAY(UUID(as_uuid=True)))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Workspace(Base):

@@ -111,7 +111,7 @@ jobs:
         run: docker compose ps
       - name: Wait for automatic demo seeding + ingestion (make seed is idempotent)
         run: docker compose exec -T worker python -m compliance_seed --wait 900
-      - name: Phase 0 + Phase 1 + Phase 2 + Phase 3 + Phase 4 smoke tests
+      - name: Phase 0 + Phase 1 + Phase 2 + Phase 3 + Phase 4 + Phase 5 smoke tests
         run: |
           uv sync --frozen
           uv run python scripts/smoke_phase0.py --web http://127.0.0.1:3000
@@ -119,6 +119,8 @@ jobs:
           uv run python scripts/smoke_phase2.py --web http://127.0.0.1:3000 --model-service http://127.0.0.1:8010
           uv run python scripts/smoke_phase3.py --web http://127.0.0.1:3000 --model-service http://127.0.0.1:8010
           uv run python scripts/smoke_phase4.py --web http://127.0.0.1:3000 --timeout 1500
+          uv run python scripts/smoke_phase5.py --web http://127.0.0.1:3000 --mcp http://127.0.0.1:8020 --timeout 1500 \
+            --stdio-command "docker compose exec -T -e COMPLIANCE_MCP_TOKEN mcp-server python -m compliance_mcp_server --transport stdio"
       - name: Logs on failure
         if: failure()
         run: docker compose logs --no-color --tail 200

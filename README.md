@@ -7,8 +7,10 @@ source passage. The full specification is in [`docs/BUILD_HANDOFF.md`](docs/BUIL
 > **Status: Phases 0–4 accepted (see [`docs/SUPERVISION.md`](docs/SUPERVISION.md)).
 > Phase 4 (agents, live run, report, overrides) was accepted after the user-approved real
 > Claude Haiku flagship run and passing hosted CI for head `6ea1588`
-> ([`docs/PHASE4_REVIEW.md`](docs/PHASE4_REVIEW.md)). A Phase 5 readiness audit is
-> under way; Phase 5–6 implementation has not started.**
+> ([`docs/PHASE4_REVIEW.md`](docs/PHASE4_REVIEW.md)). Phase 5 (MCP server) is
+> implemented and awaiting independent review
+> ([`docs/PHASE5_REVIEW.md`](docs/PHASE5_REVIEW.md)); its Claude Desktop check needs
+> the user's Mac and has not been run. Phase 6 has not started.**
 >
 > - **Phase 0** (skeleton, auth, workspaces, compose, CI): accepted, hosted GitHub
 >   Actions run 39678264159 (commit `e6b709e`).
@@ -48,9 +50,15 @@ source passage. The full specification is in [`docs/BUILD_HANDOFF.md`](docs/BUIL
 >   jobs for head `6ea1588`. One approved synthetic flagship with Claude Haiku 5.5 and
 >   the served fp32 model completed within its $0.25 cap ($0.006062 by the application
 >   ledger). See "Reviews (Phase 4)" below.
-> - **Not implemented yet:** MCP tools (Phase 5), the end-to-end eval suite and dashboard
->   (Phase 6). The services and panels reserved for them say so explicitly instead of
->   returning fake results.
+> - **Phase 5** (implemented, not yet accepted): the MCP server
+>   ([`apps/mcp-server/README.md`](apps/mcp-server/README.md)) exposes nine tools
+>   (plus `list_rule_packs`) and the `rulepack://` and `report://` resources over stdio
+>   and streamable HTTP. Every call is authenticated with a per-user API token created on
+>   the Settings page, and goes through the same service layer as the REST API. Verified
+>   with stdio and HTTP integration tests and an isolated mock preview; **not yet run from
+>   Claude Desktop** (device check pending).
+> - **Not implemented yet:** the end-to-end eval suite and dashboard (Phase 6). The
+>   panels reserved for them say so explicitly instead of returning fake results.
 >
 > Verification logs are in [`docs/BUILD_STATUS.md`](docs/BUILD_STATUS.md).
 
@@ -71,7 +79,10 @@ flowchart LR
   api -->|query embeddings, rerank| model[model-service<br/>same pinned encoder;<br/>rule check: verified ONNX artifact<br/>or untrained fallback (503)]
   cache[(artifact cache<br/>models + dataset)] --> worker
   cache --> model
-  mcp[mcp-server<br/>MCP SDK, no tools yet] --> pg
+  client[MCP clients<br/>Claude Desktop via stdio,<br/>others via HTTP + bearer token] --> mcp
+  mcp[mcp-server<br/>tools + resources,<br/>per-user API tokens] --> pg
+  mcp -->|query embeddings| model
+  mcp -->|enqueue runs| redis
 ```
 
 | Service | Current behaviour | Healthcheck |
@@ -80,7 +91,7 @@ flowchart LR
 | `api` | Auth, workspaces, documents (upload, list, metadata, original file, chunks, pages, blocks, sheets/rows, entities status, delete, retry), hybrid search; runs migrations on start | `/api/v1/health/ready`: DB query, Alembic at head, pgvector installed, Redis PING |
 | `worker` | `ingest_document` jobs, stale-document sweep, demo seeding on first start | `arq --check` heartbeat; it only heartbeats after the DB is reachable and the pinned model is SHA-256-verified and loaded |
 | `model-service` | `/v1/embed` (query/passage embeddings with the pinned ingestion encoder), `/v1/rerank` (only when `RERANK_ENABLED=true`), `/v1/check` (rule-check model from a SHA-256-verified ONNX artifact with dynamic micro-batching; without a verified trained artifact: 503 `rule_check_unavailable`, see [`apps/model-service/README.md`](apps/model-service/README.md)) | `/health`: `embedding=ready` (weights SHA-256-verified and loaded); `rule_check=ready|unavailable` is reported, not required |
-| `mcp-server` | MCP over streamable HTTP and stdio; **no tools yet** (Phase 5) | Real MCP handshake + `tools/list`, plus DB probe |
+| `mcp-server` | MCP tools and resources over streamable HTTP (`/mcp`, bearer token, stateless) and stdio (`docker exec`), backed by the REST service layer; see [`apps/mcp-server/README.md`](apps/mcp-server/README.md) | `/health` DB probe, plus `/mcp` refusing an unauthenticated request with 401 `WWW-Authenticate: Bearer` |
 | `postgres` | pgvector/pgvector:pg16 | `pg_isready` + `select 1` |
 | `redis` | Redis 7.4, AOF | `redis-cli ping` = `PONG` |
 
@@ -280,6 +291,22 @@ Providers are chosen with `LLM_PROVIDER` (`mock` default, `anthropic`, `openai`,
 `ollama`; see `.env.example`). The mock is offline and labelled everywhere. `make
 smoke-phase4` runs the synthetic ten-vendor flagship through a running stack.
 
+## MCP server (Phase 5)
+
+Any MCP client can search documents, check rules, run reviews and read reports with
+citations. The setup guide, with ready-to-paste Claude Desktop configurations for a local
+Docker stack and for a Mac reaching this stack on a Linux host over SSH, is in
+[`apps/mcp-server/README.md`](apps/mcp-server/README.md).
+
+1. Sign in, open **Settings** (header), and create an API token. The defaults are read
+   only and expire after 90 days. Opt in to `review` (spends LLM budget) or `upload`
+   (stdio only) if you need them. Copy the token: it is shown once.
+2. Add the server to your client using the guide above. Over stdio, the token goes in the
+   client's environment for the server process. Over HTTP, send
+   `Authorization: Bearer <token>`, and never put it in the URL.
+3. `make smoke-phase5` exercises HTTP and stdio (`docker compose exec`) against a running
+   stack with the mock LLM.
+
 ## Results: rule-check model (Phase 3)
 
 Official ContractNLI TEST split, all 2,091 pairs, data version `693b452e…`. Every choice
@@ -384,7 +411,15 @@ The vendor register's access levels and dates are synthetic; see
 
 ## Limitations
 
-- No MCP tools or end-to-end evals yet (Phases 5–6); see the phase plan in the handoff.
+- No end-to-end evals yet (Phase 6); see the phase plan in the handoff.
+- **MCP (Phase 5):** tested over stdio (as Desktop launches it, including `docker exec`)
+  and HTTP with the mock LLM. It has **not** been exercised from Claude Desktop itself,
+  or over the Mac-to-Linux SSH hop the guide describes. API tokens are this app's own
+  bearer tokens, not OAuth, so Desktop's remote "connector" flow (which expects OAuth) is
+  not supported: use stdio. The HTTP endpoint binds to localhost; do not expose it
+  without TLS. The MCP container learns which providers the worker holds keys for from a
+  non-secret flag; if that is wrong, the worker fails the run without calling the
+  provider. Runs paused for human review must be resolved in the web app.
 - **Reviews (Phase 4):** verified end to end with the deterministic mock LLM and with one
   approved real-provider run (Claude Haiku 5.5 plus the served fp32 model) on the
   synthetic ten-vendor flagship only. That run is acceptance evidence, not an accuracy

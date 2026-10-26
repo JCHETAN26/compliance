@@ -1,4 +1,4 @@
-"""Hybrid search service shared by the REST API (and later the MCP server).
+"""Hybrid search service shared by the REST API and the MCP server.
 
 Flow: authorise (any workspace member, viewers included) -> validate filters -> embed the
 query on the model service (vector/hybrid) -> run vector and keyword candidate queries
@@ -32,6 +32,7 @@ from compliance_core.model_client import (
     ServiceInfo,
 )
 from compliance_core.services.errors import InvalidOperationError, NotFoundError, ServiceError
+from compliance_core.services.session_store import FixedWindowLimiter
 from compliance_core.services.workspaces import require_role
 from compliance_retrieval.config import RetrievalConfig
 from compliance_retrieval.fusion import Candidate, FusedHit, reciprocal_rank_fusion, single_method
@@ -102,6 +103,23 @@ async def resolve_scope(
         document_ids=document_ids,
         doc_types=tuple(dict.fromkeys(t.value for t in request.doc_types)),
     )
+
+
+async def search_for_user(
+    session: AsyncSession,
+    deps: SearchDependencies,
+    limiter: FixedWindowLimiter,
+    *,
+    workspace_id: uuid.UUID,
+    user_id: uuid.UUID,
+    request: SearchRequest,
+) -> SearchResponse:
+    """Authorise (any workspace member), release ``session``'s connection, reserve the
+    caller's per-minute search quota, then search. Shared by every transport."""
+    scope = await resolve_scope(session, workspace_id, user_id, request)
+    await session.rollback()  # release the connection; searches use their own sessions
+    await limiter.reserve(str(user_id))
+    return await run_search(deps, scope, request)
 
 
 async def run_search(

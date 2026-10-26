@@ -31,6 +31,7 @@ from sqlalchemy.orm import selectinload
 
 from compliance_core.db.models import (
     Citation,
+    DocType,
     Document,
     DocumentContent,
     DocumentStatus,
@@ -44,6 +45,7 @@ from compliance_core.db.models import (
 )
 from compliance_core.document_schemas import BBoxRead
 from compliance_core.money import micro_to_usd
+from compliance_core.reporting import build_report
 from compliance_core.review_schemas import (
     BudgetRead,
     CitationDetail,
@@ -51,13 +53,20 @@ from compliance_core.review_schemas import (
     FindingPage,
     FindingRead,
     HumanOverrideRead,
+    ReportRead,
     ReviewRunRead,
     ReviewTaskRead,
     ReviewTasksRead,
     RulePackRef,
     RulePackRuleRef,
 )
-from compliance_core.rule_packs import spec_document
+from compliance_core.rule_packs import (
+    MAX_HYPOTHESIS_CHARS,
+    RulePackSpec,
+    adhoc_rule_spec,
+    content_sha256,
+    spec_document,
+)
 from compliance_core.services.budget import run_usage
 from compliance_core.services.errors import (
     InvalidOperationError,
@@ -179,18 +188,90 @@ async def start_review(
         raise InvalidOperationError(
             f"A review can cover at most {options.max_documents} documents ({len(docs)} selected)."
         )
+    return await _queue_run(
+        session,
+        workspace_id=workspace_id,
+        user_id=user_id,
+        pack_id=pack.id,
+        spec=spec,
+        spec_sha256=pack.content_sha256,
+        rule_ids={r.key: str(r.id) for r in pack.rules},
+        docs=docs,
+        provider=provider,
+        options=options,
+    )
 
+
+async def start_rule_check(
+    session: AsyncSession,
+    *,
+    workspace_id: uuid.UUID,
+    user_id: uuid.UUID,
+    document_id: uuid.UUID,
+    hypothesis: str,
+    provider: ProviderSelection,
+    options: RunOptions,
+    origin: str,
+) -> ReviewRun:
+    """Queue a one-rule, one-document run (no stored rule pack; the rule lives only in the
+    run's snapshot). The model checks it only if the hypothesis is a trained one verbatim."""
+    await require_role(session, workspace_id, user_id, WRITE_ROLES, "run rule checks")
+    text = hypothesis.strip()
+    if not text:
+        raise InvalidOperationError("The hypothesis is empty.")
+    if len(text) > MAX_HYPOTHESIS_CHARS:
+        raise InvalidOperationError(
+            f"The hypothesis is longer than {MAX_HYPOTHESIS_CHARS} characters."
+        )
+    document = await session.scalar(
+        select(Document).where(Document.workspace_id == workspace_id, Document.id == document_id)
+    )
+    if document is None:
+        raise NotFoundError("Document not found.")
+    if document.status is not DocumentStatus.READY:
+        raise InvalidOperationError(f"The document {document.filename} is not ready yet.")
+    if document.doc_type is None or document.doc_type is DocType.SPREADSHEET:
+        raise InvalidOperationError(
+            "Rule checks need a text document (contract, policy or other), not a spreadsheet."
+        )
+    spec = adhoc_rule_spec(text, document.doc_type.value)
+    return await _queue_run(
+        session,
+        workspace_id=workspace_id,
+        user_id=user_id,
+        pack_id=None,
+        spec=spec,
+        spec_sha256=content_sha256(spec),
+        rule_ids={},
+        docs=[document],
+        provider=provider,
+        options=options,
+        extra_config={"origin": origin},
+    )
+
+
+async def _queue_run(
+    session: AsyncSession,
+    *,
+    workspace_id: uuid.UUID,
+    user_id: uuid.UUID,
+    pack_id: uuid.UUID | None,
+    spec: RulePackSpec,
+    spec_sha256: str,
+    rule_ids: dict[str, str],
+    docs: Sequence[Document],
+    provider: ProviderSelection,
+    options: RunOptions,
+    extra_config: dict[str, Any] | None = None,
+) -> ReviewRun:
     run = ReviewRun(
         workspace_id=workspace_id,
-        rule_pack_id=pack.id,
-        rule_pack_key=pack.key,
-        rule_pack_version=pack.version,
-        rule_pack_name=pack.name,
-        rule_pack_snapshot={
-            "spec": spec_document(spec),
-            "rule_ids": {r.key: str(r.id) for r in pack.rules},
-        },
-        rule_pack_sha256=pack.content_sha256,
+        rule_pack_id=pack_id,
+        rule_pack_key=spec.key,
+        rule_pack_version=spec.version,
+        rule_pack_name=spec.name,
+        rule_pack_snapshot={"spec": spec_document(spec), "rule_ids": rule_ids},
+        rule_pack_sha256=spec_sha256,
         status="queued",
         created_by=user_id,
         llm_provider=provider.provider,
@@ -207,6 +288,7 @@ async def start_review(
                 "input_usd_per_mtok": provider.input_usd_per_mtok,
                 "output_usd_per_mtok": provider.output_usd_per_mtok,
             },
+            **(extra_config or {}),
         },
         budget_tokens=options.budget_tokens,
         budget_microusd=options.budget_microusd,
@@ -220,7 +302,7 @@ async def start_review(
         "system",
         "run_queued",
         {
-            "rule_pack": f"{pack.key}@{pack.version}",
+            "rule_pack": f"{spec.key}@{spec.version}",
             "documents": len(docs),
             "llm_provider": provider.provider,
             "llm_model": provider.model,
@@ -228,6 +310,7 @@ async def start_review(
             "budget_tokens": options.budget_tokens,
             "budget_usd": micro_to_usd(options.budget_microusd),
             "by_user": str(user_id),
+            **(extra_config or {}),
         },
     )
     await session.commit()
@@ -323,6 +406,13 @@ async def run_read(session: AsyncSession, run: ReviewRun) -> ReviewRunRead:
 async def get_run(session: AsyncSession, run_id: uuid.UUID, user_id: uuid.UUID) -> ReviewRunRead:
     run, _ = await run_for_member(session, run_id, user_id)
     return await run_read(session, run)
+
+
+async def report_for_run(session: AsyncSession, run: ReviewRun) -> ReportRead:
+    """The report, rendered live from verified findings and human overrides (citations
+    re-checked against the current documents). The caller has authorised access to ``run``."""
+    findings = await present_findings(session, run)
+    return build_report(run, findings, await budget_read(session, run))
 
 
 async def list_runs(

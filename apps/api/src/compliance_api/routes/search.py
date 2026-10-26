@@ -9,7 +9,7 @@ from fastapi import APIRouter, Response
 from compliance_api.deps import Ctx, CurrentPrincipal, Session
 from compliance_api.errors import error_responses
 from compliance_retrieval.schemas import SearchCapabilities, SearchRequest, SearchResponse
-from compliance_retrieval.service import SearchDependencies, model_call, resolve_scope, run_search
+from compliance_retrieval.service import SearchDependencies, model_call, search_for_user
 
 router = APIRouter(tags=["search"])
 
@@ -30,13 +30,17 @@ async def search(
     keyword-only search. Results are stored chunk spans with exact document, page,
     character, bounding-box and spreadsheet-row references."""
     response.headers["Cache-Control"] = "no-store"
-    scope = await resolve_scope(session, workspace_id, principal.user.id, payload)
-    await session.rollback()  # release the connection; searches use their own sessions
-    await ctx.search_limiter.reserve(str(principal.user.id))
     deps = SearchDependencies(
         session_factory=ctx.session_factory, models=ctx.models, config=ctx.retrieval
     )
-    return await run_search(deps, scope, payload)
+    return await search_for_user(
+        session,
+        deps,
+        ctx.search_limiter,
+        workspace_id=workspace_id,
+        user_id=principal.user.id,
+        request=payload,
+    )
 
 
 @router.get("/search/capabilities", responses=error_responses(401, 503))

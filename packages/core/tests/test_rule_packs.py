@@ -112,3 +112,27 @@ def test_yaml_parsing_limits() -> None:
         parse_yaml("- a\n- b\n")
     with pytest.raises(RulePackValidationError, match="larger"):
         parse_yaml("x: " + "a" * 300_000)
+
+
+def test_adhoc_spec_uses_the_model_only_for_verbatim_training_hypotheses() -> None:
+    from compliance_core.rule_packs import (
+        adhoc_rule_spec,
+        known_model_hypotheses,
+        trained_hypothesis_key,
+    )
+
+    key, text = next(iter(known_model_hypotheses().items()))
+    spec = adhoc_rule_spec(f"  {text}\n", "contract")
+    [rule] = spec.rules
+    assert rule.model_supported
+    assert rule.contractnli_key == key
+    assert rule.hypothesis_text == text
+    assert rule.applies_to_doc_types == ["contract"]
+    for variant in (text.lower(), text.rstrip(".") + "!", text + " Always.", "Sharing is fine."):
+        assert trained_hypothesis_key(variant) is None
+        [custom] = adhoc_rule_spec(variant, "policy").rules
+        assert not custom.model_supported
+        assert custom.contractnli_key is None
+    long = adhoc_rule_spec("word " * 300, "other").rules[0]
+    assert len(long.title) <= 200
+    assert long.title.endswith("...")

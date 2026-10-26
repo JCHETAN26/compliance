@@ -245,3 +245,46 @@ def content_sha256(spec: RulePackSpec) -> str:
 
 def load_builtin_specs() -> list[RulePackSpec]:
     return [parse_yaml(path.read_text("utf-8")) for path in builtin_pack_files()]
+
+
+# --------------------------------------------------------------------------- ad-hoc checks
+
+ADHOC_PACK_KEY = "adhoc_check"
+ADHOC_RULE_KEY = "adhoc_rule"
+MAX_HYPOTHESIS_CHARS = 2000
+
+
+def trained_hypothesis_key(hypothesis: str) -> str | None:
+    """The ContractNLI key whose training hypothesis equals ``hypothesis`` verbatim
+    (surrounding whitespace aside), else None. Anything else, even a paraphrase, is
+    checked by the LLM: the model was never trained on it."""
+    text = hypothesis.strip()
+    return next((key for key, known in known_model_hypotheses().items() if known == text), None)
+
+
+def adhoc_rule_spec(hypothesis: str, doc_type: str) -> RulePackSpec:
+    """A one-rule pack checking ``hypothesis`` against one document of ``doc_type``
+    (``check_rule``). Validated like any imported pack."""
+    text = hypothesis.strip()
+    key = trained_hypothesis_key(text)
+    title = text if len(text) <= 200 else text[:197].rstrip() + "..."
+    return validate_spec(
+        {
+            "key": ADHOC_PACK_KEY,
+            "name": "Ad-hoc rule check",
+            "version": "1.0.0",
+            "description": "A single hypothesis checked against a single document.",
+            "rules": [
+                {
+                    "key": ADHOC_RULE_KEY,
+                    "title": title,
+                    "hypothesis_text": text,
+                    "scope": "per_document",
+                    "applies_to_doc_types": [doc_type],
+                    "severity": "medium",
+                    "model_supported": key is not None,
+                    **({"contractnli_key": key} if key else {}),
+                }
+            ],
+        }
+    )

@@ -29,8 +29,7 @@ from sqlalchemy import select
 from compliance_api.deps import Ctx, CurrentPrincipal, Session
 from compliance_api.errors import error_responses
 from compliance_core.db.models import AgentEvent, ReviewRun, WorkspaceMember
-from compliance_core.money import usd_to_micro_ceil
-from compliance_core.reporting import build_report, render_markdown
+from compliance_core.reporting import render_markdown
 from compliance_core.review_schemas import (
     AgentEventRead,
     CitationDetail,
@@ -45,12 +44,9 @@ from compliance_core.review_schemas import (
     StartReview,
 )
 from compliance_core.services import reviews as service
-from compliance_core.services.errors import InvalidOperationError
 from compliance_core.services.review_events import events_after
-from compliance_core.services.review_settings import effective_settings
-from compliance_core.services.session_store import FixedWindowLimiter
-from compliance_core.services.workspaces import require_role
-from compliance_llm import LLMConfigurationError, credential_present, default_model, resolve_choice
+from compliance_core.services.review_start import start_review_for_user
+from compliance_llm import ProviderResolver, credential_present
 
 router = APIRouter(tags=["reviews"])
 ACTIVE = ("queued", "running")
@@ -79,60 +75,14 @@ async def start_review(
     ctx: Ctx,
 ) -> ReviewRunRead:
     """Validate and queue a review run (the worker executes it)."""
-    settings = ctx.settings
-    await require_role(
-        session, workspace_id, principal.user.id, service.WRITE_ROLES, "start reviews"
-    )
-    defaults = await effective_settings(
-        session, workspace_id, settings, default_model(settings, settings.llm_provider)
-    )
-    provider = payload.llm_provider or defaults.llm_provider
-    model = payload.llm_model or (defaults.llm_model if provider == defaults.llm_provider else "")
-    try:
-        choice = resolve_choice(settings, provider, model)
-    except LLMConfigurationError as exc:
-        raise InvalidOperationError(str(exc)) from exc
-    if not choice.is_mock and not credential_present(choice.provider):
-        raise InvalidOperationError(
-            f"The {choice.provider} provider has no API key configured on this server."
-        )
-    limiter = FixedWindowLimiter(
-        ctx.redis, "review-start", settings.review_start_rate_limit_per_minute, "review starts"
-    )
-    await limiter.reserve(str(principal.user.id))
-    run = await service.start_review(
+    run = await start_review_for_user(
+        ctx,
         session,
-        workspace_id=workspace_id,
         user_id=principal.user.id,
-        rule_pack_id=payload.rule_pack_id,
-        document_ids=payload.document_ids,
-        provider=service.ProviderSelection(
-            provider=choice.provider,
-            model=choice.model,
-            is_mock=choice.is_mock,
-            price_source=choice.price.source,
-            input_usd_per_mtok=choice.price.input_per_mtok,
-            output_usd_per_mtok=choice.price.output_per_mtok,
-        ),
-        options=service.RunOptions(
-            budget_tokens=payload.budget_tokens or defaults.budget_tokens,
-            budget_microusd=(
-                usd_to_micro_ceil(payload.budget_usd)
-                if payload.budget_usd is not None
-                else defaults.budget_microusd
-            ),
-            tau=payload.tau if payload.tau is not None else defaults.tau,
-            pause_on_needs_review=(
-                payload.pause_on_needs_review
-                if payload.pause_on_needs_review is not None
-                else defaults.pause_on_needs_review
-            ),
-            max_concurrency=payload.max_concurrency or defaults.max_concurrency,
-            rule_check_backend=settings.review_rule_check_backend,
-            max_documents=settings.review_max_documents,
-        ),
+        workspace_id=workspace_id,
+        payload=payload,
+        resolver=ProviderResolver(ctx.settings, credential_present),
     )
-    await ctx.enqueue_review(run.id, run.job_generation)
     return await service.run_read(session, run)
 
 
@@ -366,8 +316,7 @@ async def review_report(
     """The report, rendered live from verified findings and human overrides (citations are
     re-checked against the current documents). ``format=md`` downloads Markdown."""
     run, _ = await service.run_for_member(session, run_id, principal.user.id)
-    findings = await service.present_findings(session, run)
-    report = build_report(run, findings, await service.budget_read(session, run))
+    report = await service.report_for_run(session, run)
     if report_format == "md":
         return Response(
             content=render_markdown(report),

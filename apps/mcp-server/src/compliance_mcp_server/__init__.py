@@ -1,4 +1,5 @@
-"""MCP server for the compliance workspace.
+"""MCP server for the compliance workspace (Phase 5).
 
-Phase 0 skeleton: no workspace tools or resources are exposed yet (Phase 5).
+Tools and resources over stdio and streamable HTTP, authenticated with per-user API tokens
+and backed by the same service layer as the REST API. See ``apps/mcp-server/README.md``.
 """

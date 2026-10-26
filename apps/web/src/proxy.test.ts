@@ -28,6 +28,6 @@ describe("auth proxy", () => {
   });
 
   it("only guards application pages", () => {
-    expect(config.matcher).toEqual(["/", "/workspaces/:path*"]);
+    expect(config.matcher).toEqual(["/", "/workspaces/:path*", "/settings/:path*"]);
   });
 });
