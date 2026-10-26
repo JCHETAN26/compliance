@@ -12,7 +12,7 @@ verification to Codex. The authoritative requirements are in `BUILD_HANDOFF.md`.
 | 2 — Retrieval | Complete | Accepted: local gates and hosted CI passed |
 | 3 — Trained model | Full Kaggle training, real Haiku baseline, calibration/cascade evaluation, exports and batching verified; fp32 remains served by user decision | Accepted: independent final review passed; final cleaned head `ccfff28` passed hosted CI `40277029790` |
 | 4 — Agents and review UI | Implemented through Claude Code; mock and real-provider workflows independently verified; final head `6ea1588` passed hosted CI `40346107207` | Accepted: approved Haiku flagship completed within $0.25 cap on 2026-10-26 |
-| 5 — MCP | Not started | Pending |
+| 5 — MCP | Implemented through Claude Code Max; independent transport, token, browser and wrapper checks passed | Pending: actual Claude Desktop search/review/report check on the user's Mac |
 | 6 — Evaluation and polish | Not started | Pending |
 
 No phase is accepted solely on the implementer's report. Checks must be run and
@@ -408,3 +408,52 @@ production containers and served fp32 model remain unchanged. Combined with fina
 hosted CI `40346107207`, this accepts Phase 4 and clears implementation of Phase 5.
 Claude Code Max remains responsible for all product implementation. Earlier pending
 statements above describe the historical state before this approved run.
+
+
+## Phase 5 independent software review — 2026-10-26
+
+Claude Code Max implemented the MCP server, shared REST/MCP services, per-user hashed
+API tokens, Settings UI, deployment wiring, stdio wrapper and guide. Current work is in
+stacked draft PR #3 (`feat/phase5-mcp`, based on Phase 4). Source `54d0647` passed all
+three hosted CI jobs in run `40369092514`, including image build, clean stack startup
+and Phase 0–5 smoke. The implementer recorded 464 application tests, clean static gates,
+109 frontend tests and a production build; the hosted workflow independently ran the
+repository gates. Existing pushed commits were preserved during this review.
+
+Codex independently ran **33 tests in 60.52s** on a separate review database/Redis index:
+token API, HTTP authentication/authorization, MCP server and real stdio subprocess
+integration, and rule-pack/ad-hoc checks. All passed (`codex-phase5-independent-tests.log`).
+The separate HTTP smoke passed review start, single-rule check, search, citations, report
+and resource retrieval, and revocation within an open client session
+(`codex-phase5-smoke.log`). The exact SSH stdio wrapper was executed locally against
+the mock preview: search, review, report/resource equality and citation retrieval passed;
+all stdout lines were JSON-RPC and no token appeared in stdout or stderr. Its temporary
+scoped token was revoked and its private file removed (`codex-phase5-wrapper-stdio.log`).
+
+Independent review found and verified fixes, both authored by Claude Code:
+
+- Concurrent token creation could exceed the documented 20-active-token cap (19 + four
+  requests yielded 23). With the user row lock, the original unchanged diagnostic permits
+  one request and refuses three, leaving exactly 20. The regression fails without the fix.
+- At a 390 px viewport, the token table's absolutely positioned screen-reader header
+  escaped its scroll container and widened the page to 655 px. Making that scroller
+  positioned preserves its accessible label and internal scrolling. Codex reran the full
+  browser flow after the fix: signup, Settings, read-only/90-day defaults, workspace
+  restriction, create, clipboard copy, one-time reveal, reload/list redaction, MCP
+  authentication, revoke and immediate MCP refusal, desktop/mobile layout and no console
+  errors all passed (`codex-phase5-browser-fixed.log`). The final CSS fix was separately
+  checked with lint, types, 109 Vitest tests and the production build through Claude Code.
+
+Evidence lives in `kaggle-recovery/logs/` outside the checkout. The existing stdio wrapper
+at `~/bin/compliance-mcp-stdio` matches the reviewed source. SSH is listening on the Linux
+host. The concrete mock preview handoff is in `docs/PHASE5_REVIEW.md`: web 13300, API
+18000, MCP 18020/container `cw-p4-mcp`. This RAM preview does not survive a reboot.
+No new paid provider calls or provider-key reads were made for Phase 5; all test and
+preview LLM calls were mock. The original live stack and fp32 source/artifact pin remain
+unchanged. Earlier Phase 4 pending statements in this historical ledger predate acceptance.
+
+**Phase 5 is not accepted yet:** local stdio and wrapper checks do not establish the Mac
+SSH hop or Claude Desktop behavior. The user must perform search, review and report
+retrieval in Claude Desktop using the prepared handoff. Final mobile-fix hosted CI is
+tracked on PR #3. Phase 6 implementation remains unstarted until that device gate is met;
+pre-existing document/workspace mobile layout issues are recorded for its polish work.

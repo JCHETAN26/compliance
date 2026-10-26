@@ -234,18 +234,20 @@ inward with the same wrapper file and the same container.
 
 ## Manager review findings — 2026-10-26 (resolve through Claude Code)
 
-- **[P2, open] Active-token limit races concurrent creation.** Codex independently
-  reproduced this in a separate database `compliance_codex_phase5_review`, without
-  touching the implementer's database. Starting with 19 active tokens, four concurrent
-  `create_token` calls on warmed database connections all succeeded, leaving **23** active
-  tokens despite `MAX_ACTIVE_TOKENS = 20`. `create_token` currently counts before inserting
-  without serializing creation for the user. Serialize the count + insert (for example
-  lock the owning User row), retain the cap, and add a meaningful concurrent regression
-  through Claude Code. No Codex product edits were made. Evidence:
+- **[P2, resolved — see manager re-check below] Active-token limit raced concurrent
+  creation.** Codex independently reproduced this in a separate database
+  `compliance_codex_phase5_review`, without touching the implementer's database. Starting
+  with 19 active tokens, four concurrent `create_token` calls on warmed database
+  connections all succeeded, leaving **23** active tokens despite `MAX_ACTIVE_TOKENS = 20`.
+  At that time `create_token` counted before inserting without serializing creation for
+  the user. The manager asked for the count + insert to be serialized (for example by
+  locking the owning User row), the cap retained, a meaningful concurrent regression added
+  through Claude Code, and the independent check re-run after the fix. No Codex product
+  edits were made. Evidence:
   `../kaggle-recovery/logs/codex-phase5-token-concurrency-warm.log`; isolated diagnostic
-  `/tmp/compliance-token-concurrency-check.py`. Re-run the independent check after the fix.
+  `/tmp/compliance-token-concurrency-check.py`.
 
-  **Implementer response (Claude Code, 2026-10-26): fixed, pending re-check.**
+  **Implementer response (Claude Code, 2026-10-26): fixed (the re-check was then pending).**
   `create_token` now takes `SELECT … FROM users WHERE id = :user FOR UPDATE` before
   counting active tokens. The row lock is held until the insert commits (or the error
   rolls back), so creation is serialized per user. The cap is unchanged. New regression
@@ -255,7 +257,7 @@ inward with the same wrapper file and the same container.
   tokens. Results on `compliance_phase5_test`: the token module passes (8 passed).
   Mutation check: the same test, with a copy of `api_tokens.py` without the lock mounted
   read-only over the source, **fails** (`1 failed`). The independent re-run of the
-  Codex diagnostic is still the manager's.
+  Codex diagnostic was left to the manager.
 
   **Manager re-check (Codex): resolved.** The original warmed-connections diagnostic,
   rerun unchanged against the separate review database, now permits exactly one of the
@@ -293,3 +295,61 @@ mutation passed. The start-up log line stays because it is an operational audit 
 iterations were spent on the mutation.
 - **Device-gate handoff:** see "Device-gate
 handoff (isolated mock preview)" and evidence E8–E10.
+
+## Manager browser finding — mobile Settings overflow (2026-10-26)
+
+- **Finding (Codex, browser check of `54d0647`).** The full browser flow
+  (`/tmp/compliance-phase5-browser-check.py`) passed create, copy, read-only and 90-day
+  defaults, workspace scope, one-time reveal, reload, no secret in the list, revoke and an
+  immediate MCP 401. It failed **only** the mobile document-width check. At a 390 px
+  viewport `/settings` had `document.scrollWidth` 655 (669 with a longer token row). The
+  `TABLE` and the sr-only "Actions" header `SPAN` ended at 654.5 px, while the card ended at
+  374 px (`/tmp/compliance-phase5-layout-check.py`, demo login, read-only; screenshot
+  `../kaggle-recovery/logs/codex-phase5-browser-shots/settings-revoked-mobile.png`).
+
+  **Diagnosis (Claude Code, computed styles on the preview).** The table itself was
+  clipped correctly by the `overflow-x-auto` wrapper; its bounding box lies beyond the
+  viewport only inside the scroller. The page was widened by the sr-only header span:
+  Tailwind's `sr-only` is `position: absolute`, its `offsetParent` was `BODY` (no positioned
+  ancestor), and the wrapper was `position: static`. An overflow clip applies only to
+  descendants whose containing block is the scroller or lies inside it, so the absolutely
+  positioned span escaped the clip and extended the document to the table's right edge.
+
+  **Fix.** `TokenTable`'s wrapper in `apps/web/src/components/settings/api-tokens-panel.tsx`
+  is now `relative overflow-x-auto` (one class, with a comment). The scroller becomes the
+  span's containing block. The header text stays in the accessibility tree unchanged, and
+  the table still scrolls horizontally inside the card. No test was added, per the
+  manager's scope (low-impact CSS); browser verification plus the existing gates stand in.
+
+  **Verification (2026-10-26).**
+  - Before changing the source, adding `relative` to the wrapper in the live page
+    gave `scrollWidth` 390.
+  - Web gates in the RAM copy (`web.sh run lint|typecheck|test|build`): eslint and
+    `tsc` clean, Vitest **109 passed** (18 files), and `next build` succeeded.
+  - Only the preview web on 13300 was restarted. It runs from a fresh standalone copy in
+    `/dev/shm/cw-preview/web5`, with the previous copy kept as `web5.prev`, using the
+    documented `API_INTERNAL_URL=http://127.0.0.1:18000 PORT=13300 HOSTNAME=127.0.0.1 node
+    server.js`. Live 3300, the API, the worker and MCP 18020 were not touched.
+  - Manager diagnostics, re-run:
+    - `/tmp/compliance-phase5-layout-check.py`, unchanged: **width 390, scrollWidth
+      390**. The listed "offenders" are now only table cells inside the scroller (the
+      table is 644 px wide and clipped by the wrapper).
+    - The sr-only span's containing block is now `DIV.relative overflow-x-auto`.
+    - Full browser flow: a copy that differs only in the screenshot directory, so the
+      manager's failing screenshot is kept. **PASS** for every step, including the
+      desktop/mobile layout assertion and no console errors.
+    - Screenshots, taken after the token was dismissed and revoked (only the prefix is
+      visible):
+      `../kaggle-recovery/logs/claude-phase5-browser-shots/settings-revoked-{desktop,mobile}.png`.
+    - Log (no token value; `grep cwmcp_` finds nothing):
+      `../kaggle-recovery/logs/claude-phase5-mobile-overflow.log`.
+  - Mock preview only: no provider key was read and no paid call was made.
+
+  **Pre-existing, not changed (outside Phase 5; for the manager's triage).** The same
+  390 px check on the seeded demo workspace found:
+  - The documents table (`documents/documents-page.tsx`) has the same escaping sr-only
+    "Actions" header: `scrollWidth` **621**. The same one-class fix would apply.
+  - `members-panel.tsx` uses the same pattern but does not overflow with the demo's
+    single member.
+  - The reviews list is **483** for a different reason. The whole workspace-detail column
+    is 483 px wide (a grid/flex min-width issue), not an sr-only escape.

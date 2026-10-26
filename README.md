@@ -8,9 +8,9 @@ source passage. The full specification is in [`docs/BUILD_HANDOFF.md`](docs/BUIL
 > Phase 4 (agents, live run, report, overrides) was accepted after the user-approved real
 > Claude Haiku flagship run and passing hosted CI for head `6ea1588`
 > ([`docs/PHASE4_REVIEW.md`](docs/PHASE4_REVIEW.md)). Phase 5 (MCP server) is
-> implemented and awaiting independent review
-> ([`docs/PHASE5_REVIEW.md`](docs/PHASE5_REVIEW.md)); its Claude Desktop check needs
-> the user's Mac and has not been run. Phase 6 has not started.**
+> implemented and under supervisor review; hosted CI passed for head `54d0647`
+> ([`docs/PHASE5_REVIEW.md`](docs/PHASE5_REVIEW.md)). It is not accepted: its Claude
+> Desktop check needs the user's Mac and has not been run. Phase 6 has not started.**
 >
 > - **Phase 0** (skeleton, auth, workspaces, compose, CI): accepted, hosted GitHub
 >   Actions run 39678264159 (commit `e6b709e`).

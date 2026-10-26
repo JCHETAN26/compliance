@@ -293,7 +293,9 @@ function TokenTable({ tokens, workspaces }: { tokens: ApiToken[]; workspaces: Wo
   const names = new Map(workspaces.map((w) => [w.id, w.name]));
   const [revoking, setRevoking] = useState<ApiToken | null>(null);
   return (
-    <div className="overflow-x-auto">
+    // `relative` makes this scroller the containing block of the absolutely positioned
+    // sr-only header text; otherwise it escapes the clip and widens the page on mobile.
+    <div className="relative overflow-x-auto">
       <table className="w-full text-sm">
         <caption className="sr-only">Your API tokens</caption>
         <thead className="border-b text-left text-muted-foreground">
