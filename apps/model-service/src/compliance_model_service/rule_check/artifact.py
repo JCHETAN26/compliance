@@ -4,7 +4,7 @@ Layout of an artifact directory (produced by ``ml/export``)::
 
     manifest.json
     tokenizer.json
-    model.int8.onnx        # dynamic int8 quantization (served by default)
+    model.int8.onnx        # weight-only int8 quantization (served by default)
     model.fp32.onnx        # optional; served only with RULE_CHECK_VARIANT=fp32
 
 The service refuses an artifact whose manifest is malformed, whose label order differs

@@ -185,8 +185,8 @@ async def _serve(
 def test_service_serves_the_artifact_as_evaluated(
     pipeline: dict[str, Path], test_settings: Settings, variant: str, tol: float
 ) -> None:
-    """fp32: served == offline up to float noise. int8: dynamic activation quantization is
-    batch-dependent (see export ``batch_sensitivity``), so a looser, stated tolerance."""
+    """fp32: served == offline up to float noise. int8: a looser, stated tolerance (the
+    quantized kernels may sum in a different order; export ``batch_sensitivity``)."""
     dataset = load_dataset(pipeline["data"], splits=("dev",))
     pairs = dataset.pairs["dev"][:10]
     artifact = load_artifact(pipeline["artifact"], variant=variant, allow_smoke=True)  # type: ignore[arg-type]

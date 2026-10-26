@@ -127,10 +127,11 @@ The TF-IDF label grid was extended to C ∈ {30, 100} after an earlier run selec
 ## Export and serving
 
 `make export-model` exports the selected checkpoint to ONNX fp32 (TorchScript exporter, opset 17)
-and int8 (ONNX Runtime dynamic quantization), checks parity against PyTorch on seeded DEV pairs
-(fails above 1e-3 for fp32), measures int8 **batch sensitivity** (dynamic int8 activation scales
-are per input tensor, so int8 outputs depend slightly on co-batched rows) and writes a manifest
-with SHA-256 of every file. The model version includes a hash of the served parameters; after a
+and int8 (ONNX Runtime weight-only blockwise quantization: 8-bit `MatMulNBits` weights, 4-bit
+word-embedding table, float32 activations; dynamic quantization collapsed DeBERTa-v3, see
+[`docs/INT8_QUANTIZATION.md`](../docs/INT8_QUANTIZATION.md)), checks parity against PyTorch on
+seeded DEV pairs (fails above 1e-3 for fp32), measures int8 **batch sensitivity** (batched vs
+one row at a time) and writes a manifest with SHA-256 of every file. The model version includes a hash of the served parameters; after a
 later DEV selection (e.g. the final cascade tau) `--refresh-manifest` updates parameters without
 re-exporting weights. `make install-model` / `make import-colab-bundle` verify and install it as
 `.cache/models/rule-check/current`; the model service loads it (int8 by default, fp32 with

@@ -1,8 +1,25 @@
-# Haiku LLM-baseline evaluation plan (prepared 2026-10-25, NOT run)
+# Haiku LLM-baseline evaluation plan
 
-Status: preparation only. No provider call has been made for this plan, no key has been read,
-and no budget state exists. Execution needs the user's explicit run authorization. This
-document does not accept or close any phase.
+Status (2026-10-25): user authorized execution after reviewing the $2 limit and the
+transmission of 3128 public ContractNLI examples to Anthropic. The Haiku run has started;
+complete results and independent evaluation are pending. Progress, cached answers and
+cumulative spending are saved in `../kaggle-recovery/provider-haiku-baseline/`.
+This document does not accept or close any phase.
+
+## Completed DEV check
+
+All 1037 DEV requests answered, with no API errors or unknown usage. Recorded cost:
+$0.126527; mean request latency: 1.1905 seconds. Independent label recomputation:
+
+| Pipeline | DEV accuracy | DEV macro-F1 |
+|---|---:|---:|
+| Haiku, retrieved top-8 excerpts | 0.742527 | 0.691604 |
+| Trained DeBERTa, full pipeline, selected k=4 | 0.848602 | 0.802028 |
+
+The input scopes differ, so these are pipeline comparisons. Independent records:
+`../kaggle-recovery/logs/codex-haiku-dev-check.json` and
+`../kaggle-recovery/logs/codex-trained-dev-check.json`. TEST and the final cascade
+evaluation remain pending. Do not assume Haiku escalation improves the trained pipeline.
 
 ## Scope
 
@@ -60,8 +77,8 @@ before authorizing the run.
 
 ## Pending
 
-1. User authorization to run (Codex/user only):
-   `haiku_baseline.py run` (see the runner README).
+1. Complete the authorized `haiku_baseline.py run` under its existing cumulative $2 cap
+   (see the runner README). Do not delete or reset its ledger or cached answers.
 2. After a complete authorized run: continue with offline evaluation (no provider calls),
    review the DEV-selected tau, then update and verify the local fp32 artifact if valid.
 3. Review of the results and the Haiku caveat above before any phase acceptance.

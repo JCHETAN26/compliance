@@ -1,4 +1,4 @@
-"""Export the DEV-selected checkpoint to ONNX fp32 + dynamic int8, check parity, pack.
+"""Export the DEV-selected checkpoint to ONNX fp32 + weight-only int8, check parity, pack.
 
     uv run --frozen --with-requirements ml/requirements-tools.txt python -m ml.export.export \
         --run-dir <run> --params ml/eval/results/inference_params.json --out <artifact dir>
@@ -7,8 +7,10 @@
    load ``checkpoints/best/model.safetensors`` and export ``input_ids, attention_mask ->
    evidence_logits, label_logits`` with dynamic batch and sequence axes
    (``torch.onnx.export``, TorchScript exporter, opset 17) -> ``model.fp32.onnx``.
-2. ``onnxruntime.quantization.quantize_dynamic`` (QInt8 weights; MatMul/Gather, so the
-   embedding table is quantized too) -> ``model.int8.onnx``.
+2. Weight-only blockwise quantization with ONNX Runtime's ``MatMulNBitsQuantizer``
+   (``INT8_SCHEME``: 8-bit MatMul weights, 4-bit word-embedding table; activations stay
+   float32) -> ``model.int8.onnx``. Dynamic quantization (``quantize_dynamic``) collapsed
+   DeBERTa-v3 and is not used (``quantize_int8``).
 3. Parity on a seeded sample of DEV pairs through the full pipeline (every segment's
    evidence row plus the label row of PyTorch's own top-k): max |delta logit| of ONNX
    fp32 and int8 against PyTorch fp32 on CPU, label-argmax and top-k agreement. The
@@ -16,9 +18,10 @@
    are reported with an ``int8_ok`` verdict (``int8_quality_problem``); a production int8
    file that fails it stays in the artifact for measurement (``ml.export.eval_onnx``) but
    the service refuses to serve it, and ``--drop-fp32`` is then refused.
-   Dynamic int8 quantizes activations with a scale computed over the whole input
-   tensor, so an int8 row's output depends slightly on the other rows batched with it;
-   ``batch_sensitivity`` measures this (batched vs one row at a time).
+   ``batch_sensitivity`` measures whether an int8 row's output depends on the rows
+   batched with it (batched vs one row at a time). With float32 activations this should
+   be float noise only; dynamic quantization, with one scale per input tensor, was
+   batch-dependent.
 4. ``manifest.json`` (see ``compliance_model_service.rule_check.artifact``) with SHA-256
    of every file, the DEV-fitted inference parameters and provenance. A provisional
    (model-only) tau, or one without evidence of a usable LLM baseline, is NOT written as
@@ -61,6 +64,14 @@ from ml.train.train import _load_weights
 OPSET = 17
 PARITY_PAIRS = 24
 SEED = 20261021
+# Chosen on DEV only (docs/INT8_QUANTIZATION.md); recorded in the parity report.
+# accuracy_level None: float32 products (int8 products, level 4, were no faster on AVX2).
+INT8_SCHEME: dict[str, Any] = {
+    "method": "weight_only_blockwise",
+    "matmul": {"bits": 8, "block_size": 128, "symmetric": True},
+    "gather": {"bits": 4, "block_size": 32, "symmetric": True},
+    "accuracy_level": None,
+}
 
 
 def log(message: str) -> None:
@@ -113,9 +124,35 @@ def export_fp32(model: RuleCheckModel, encoder: InputEncoder, path: Path) -> Non
 
 
 def quantize_int8(fp32: Path, int8: Path) -> None:
-    from onnxruntime.quantization import QuantType, quantize_dynamic  # type: ignore[import-untyped]
+    """Weight-only blockwise quantization (``INT8_SCHEME``); activations stay float32.
 
-    quantize_dynamic(str(fp32), str(int8), weight_type=QuantType.QInt8)
+    Dynamic quantization (``quantize_dynamic``: one uint8 scale per activation tensor)
+    collapsed DeBERTa-v3-base: the FFN inputs have outlier channels (|x| ~100 against a
+    standard deviation of ~0.25), so the activation step exceeds the signal spread
+    (docs/INT8_QUANTIZATION.md). Here each block of weights has its own scale and the
+    weights are dequantized for a float32 product: 8-bit ``MatMulNBits`` for every
+    constant-weight MatMul, then 4-bit ``GatherBlockQuantized`` for the word-embedding
+    table (ONNX Runtime quantizes Gather to 4 bits only).
+    """
+    import onnx
+    from onnxruntime.quantization.matmul_nbits_quantizer import (  # type: ignore[import-untyped]
+        DefaultWeightOnlyQuantConfig,
+        MatMulNBitsQuantizer,
+    )
+
+    model = onnx.load(str(fp32))
+    for op, spec in (("MatMul", INT8_SCHEME["matmul"]), ("Gather", INT8_SCHEME["gather"])):
+        config = DefaultWeightOnlyQuantConfig(
+            block_size=spec["block_size"],
+            is_symmetric=spec["symmetric"],
+            accuracy_level=INT8_SCHEME["accuracy_level"],
+            op_types_to_quantize=(op,),
+            bits=spec["bits"],
+        )
+        quantizer = MatMulNBitsQuantizer(model, algo_config=config)
+        quantizer.process()
+        model = quantizer.model.model
+    quantizer.model.save_model_to_file(str(int8), use_external_data_format=False)
 
 
 def parity(
@@ -182,8 +219,9 @@ def parity(
     report["int8"]["batch_sensitivity"] = {
         "rows": len(sample),
         "max_abs_diff_evidence_logit_batched_vs_single": float(np.abs(batched - single).max()),
-        "note": "dynamic int8 activation scales are per input tensor (batch-dependent)",
+        "note": "weight-only quantization: activations are float32 (not batch-dependent)",
     }
+    report["int8"]["quantization"] = INT8_SCHEME
     fp32 = report["fp32"]
     report["fp32_tolerance"] = FP32_TOLERANCE
     report["fp32_ok"] = (
@@ -276,7 +314,7 @@ def main(argv: list[str] | None = None) -> int:
     out.mkdir(parents=True, exist_ok=True)
     log("exporting ONNX fp32 ...")
     export_fp32(model, encoder, out / "model.fp32.onnx")
-    log("quantizing to int8 (dynamic) ...")
+    log("quantizing to int8 (weight-only) ...")
     quantize_int8(out / "model.fp32.onnx", out / "model.int8.onnx")
     shutil.copyfile(args.run_dir / "tokenizer.json", out / "tokenizer.json")
     log("parity checks ...")
