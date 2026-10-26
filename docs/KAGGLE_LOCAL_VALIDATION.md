@@ -249,3 +249,124 @@ This supersedes the "NOT changed" live-stack section and blocker 4 above.
 Phase 3 remains unaccepted. Outstanding: the full LLM baseline (1037 DEV + 2091 TEST), then
 `ml.eval.evaluate` for the DEV-selected cascade tau and serving it, int8 (or adopting fp32), and
 final review.
+
+## Final Haiku baseline and evaluation (2026-10-25 local / 2026-10-26 UTC)
+
+This supersedes blockers 1–2 and the "full LLM baseline" outstanding item above. Both
+steps below exited 0. No further provider requests are allowed.
+
+**Provider run.** The approved `../kaggle-recovery/provider-haiku-baseline/haiku_baseline.py run`
+(commands in its README) ran from 00:23:57 to 01:25:09 UTC.
+
+- Model `claude-haiku-5-5`, effort low, request hash `0226cd53…`, data `693b452e…`.
+- All 1037 DEV and 2091 TEST pairs were answered, with 0 errors and 0 attempts missing usage.
+- Committed cost was $0.371269985, including the $0.0032375 Sonnet diagnostic (cap $2).
+  `invariant_failed: null`, 0 pending reservations. Record: `run-summary.json`.
+- Independent label check: `../kaggle-recovery/logs/codex-haiku-complete-check.json`. TEST
+  accuracy 0.739359, macro-F1 0.703409. DEV 0.742527 / 0.691604.
+
+**Inputs.** `../kaggle-recovery/eval-haiku-inputs/` holds the Kaggle results bundle of
+`556eeb5`: runs, classic baselines and `results/latency_kaggle_cpu.json`. `baselines-final/`
+combines:
+
+- the bundle's majority and TF-IDF files, byte-identical to `baselines/`;
+- the Haiku `llm_zero_shot_{dev,test}` files, SHA-256-identical to
+  `provider-haiku-baseline/baselines/693b452eef54fdd4/`. The test file `.jsonl.gz` is
+  `73393c95…`.
+
+The bundle's old all-400 LLM files are not used.
+
+**Evaluation command.** These are steps 1–3 of `../kaggle-recovery/provider-baseline/README.md`
+with the `eval-haiku-*` directories substituted. The argv matches `provenance.command` in
+every output JSON.
+
+```bash
+R="/media/grv22/Extreme SSD2/project/kaggle-recovery"; C="$R/../compliance"
+P="$HOME/.local/share/uv/python/cpython-3.11.13-linux-x86_64-gnu/bin/python3.11"
+PP="$C:$C/apps/model-service/src:$C/packages/ingestion/src:$C/packages/core/src:$C/seed/src:$R/env/site311:$R/env/site311-pure.zip"
+cd /dev/shm && PYTHONPATH="$PP" timeout 3600 "$P" -s -B -m ml.eval.evaluate \
+  --run-dir "$R/eval-haiku-inputs/runs/deberta_v3_base" --ablation-run-dir "$R/eval-haiku-inputs/runs/modernbert_base" \
+  --unseen-run-dir "$R/eval-haiku-inputs/runs/deberta_v3_base_unseen4" --baselines-dir "$R/eval-haiku-inputs/baselines-final" \
+  --bench "$R/eval-haiku-inputs/results/latency_kaggle_cpu.json" --data-dir "$R/claude-tmp/bundle-data/data" \
+  --out "$R/eval-haiku-final/results"
+```
+
+Log: `../kaggle-recovery/logs/haiku-final-evaluation.log`.
+
+**Provenance.** The evaluation ran at 2026-10-26T01:25:36Z.
+
+- Git head `49550f2`, `git_dirty: false`, code fingerprint `e6dbf5e9…` (67 files).
+- Seed 20261021, Python 3.11.13, onnxruntime 1.31.0, AMD Ryzen 7 5800H.
+- The 10 aggregate outputs were copied unchanged (SHA-256 checked) to `ml/eval/results/`:
+  - JSON: `model_eval`, `baselines_comparison`, `cascade`, `ablation`,
+    `generalization_unseen`, `inference_params`;
+  - PNG: `confusion_test`, `coverage_accuracy`, `reliability_test`, `systems_macro_f1_test`.
+- Raw predictions, response caches, the ledger and the key stayed outside the repository.
+
+**Results (TEST macro-F1).**
+
+| System | TEST macro-F1 |
+|---|---:|
+| Trained model, full pipeline (DEV-selected over ModernBERT, 0.8020 vs 0.7872) | 0.813778 |
+| Same weights on the BGE top 8 | 0.769167 |
+| TF-IDF | 0.724374 |
+| Haiku | 0.703409 |
+
+- Handoff criterion met: model minus TF-IDF is +0.0894 (CI 0.0670–0.1114).
+- Cascade: tau 0.3, not provisional. Coverage is 1.0, so there are 0 Haiku escalations and
+  no accuracy gain over the model.
+- Latency: the model takes 10.01 s per pair (Kaggle CPU int8 p50; fp32 p50 13.36 s),
+  against 1.165 s mean per Haiku request, so the cascade is not faster.
+
+Phase 3 remains **not accepted**. Pending:
+
+- fp32 serving verification with the new `inference_params.json` (tau 0.3). Done; see the
+  next section.
+- Hosted CI for the final commit.
+- The int8 decision. Full DEV passed (`INT8_QUANTIZATION.md`); the TEST evaluation is running.
+
+## fp32 artifact with the evaluated tau (built, not installed)
+
+The first refresh attempt produced `../kaggle-recovery/fp32-haiku-final/`, which is
+byte-identical to `fp32-recovered/` (tau None). `ml.export.recover_fp32 --params` had two
+defects, now fixed in `ml/export/recover_fp32.py`:
+
+- It compared parameters with exact `!=`. The evaluation's local DEV re-fit gives temperature
+  `2.730689612466158`, against the export's `2.7306896124660676` (a difference of about
+  9e-14), so recovering from the original export with `--params` was refused. Floats now
+  compare with a relative tolerance of 1e-9; `top_k` stays exact.
+- With a source that serves no tau (an earlier fp32 recovery), `--params` was silently
+  ignored. It is now refused, with a message to recover from the original export.
+
+New regression tests are in `ml/tests/test_recovery_guards.py` (47 passed, offline). Ruff
+0.17.1 check and format are clean. mypy 2.4.0 `--strict` reports nothing in the changed
+files; its only errors are missing torch/redis/HF imports elsewhere in the minimal env.
+
+The rebuilt artifact is `../kaggle-recovery/fp32-tau03/deberta_v3_base/`.
+
+- Source: the Kaggle export `inspection/fresh/compliance-runs/artifact-deberta_v3_base`
+  (tau 0.3). The quantization eval is `eval-results-556eeb55b76c-…/quantization_eval.json`.
+  Params: `ml/eval/results/inference_params.json`.
+- Result: `rule-check-deberta_v3_base-0e28e064-e9245464-paa1268cf`, fp32 only, tau 0.3,
+  manifest SHA-256 `aef3a0aa…`. `verify_artifact` passes; it loads as fp32, and int8 is
+  refused. The ONNX file is byte-identical to the one currently served.
+- Source hashes were re-checked after the build. Log:
+  `../kaggle-recovery/logs/claude-fp32-tau03-recover.log`.
+
+**Installed and served (user-approved, 2026-10-26 02:32–02:34 UTC).**
+
+- `python -m ml.colab.bundle install-artifact` (the body of `make install-model`) ran on the
+  host. exFAT has no symlinks, so `current` became a verified copy. The previous `current`
+  (`…pf1e1842f`, tau None) is kept as `.cache/models/rule-check/current.backup-20261026T023254-1513509`.
+  Log: `../kaggle-recovery/logs/claude-fp32-tau03-install.log`.
+- Pre-checks: `rr.py check` ok; `rr.py diff` shows drift only in the forced keys.
+- The model-service was restarted with `rr.py compose restart model-service` (no recreate)
+  and was healthy after about 48 s.
+- `smoke.sh model-service` printed SMOKE OK: baseline image ID, read-only mounts, the forced
+  keys, `rule_check: ready`, `variant fp32`, `kind production`, `…paa1268cf`, **tau 0.3**.
+  All 9 services are healthy. Log: `../kaggle-recovery/logs/claude-fp32-tau03-smoke.log`.
+- A synthetic `/v1/check` request returned `entailment` (0.916) with evidence `s1`, and
+  `escalate: false` (it was null while no tau was served). Response:
+  `../kaggle-recovery/logs/claude-fp32-tau03-check.json`.
+- Rollback: re-install `.cache/models/rule-check/rule-check-deberta_v3_base-0e28e064-e9245464-pf1e1842f`
+  the same way, then run `rr.py compose restart model-service`.

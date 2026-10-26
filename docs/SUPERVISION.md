@@ -10,7 +10,7 @@ verification to Codex. The authoritative requirements are in `BUILD_HANDOFF.md`.
 | 0 — Skeleton | Complete | Accepted: local gates and hosted CI passed |
 | 1 — Ingestion and viewer | Complete | Accepted: local gates and hosted CI passed |
 | 2 — Retrieval | Complete | Accepted: local gates and hosted CI passed |
-| 3 — Trained model | Kaggle-trained DeBERTa recovered (fp32) and served by the healthy local stack; real one-request Anthropic check passed | Not accepted; full LLM baseline (DEV+TEST), cascade tau, int8 and final review outstanding |
+| 3 — Trained model | Full Kaggle training done; full Haiku baseline (all 1037 DEV + 2091 TEST, $0.3713 incl. diagnostic) and offline evaluation done (TEST macro-F1 0.8138 vs TF-IDF 0.7244 vs Haiku 0.7034; tau 0.3, coverage 1.0); recovered fp32 served locally with the evaluated tau 0.3 (smoke OK) | Not accepted; pending hosted CI and the int8 decision |
 | 4 — Agents and review UI | Not started | Pending |
 | 5 — MCP | Not started | Pending |
 | 6 — Evaluation and polish | Not started | Pending |
@@ -248,3 +248,25 @@ One real Anthropic request passed. Hosted CI passed for `dcc1e2f` (run 402071277
 Details: `KAGGLE_LOCAL_VALIDATION.md`. Phase 3 is still **not accepted**. Still
 outstanding: the full LLM baseline (1037 DEV + 2091 TEST), the cascade tau, int8 and
 final review.
+
+## Phase 3 Haiku baseline and final evaluation (2026-10-25)
+
+This supersedes the "still outstanding" list above.
+
+- The approved full Haiku baseline exited 0. All 1037 DEV and 2091 TEST pairs were
+  answered, with 0 errors and 0 attempts missing usage. Total cost was $0.371269985,
+  including the Sonnet diagnostic.
+- The independent offline `ml.eval.evaluate` run at `49550f2` also exited 0. TEST
+  macro-F1: trained model 0.8138, TF-IDF 0.7244, Haiku 0.7034.
+- The DEV-selected tau is 0.3 with coverage 1.0, so nothing escalates. The cascade claims
+  no accuracy gain over the model. It is not faster than Haiku either (about 10–13 s per
+  pair against 1.16 s).
+- The aggregate results are in `ml/eval/results/`. Records: `HAIKU_EVALUATION_PLAN.md` and
+  `KAGGLE_LOCAL_VALIDATION.md`.
+
+Phase 3 is still **not accepted**. Pending:
+
+- hosted CI (fp32 with tau 0.3 is now installed and served; see `KAGGLE_LOCAL_VALIDATION.md`);
+- the int8 decision.
+
+Phases 4–6 remain pending and gated.

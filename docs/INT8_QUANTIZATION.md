@@ -56,7 +56,27 @@ issue already recorded for fp32.
 
 ## Full DEV check (C1)
 
-PENDING
+`python -m ml.export.eval_onnx --split dev` on a measurement-only candidate artifact (the
+recovered manifest with the int8 slot pointing at C1 and no fp32 file; `make_candidate.py`).
+All 1037 DEV pairs (53,992 evidence rows), the artifact's DEV-fitted parameters (k 4,
+temperature 2.73, threshold 0.87), 8 threads. Reference: the training run's own DEV
+predictions (PyTorch, CUDA fp16 autocast), scored with the same parameters.
+
+| DEV, all pairs | macro-F1 | accuracy |
+|---|---|---|
+| PyTorch (training run) | 0.8020 | 0.8486 |
+| ONNX int8 C1 | **0.7989** (−0.0031) | 0.8467 (−0.0019) |
+
+Label agreement with the training run: **0.9961** (the old int8 got 0.140 on TEST). The drop is
+within the ≤ 0.01 macro-F1 tolerance that `recover_fp32` applies to fp32. Wall time: 4265 s
+(4.1 s/pair), part of it alongside the smoke run. Batch sensitivity (64 sample rows, batched vs
+one at a time): max |Δ| **0.0** (old int8: 0.21), as expected with float32 activations. Result:
+`../kaggle-recovery/logs/int8-investigation/dev_eval_C1.json`.
+
+TEST was not run. The repair passes the DEV check, and the final TEST evaluation
+(`eval_onnx --split test`) is proposed next. No production artifact with the new int8 file has
+been built or installed. The training checkpoint is not available locally, so the exporter's
+PyTorch parity step cannot be re-run here.
 
 ## Exporter change
 
@@ -82,12 +102,13 @@ PENDING
 - `ruff check`, `ruff format --check` and `mypy --strict` on the changed Python files: clean.
 - Codex independently ran the new outlier regression in an isolated offline container:
   **1 passed** in 16.97 s. Log: `../kaggle-recovery/logs/codex-int8-regression.log`.
-  Full-DEV validation is still pending; no production replacement has been accepted.
+  Full-DEV validation was then completed (above); no production replacement has been accepted.
 
 ## Artifacts
 
 Nothing original was modified: the hashes of the Kaggle artifact, the recovered fp32
 artifact and `.cache/models/rule-check/current` were recorded before the work
 (`originals-before.sha`) and re-checked after it. Evidence: `../kaggle-recovery/logs/int8-investigation/`
-(trials, ranges, sample). Scripts: `../kaggle-recovery/claude-tmp/scripts/int8_diag.py`,
+(trials, ranges, sample, full-DEV result). Measurement-only candidate (verified; not for
+serving or installing): `../kaggle-recovery/int8-candidate/C1/`. Scripts: `../kaggle-recovery/claude-tmp/scripts/int8_diag.py`,
 `make_candidate.py`, `batch_sens.py`, `toy_probe.py`.
