@@ -587,4 +587,3 @@ implementer response; hosted Docker build/smoke is still required to confirm the
   fails on the pre-fix file [`packages/core/tests/test_packaging.py`]. Hosted CI Docker
   build/compose smoke (which seeds the built-in packs) remains the image-level check; an
   sdist-based core build is still unsupported (see evidence, packaging correction).
-
