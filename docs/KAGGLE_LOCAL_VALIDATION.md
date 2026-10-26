@@ -323,7 +323,8 @@ Phase 3 remains **not accepted**. Pending:
 - fp32 serving verification with the new `inference_params.json` (tau 0.3). Done; see the
   next section.
 - Hosted CI for the final commit.
-- The int8 decision. Full DEV passed (`INT8_QUANTIZATION.md`); the TEST evaluation is running.
+- The int8 decision. C1 passed full DEV and TEST (TEST macro-F1 0.8156 vs PyTorch 0.8138;
+  `INT8_QUANTIZATION.md`). Decided 2026-10-26: keep fp32 served.
 
 ## fp32 artifact with the evaluated tau (built, not installed)
 
@@ -370,3 +371,16 @@ The rebuilt artifact is `../kaggle-recovery/fp32-tau03/deberta_v3_base/`.
   `../kaggle-recovery/logs/claude-fp32-tau03-check.json`.
 - Rollback: re-install `.cache/models/rule-check/rule-check-deberta_v3_base-0e28e064-e9245464-pf1e1842f`
   the same way, then run `rr.py compose restart model-service`.
+
+## Hosted CI (2026-10-26)
+
+Hosted CI passed for `f0548aa`, the commit that holds the fix, these records and
+`ml/eval/results/` (run 40263437150, pull request #1). Results:
+
+- Web (eslint, tsc, vitest, build): passed;
+- Python (ruff, mypy, pytest): passed;
+- Docker build and compose smoke test: passed.
+
+The int8 decision is made: keep fp32, because the int8 file passes on DEV and TEST but is
+slower than fp32 on CPU (`INT8_QUANTIZATION.md`). Phase 3 remains **not accepted** until the
+final review.

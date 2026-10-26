@@ -10,7 +10,7 @@ verification to Codex. The authoritative requirements are in `BUILD_HANDOFF.md`.
 | 0 — Skeleton | Complete | Accepted: local gates and hosted CI passed |
 | 1 — Ingestion and viewer | Complete | Accepted: local gates and hosted CI passed |
 | 2 — Retrieval | Complete | Accepted: local gates and hosted CI passed |
-| 3 — Trained model | Full Kaggle training done; full Haiku baseline (all 1037 DEV + 2091 TEST, $0.3713 incl. diagnostic) and offline evaluation done (TEST macro-F1 0.8138 vs TF-IDF 0.7244 vs Haiku 0.7034; tau 0.3, coverage 1.0); recovered fp32 served locally with the evaluated tau 0.3 (smoke OK) | Not accepted; pending hosted CI and the int8 decision |
+| 3 — Trained model | Full Kaggle training done; full Haiku baseline (all 1037 DEV + 2091 TEST, $0.3713 incl. diagnostic) and offline evaluation done (TEST macro-F1 0.8138 vs TF-IDF 0.7244 vs Haiku 0.7034; tau 0.3, coverage 1.0); recovered fp32 served locally with the evaluated tau 0.3 (smoke OK); repaired int8 C1 passes full DEV and TEST (0.8156); hosted CI passed (`f0548aa`) ; int8 decision: keep fp32 served | Not accepted; pending final review |
 | 4 — Agents and review UI | Not started | Pending |
 | 5 — MCP | Not started | Pending |
 | 6 — Evaluation and polish | Not started | Pending |
@@ -266,7 +266,8 @@ This supersedes the "still outstanding" list above.
 
 Phase 3 is still **not accepted**. Pending:
 
-- hosted CI (fp32 with tau 0.3 is now installed and served; see `KAGGLE_LOCAL_VALIDATION.md`);
-- the int8 decision.
+- final review. Done so far: the int8 decision (keep fp32; the repaired int8 file passes on
+  DEV and TEST but is slower on CPU, see `INT8_QUANTIZATION.md`). fp32 with tau 0.3 is
+  served, and hosted CI passed for `f0548aa`.
 
 Phases 4–6 remain pending and gated.

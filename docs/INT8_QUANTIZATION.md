@@ -73,10 +73,36 @@ within the ≤ 0.01 macro-F1 tolerance that `recover_fp32` applies to fp32. Wall
 one at a time): max |Δ| **0.0** (old int8: 0.21), as expected with float32 activations. Result:
 `../kaggle-recovery/logs/int8-investigation/dev_eval_C1.json`.
 
-TEST was not run. The repair passes the DEV check, and the final TEST evaluation
-(`eval_onnx --split test`) is proposed next. No production artifact with the new int8 file has
-been built or installed. The training checkpoint is not available locally, so the exporter's
-PyTorch parity step cannot be re-run here.
+## Full TEST check (C1)
+
+`python -m ml.export.eval_onnx --split test`, with the same candidate, parameters and 8
+threads. It covered all 2091 TEST pairs (109,174 evidence rows), finished at
+2026-10-26T04:51Z and exited 0. It ran on the host, alongside the live stack. The
+reference is the training run's own TEST predictions; fp32 ONNX is from the recovered
+artifact's manifest.
+
+| TEST, all pairs | macro-F1 | accuracy | evidence segment F1 |
+|---|---|---|---|
+| PyTorch (training run) | 0.8138 | 0.8527 | 0.7963 |
+| ONNX fp32 (recovered) | 0.8128 | — | — |
+| ONNX int8 C1 | **0.8156** (+0.0018) | 0.8532 (+0.0005) | 0.7982 (+0.0019) |
+
+- Label agreement with the training run is **0.9919** (the old int8 got 0.140).
+- Per-class F1 (PyTorch → C1): entailment 0.8958 → 0.8952, contradiction 0.6979 → 0.7047,
+  not_mentioned 0.8477 → 0.8468. The small gain is noise around the training model, not
+  an improvement.
+- Wall time was 8357 s (4.0 s per pair).
+- Result: `../kaggle-recovery/logs/int8-investigation/test_eval_C1.json` (and `.log`).
+
+**Decision input.** C1 passes on DEV and TEST, within 0.01 macro-F1 in both. It is 213 MB
+against 741 MB, but about 20 % slower than fp32 on this CPU (see Cost). The live service
+keeps fp32 with tau 0.3. Serving C1 would need a production artifact that carries the C1
+file plus a recorded int8 parity, and the exporter's PyTorch parity step needs the training
+checkpoint, which is not available locally. No such artifact has been built or installed.
+
+**Decision (user, 2026-10-26): keep fp32.** fp32 with tau 0.3 stays the served model. C1
+is recorded as a validated int8 file, kept as an option for memory-constrained deployments.
+It is not served.
 
 ## Exporter change
 
@@ -109,6 +135,6 @@ PyTorch parity step cannot be re-run here.
 Nothing original was modified: the hashes of the Kaggle artifact, the recovered fp32
 artifact and `.cache/models/rule-check/current` were recorded before the work
 (`originals-before.sha`) and re-checked after it. Evidence: `../kaggle-recovery/logs/int8-investigation/`
-(trials, ranges, sample, full-DEV result). Measurement-only candidate (verified; not for
+(trials, ranges, sample, full-DEV and full-TEST results). Measurement-only candidate (verified; not for
 serving or installing): `../kaggle-recovery/int8-candidate/C1/`. Scripts: `../kaggle-recovery/claude-tmp/scripts/int8_diag.py`,
 `make_candidate.py`, `batch_sens.py`, `toy_probe.py`.
