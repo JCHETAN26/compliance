@@ -8,11 +8,13 @@ configuration; datasets, checkpoints and exported weights are never committed.
 **Status (2026-10-25).** The three production runs trained on Kaggle (GPU; runbook
 [`notebooks/KAGGLE.md`](notebooks/KAGGLE.md)). The full Claude Haiku 5.5 zero-shot baseline
 ran on all DEV and TEST pairs, and `ml.eval.evaluate` ran offline on them. The results are in
-`eval/results/` (see Evaluation below). The local stack serves the recovered fp32 artifact.
-**Phase 3 is not accepted.** Still pending: final fp32 serving verification with the
-evaluated `inference_params.json` (being refreshed, unverified), hosted CI for the final
-commit, and the int8 decision. Without a verified production artifact, the model service
-runs in untrained fallback mode and the web app shows a banner.
+`eval/results/` (see Evaluation below). The local stack serves the fp32 artifact with the
+evaluated `inference_params.json` (tau 0.3; installed and smoke-checked 2026-10-26 UTC).
+The repaired quantized file passed full DEV and TEST but is slower than fp32 on CPU, so
+fp32 stays served (user decision; `docs/INT8_QUANTIZATION.md`). Hosted CI passed for the
+latest code commit `5fe419d` (run 40271320856). Phase acceptance is recorded by the
+supervisor in `docs/SUPERVISION.md`. Without a verified production artifact, the model
+service runs in untrained fallback mode and the web app shows a banner.
 
 ## Layout
 
@@ -144,7 +146,8 @@ TEST, 2,091 pairs:
 - Cascade: tau 0.3 was selected on DEV (`provisional: false`, `llm_baseline_usable: true`).
   Coverage is 1.0 on both DEV and TEST, so nothing escalates, the cascade adds no accuracy
   over the model, and the LLM cost is $0. It is not faster either. The latency
-  `cascade.json` reports (10.0 s per pair) is the Kaggle CPU bench's int8 p50; the served
+  `cascade.json` reports (10.0 s per pair) is the Kaggle CPU bench's p50 for the original
+  dynamic int8 file (since replaced); the served
   fp32 p50 is 13.4 s. Haiku averaged 1.16 s per TEST request.
 - Unseen hypotheses (nda-1/8/16/18 held out): macro-F1 0.324 on them, against 0.783 for the
   primary run trained with them. On the seen hypotheses the unseen run scores 0.787.
@@ -216,8 +219,10 @@ make import-colab-bundle BUNDLE=<tar>            # verified import of Colab resu
 
 ## Limitations (current)
 
-- The int8 decision is pending (the first int8 export collapsed; see `docs/INT8_QUANTIZATION.md`).
-  CPU fp32 latency is about 13 s per pair.
+- fp32 is served. The repaired quantized file (TEST macro-F1 0.816) is 213 MB vs 741 MB but
+  about 20 % slower on this CPU, so it is not served; the first dynamic int8 export collapsed
+  (`docs/INT8_QUANTIZATION.md`). The repository default `RULE_CHECK_VARIANT=int8` refuses
+  an fp32-only artifact; set `RULE_CHECK_VARIANT=fp32`. CPU fp32 latency is about 13 s per pair.
 - The LLM row is Haiku only. No full Sonnet baseline was run.
 - The model generalizes poorly to hypotheses unseen in training (macro-F1 0.32).
 - The evaluation is on canonical ContractNLI text, not PDF/OCR output.

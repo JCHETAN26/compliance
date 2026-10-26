@@ -97,7 +97,9 @@ ids for both seeds, and that each new document is queued exactly once.
   - Result file: `http_check-final.json`; the previous session's run gave the same result
     (`http_check.json`).
 
-## Live stack: worker crash loop (diagnosed, NOT changed)
+## Live stack: worker crash loop (diagnosed, NOT changed) — historical
+
+> Historical: superseded by "Runtime recovery and real provider check" below.
 
 The live stack was started from the old checkout `/home/grv22/projects/compliance`, which no
 longer exists. Docker re-created its bind source `/home/grv22/projects/compliance/.cache` as
@@ -134,7 +136,11 @@ Caveats:
 - Copying only the 140 MB embedding model into the old path also works. It costs root disk
   space (~900 MB free).
 
-## Unfinished blockers (Phase 3 is not accepted yet)
+## Unfinished blockers at that time — historical
+
+> Historical: all five items were later resolved (blockers 1–2 by the final Haiku run and
+> evaluation, 3 by the int8 repair and the keep-fp32 decision, 4 by the runtime recovery,
+> 5 by hosted CI); see the sections below.
 
 1. LLM baseline: the cause of the 400s is unknown. Codex runs the separately approved
    one-call diagnostic after the user configures the key. Then a fix and a full DEV/TEST run.
@@ -365,7 +371,8 @@ The rebuilt artifact is `../kaggle-recovery/fp32-tau03/deberta_v3_base/`.
   and was healthy after about 48 s.
 - `smoke.sh model-service` printed SMOKE OK: baseline image ID, read-only mounts, the forced
   keys, `rule_check: ready`, `variant fp32`, `kind production`, `…paa1268cf`, **tau 0.3**.
-  All 9 services are healthy. Log: `../kaggle-recovery/logs/claude-fp32-tau03-smoke.log`.
+  All 9 services are healthy (the 7 application services plus the 2 test-infrastructure
+  containers, test Postgres and test Redis). Log: `../kaggle-recovery/logs/claude-fp32-tau03-smoke.log`.
 - A synthetic `/v1/check` request returned `entailment` (0.916) with evidence `s1`, and
   `escalate: false` (it was null while no tau was served). Response:
   `../kaggle-recovery/logs/claude-fp32-tau03-check.json`.
@@ -384,3 +391,7 @@ Hosted CI passed for `f0548aa`, the commit that holds the fix, these records and
 The int8 decision is made: keep fp32, because the int8 file passes on DEV and TEST but is
 slower than fp32 on CPU (`INT8_QUANTIZATION.md`). Phase 3 remains **not accepted** until the
 final review.
+
+Later: hosted CI run 40271320856 passed all three jobs for `5fe419d` (the int8 TEST and
+fp32-decision records), 2026-10-26 04:52–05:00 UTC. Phase acceptance is recorded by the
+supervisor in `SUPERVISION.md`.

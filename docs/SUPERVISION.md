@@ -10,7 +10,7 @@ verification to Codex. The authoritative requirements are in `BUILD_HANDOFF.md`.
 | 0 — Skeleton | Complete | Accepted: local gates and hosted CI passed |
 | 1 — Ingestion and viewer | Complete | Accepted: local gates and hosted CI passed |
 | 2 — Retrieval | Complete | Accepted: local gates and hosted CI passed |
-| 3 — Trained model | Full Kaggle training done; full Haiku baseline (all 1037 DEV + 2091 TEST, $0.3713 incl. diagnostic) and offline evaluation done (TEST macro-F1 0.8138 vs TF-IDF 0.7244 vs Haiku 0.7034; tau 0.3, coverage 1.0); recovered fp32 served locally with the evaluated tau 0.3 (smoke OK); repaired int8 C1 passes full DEV and TEST (0.8156); hosted CI passed (`f0548aa`) ; int8 decision: keep fp32 served | Not accepted; pending final review |
+| 3 — Trained model | Full Kaggle training, real Haiku baseline, calibration/cascade evaluation, exports and batching verified; fp32 remains served by user decision | Accepted: independent final review passed; hosted CI passed for `5fe419d` |
 | 4 — Agents and review UI | Not started | Pending |
 | 5 — MCP | Not started | Pending |
 | 6 — Evaluation and polish | Not started | Pending |
@@ -264,10 +264,37 @@ This supersedes the "still outstanding" list above.
 - The aggregate results are in `ml/eval/results/`. Records: `HAIKU_EVALUATION_PLAN.md` and
   `KAGGLE_LOCAL_VALIDATION.md`.
 
-Phase 3 is still **not accepted**. Pending:
+At that point final review remained pending. The acceptance below supersedes that status.
 
-- final review. Done so far: the int8 decision (keep fp32; the repaired int8 file passes on
-  DEV and TEST but is slower on CPU, see `INT8_QUANTIZATION.md`). fp32 with tau 0.3 is
-  served, and hosted CI passed for `f0548aa`.
+## Phase 3 final independent acceptance
 
-Phases 4–6 remain pending and gated.
+**Accepted by Codex. Phase 4 is unblocked.**
+
+- The explicit handoff criterion passes: official TEST macro-F1 0.813778 versus TF-IDF
+  0.724374; the paired document-bootstrap 95% interval for the difference is
+  [0.067031, 0.111383]. The real Haiku baseline scored 0.703409. All 3128 provider
+  requests answered with recorded usage; cumulative cost including the diagnostic was
+  $0.371269985, below the approved $2 limit.
+- All ten committed aggregate JSON/PNG files match the independently evaluated outputs
+  byte for byte. Evidence: `../kaggle-recovery/logs/codex-phase3-final-integrity.json`.
+- The served fp32 weights match the verified manifest and original export SHA-256
+  `8e32d88aa905ac65c244fc305da144207e5e02f730a628073ece5f6250a24a74`.
+  Independent final HTTP verification: eight concurrent requests passed, with valid
+  evidence IDs, probabilities, production fp32 metadata, tau 0.3, and two multi-request
+  batches; no rejected or failed batches. Log: `codex-phase3-final-http.json` in the
+  recovery logs directory.
+- Independent final recovery suite: **47 passed in 9.80 s**, in an isolated offline
+  container. Log: `../kaggle-recovery/logs/codex-phase3-final-recovery-tests.log`.
+- Hosted CI for `5fe419d` passed all jobs: run 40271320856. This is the reviewed source
+  before documentation and commit-attribution cleanup.
+- Quantization C1 was selected on DEV and then scored on all TEST pairs: macro-F1
+  0.798916 DEV and 0.815580 TEST. It uses 8-bit matrix weights and 4-bit embeddings;
+  the legacy `int8` variant name does not imply every layer is 8-bit. It is validated
+  as a measurement candidate, not installed as a production artifact. The user's
+  decision to keep the faster fp32 service is retained.
+
+Limitations remain explicit: the selected tau gives full model coverage, so these
+results establish no benefit from Haiku escalation. CPU inference is slow; tiny HTTP
+smoke timings are not representative document latencies. Model and baseline input
+scopes differ. None of this establishes Phase 4 real-provider workflow acceptance.
+Phases 4–6 remain unfinished. Phase 4 implementation can now proceed through Claude Code.

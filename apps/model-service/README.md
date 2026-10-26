@@ -40,9 +40,11 @@ Local CPU inference for the other services.
 - **Timeouts.** The service has no server-side request deadline. Callers set one
   (`MODEL_SERVICE_TIMEOUT_SECONDS` for the shared client); a disconnected client cancels its request,
   and the bounds above still hold for work that cannot be interrupted.
-- **int8 note.** Dynamic int8 quantization computes activation scales per input tensor, so a row's
-  int8 output can differ slightly with the rows batched alongside it (measured at export as
-  `batch_sensitivity`; fp32 does not have this property).
+- **int8 note.** The exporter's "int8" file is weight-only quantized (8-bit matrix weights, 4-bit
+  embedding, float32 activations), so its output does not depend on the rows batched alongside it
+  (batched vs one row at a time: max |Δ| 0.0 on 64 sample rows for the validated file). The earlier dynamic int8 export computed activation
+  scales per input tensor, was batch-dependent and collapsed in accuracy; see
+  [`docs/INT8_QUANTIZATION.md`](../../docs/INT8_QUANTIZATION.md). The local stack serves fp32.
 
 ```bash
 uv run uvicorn --factory compliance_model_service.main:create_app --port 8010

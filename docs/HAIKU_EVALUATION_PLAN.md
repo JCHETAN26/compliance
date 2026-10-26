@@ -48,7 +48,8 @@ Cascade:
 - Coverage is **1.0** on DEV and TEST. No pair is escalated to Haiku, so the cascade equals
   the trained model, with no accuracy improvement over it and $0 LLM cost.
 - The cascade is not faster. The model's per-pair latency in `cascade.json` is 10.01 s, the
-  Kaggle CPU bench's int8 p50; the served fp32 p50 is 13.36 s. Haiku averaged 1.165 s per
+  Kaggle CPU bench's p50 for the original dynamic int8 file (since replaced, see
+  `INT8_QUANTIZATION.md`); the served fp32 p50 is 13.36 s. Haiku averaged 1.165 s per
   TEST request (p50 1.164 s, p95 1.658 s) at $0.00196 per document.
 - The Haiku caveat below still applies: tau is calibrated against Haiku, not Sonnet.
 

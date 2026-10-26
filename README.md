@@ -4,8 +4,9 @@ A full-stack, multi-agent compliance review workspace: upload contracts and vend
 registers, run a versioned rule pack, and get a report whose findings cite the exact
 source passage. The full specification is in [`docs/BUILD_HANDOFF.md`](docs/BUILD_HANDOFF.md).
 
-> **Status: Phase 0 and Phase 1 accepted; Phase 2 (hybrid retrieval + search UI +
-> retrieval eval) implemented and awaiting independent verification.**
+> **Status: Phases 0–2 accepted. Phase 3 (rule-check model) implemented, trained and
+> evaluated; its acceptance is recorded by the independent supervisor in
+> [`docs/SUPERVISION.md`](docs/SUPERVISION.md). Phases 4–6 not started.**
 >
 > - **Phase 0** (skeleton, auth, workspaces, compose, CI): accepted, hosted GitHub
 >   Actions run 39678264159 (commit `e6b709e`).
@@ -25,15 +26,18 @@ source passage. The full specification is in [`docs/BUILD_HANDOFF.md`](docs/BUIL
 >     ingestion;
 >   - `make eval-retrieval`: ContractNLI evidence retrieval with parameters selected
 >     only on DEV and frozen before TEST, plus an HNSW sweep (results below).
-> - **Phase 3** (implementation done; **not accepted**): the rule-check model pipeline
+> - **Phase 3** (implementation, training and evaluation complete; acceptance per
+>   [`docs/SUPERVISION.md`](docs/SUPERVISION.md)): the rule-check model pipeline
 >   (`ml/`): official ContractNLI data and the 17-rule `nda_standard` pack, a DeBERTa-v3
 >   evidence + label cross-encoder with a ModernBERT ablation and an unseen-rule run,
 >   majority / TF-IDF / Anthropic zero-shot baselines, calibration, cascade analysis,
->   ONNX fp32/int8 export with parity and a micro-batching `/v1/check`. Full GPU training
->   ran on Kaggle; the full Claude Haiku 5.5 baseline (all DEV + TEST pairs) and the
->   offline evaluation are complete (results below). The local stack serves the recovered
->   fp32 artifact. Acceptance still needs final fp32 serving verification with the
->   evaluated parameters (being refreshed, unverified), hosted CI, and the int8 decision.
+>   ONNX fp32 and weight-only quantized ("int8") export with parity, and a
+>   micro-batching `/v1/check`. Full GPU training ran on Kaggle; the full Claude Haiku 5.5
+>   baseline (all DEV + TEST pairs) and the offline evaluation are complete (results
+>   below). The local stack serves the fp32 artifact with the DEV-selected tau 0.3. The
+>   quantized file passed full DEV and TEST but is slower than fp32 on CPU, so fp32 stays
+>   served (user decision). Hosted CI passed for the latest code commit `5fe419d`
+>   (run 40271320856).
 > - **Not implemented yet:** agents/reviews/reports and entity extraction (Phase 4), MCP
 >   tools (Phase 5), the end-to-end eval suite and dashboard (Phase 6). The services and
 >   panels reserved for them say so explicitly instead of returning fake results.
@@ -248,8 +252,14 @@ provenance in each JSON):
 - Cascade: the DEV rule selected tau 0.3. Coverage is 1.0 on DEV and TEST, so no pair is
   escalated to Haiku and the cascade equals the model. It brings no accuracy gain over the
   model alone. It is also not faster: on the Kaggle CPU bench the model takes 10.0 s per
-  pair (int8 p50, the latency `cascade.json` uses) or 13.4 s (fp32 p50, the served
-  variant), while Haiku averaged 1.16 s per TEST request.
+  pair (p50 of the original dynamic int8 file, since replaced; the latency `cascade.json`
+  uses) or 13.4 s (fp32 p50, the served variant), while Haiku averaged 1.16 s per TEST
+  request.
+- Quantization: the original dynamic int8 export collapsed (TEST macro-F1 0.063) and is
+  not used. The repaired weight-only file (8-bit matrix weights, 4-bit embedding, float32
+  activations; 213 MB vs 741 MB) scores TEST macro-F1 0.816 against 0.814 for the
+  PyTorch run, but is about 20 % slower than fp32 on CPU, so fp32 is served
+  ([`docs/INT8_QUANTIZATION.md`](docs/INT8_QUANTIZATION.md)).
 - Haiku run: $0.371 in total, including the $0.003 Sonnet diagnostic. All 3,128 pairs
   were answered, with 0 errors.
 - Unseen hypotheses (4 held out of training): TEST macro-F1 0.324, against 0.783 for the
@@ -328,7 +338,9 @@ The vendor register's access levels and dates are synthetic; see
 - No agents, reviews, MCP tools or end-to-end evals yet (Phases 4–6); see the phase plan
   in the handoff.
 - **Rule-check model:** served as CPU fp32 (ONNX fp32 p50 13.4 s per pair on the Kaggle
-  CPU bench); the int8 decision is pending. Rules unseen in training score poorly (macro-F1 0.32). Evaluation is on canonical ContractNLI
+  CPU bench); the validated quantized file is smaller but slower on CPU and is not served.
+  The repository default `RULE_CHECK_VARIANT=int8` refuses the fp32-only artifact, so
+  serving it needs `RULE_CHECK_VARIANT=fp32`. Rules unseen in training score poorly (macro-F1 0.32). Evaluation is on canonical ContractNLI
   text, not PDF/OCR output; the 17 hypotheses are the only model-supported rules (custom
   rules go to the LLM in Phase 4).
 - **Search:**
