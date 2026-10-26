@@ -89,5 +89,11 @@ async def test_worker_startup_fails_without_database(
 
 
 def test_only_implemented_jobs_are_registered() -> None:
-    names = [getattr(f, "__name__", None) for f in worker_main.WorkerSettings.functions]
-    assert names == ["ping", "ingest_document", "seed_demo"]
+    names = [
+        getattr(f, "__name__", None) or getattr(f, "name", None)
+        for f in worker_main.WorkerSettings.functions
+    ]
+    assert names == ["ping", "ingest_document", "seed_demo", "run_review"]
+    review = worker_main.WorkerSettings.functions[-1]
+    # Review runs have their own long timeout (the CPU model takes ~10 s per document).
+    assert review.timeout_s == worker_main._settings.review_job_timeout_seconds

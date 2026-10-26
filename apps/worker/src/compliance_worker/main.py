@@ -8,11 +8,12 @@ Jobs:
 - ``ping``: diagnostic queue -> worker -> database round trip.
 - ``ingest_document``: Phase 1 document ingestion (see ``ingest.py``).
 - ``seed_demo``: idempotent demo-workspace seeding (see ``compliance_seed``).
-- cron ``requeue_stale_documents`` every minute.
+- ``run_review``: Phase 4 review runs (LangGraph agents; see ``compliance_agents``).
+- cron ``requeue_stale_documents`` and ``requeue_stale_reviews`` every minute.
 
 Startup fails, so the worker never reports healthy, if the database is unreachable or
 the pinned embedding model cannot be verified and loaded. There is no fallback model.
-Review-run jobs (Phase 4) are not implemented yet.
+Built-in rule packs are synchronised into the database at startup.
 """
 
 from __future__ import annotations
@@ -24,17 +25,23 @@ from typing import Any, ClassVar
 
 from arq import cron
 from arq.connections import RedisSettings
+from arq.worker import func
 from sqlalchemy import text
 
+from compliance_agents.runner import RunnerDeps
 from compliance_core.config import AppEnv, get_settings
 from compliance_core.db.session import create_engine, create_session_factory
 from compliance_core.jobs import QUEUE_NAME, SEED_DEMO
 from compliance_core.logs import configure_logging
-from compliance_core.model_client import embedding_label
+from compliance_core.model_client import ModelServiceClient, embedding_label
+from compliance_core.services.rule_packs import sync_builtin_packs
 from compliance_core.storage import LocalStorage
 from compliance_ingestion.embeddings import Embedder, ensure_model, spec_from_settings
+from compliance_retrieval.config import RetrievalConfig
+from compliance_retrieval.service import SearchDependencies
 from compliance_seed.job import demo_workspace_exists, seed_demo
 from compliance_worker.ingest import IngestDeps, ingest_document, requeue_stale_documents
+from compliance_worker.reviews import requeue_stale_reviews, run_review
 
 logger = logging.getLogger("compliance_worker")
 
@@ -67,6 +74,20 @@ async def startup(ctx: dict[str, Any]) -> None:
         model_label=embedding_label(spec.repo_id, spec.revision),
         embed_lock=asyncio.Lock(),
     )
+    models = ModelServiceClient.from_settings(settings)
+    ctx["models"] = models
+    ctx["review"] = RunnerDeps(
+        settings=settings,
+        sessions=session_factory,
+        search=SearchDependencies(
+            session_factory=session_factory,
+            models=models,
+            config=RetrievalConfig.from_settings(settings),
+        ),
+        worker_id=f"{socket.gethostname()}:{id(ctx)}",
+    )
+    async with session_factory() as session:
+        await sync_builtin_packs(session)
     logger.info(
         "worker started",
         extra={"queue": QUEUE_NAME, "embedding_model": spec.repo_id, "revision": spec.revision},
@@ -84,6 +105,9 @@ async def startup(ctx: dict[str, Any]) -> None:
 
 
 async def shutdown(ctx: dict[str, Any]) -> None:
+    models = ctx.get("models")
+    if models is not None:
+        await models.aclose()
     engine = ctx.get("engine")
     if engine is not None:
         await engine.dispose()
@@ -105,9 +129,17 @@ _settings = get_settings()
 
 
 class WorkerSettings:
-    functions: ClassVar[list[Any]] = [ping, ingest_document, seed_demo]
+    functions: ClassVar[list[Any]] = [
+        ping,
+        ingest_document,
+        seed_demo,
+        # Review runs have their own (longer) timeout; they never block ingestion jobs
+        # beyond the worker's max_jobs slots.
+        func(run_review, timeout=_settings.review_job_timeout_seconds, max_tries=3),
+    ]
     cron_jobs: ClassVar[list[Any]] = [
-        cron(requeue_stale_documents, second=15, run_at_startup=False, unique=True)
+        cron(requeue_stale_documents, second=15, run_at_startup=False, unique=True),
+        cron(requeue_stale_reviews, second=45, run_at_startup=False, unique=True),
     ]
     on_startup = startup
     on_shutdown = shutdown
