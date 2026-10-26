@@ -5,9 +5,11 @@ kept by the supervisor in `docs/SUPERVISION.md` and `docs/PHASE0_REVIEW.md` …
 `PHASE3_REVIEW.md`; this file does not restate it as fact. Phase acceptance is recorded
 only by the supervisor (Codex).
 
-Current work is Phase 4 on `feat/phase4-agents`, based on accepted Phase 3 head `ccfff28`.
-Phase 3 PR #1 is ready for review; its final cleaned head passed all hosted CI jobs in
-run 40277029790. Phase 4 local verification and remaining acceptance gates are below.
+Phase 4 on `feat/phase4-agents` (based on accepted Phase 3 head `ccfff28`) is accepted by
+the supervisor: final head `6ea1588` passed all three hosted CI jobs in run 40346107207
+and the approved real Haiku flagship completed. A Phase 5 readiness audit is under way;
+Phase 5 implementation has not started. Phase 3 PR #1's final cleaned head passed all
+hosted CI jobs in run 40277029790.
 
 | Phase | Status |
 |---|---|
@@ -15,8 +17,8 @@ run 40277029790. Phase 4 local verification and remaining acceptance gates are b
 | 1 — Ingestion + viewer | **Accepted.** Hosted GitHub Actions run 39687462736 passed all jobs for `ec6c254` (auto download, seeding, ingestion, smoke). |
 | 2 — Hybrid retrieval, search UI, retrieval eval | **Accepted.** Hosted run 39699615208 passed all jobs for `c61eab2`. |
 | 3 — Rule-check model | **Accepted by the supervisor** (`docs/SUPERVISION.md`, "Phase 3 final independent acceptance"). GPU training ran on Kaggle; the full Claude Haiku 5.5 baseline (1037 DEV + 2091 TEST) and the offline evaluation are done. TEST macro-F1: trained model 0.813778, TF-IDF 0.724374, Haiku 0.703409. fp32 is served locally with the DEV-selected tau 0.3. See "Phase 3 — current status" below. |
-| 4 — Agents and review UI | **In progress** on branch `feat/phase4-agents` (based on `ccfff28`). Plan, checklist and evidence: `docs/PHASE4_REVIEW.md`. Not accepted; the real-provider flagship run is not yet authorized. |
-| 5–6 | Not started. |
+| 4 — Agents and review UI | **Accepted by the supervisor** (`docs/SUPERVISION.md`, "Phase 4 approved real-provider acceptance"). Hosted run 40346107207 passed all jobs for `6ea1588`; approved Haiku flagship run `abdc0cff-0431-4394-94f8-4070b2ae4dad` completed for $0.006062 (application ledger) under a $0.25 cap. Plan, checklist and evidence: `docs/PHASE4_REVIEW.md`. |
+| 5–6 | Not started (Phase 5 readiness audit under way; no implementation yet). |
 
 **Dates.** The client's timezone is America/Phoenix (UTC−7). Section dates in the Phase 3
 records are mostly local; times marked `Z`/UTC are UTC. Entries dated 2026-10-26 (UTC)
@@ -78,9 +80,15 @@ below where they disagree.
 - **Hosted CI:** `f0548aa` run 40263437150 and the latest code commit `5fe419d` run
   40271320856 passed all jobs.
 - **Acceptance:** the supervisor's final review and decision are recorded in
-  `docs/SUPERVISION.md`. Phase 4 is in progress (`docs/PHASE4_REVIEW.md`).
+  `docs/SUPERVISION.md`. Phase 4 is accepted (`docs/PHASE4_REVIEW.md`).
 
-## Phase 4 — current status (implementer log; not accepted)
+## Phase 4 — implementer log (accepted)
+
+> **Accepted.** The supervisor accepted Phase 4 on 2026-10-26 after hosted CI run
+> 40346107207 (head `6ea1588`) and the approved real Haiku flagship; evidence is in
+> `docs/PHASE4_REVIEW.md` ("Real-provider flagship evidence") and `docs/SUPERVISION.md`.
+> The bullets below are the implementer's log from before that run; "uncommitted",
+> "not authorized" and "hosted CI has not run" describe that time.
 
 Branch `feat/phase4-agents` (from `ccfff28`), uncommitted working tree handed to the
 supervisor. Plan, checklist, design, evidence and the prepared real-provider plan:
@@ -107,7 +115,7 @@ supervisor. Plan, checklist, design, evidence and the prepared real-provider pla
   stale ARQ in-progress lock; run-first locking for overrides) and added verifier
   negatives; the new tests, the affected suites and the preview smoke passed, and each new
   test fails on the pre-fix code. The full suite after those fixes is the manager's run.
-- **Not done / not authorized:** the real-LLM flagship run (requires approval; plan and
+- **Not done / not authorized at the time (since resolved, see above):** the real-LLM flagship run (requires approval; plan and
   cost estimate prepared); live API/worker/web were not restarted or rebuilt; hosted CI
   has not run this branch.
 

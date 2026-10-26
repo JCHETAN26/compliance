@@ -11,7 +11,7 @@ verification to Codex. The authoritative requirements are in `BUILD_HANDOFF.md`.
 | 1 — Ingestion and viewer | Complete | Accepted: local gates and hosted CI passed |
 | 2 — Retrieval | Complete | Accepted: local gates and hosted CI passed |
 | 3 — Trained model | Full Kaggle training, real Haiku baseline, calibration/cascade evaluation, exports and batching verified; fp32 remains served by user decision | Accepted: independent final review passed; final cleaned head `ccfff28` passed hosted CI `40277029790` |
-| 4 — Agents and review UI | Implemented through Claude Code; mock workflow independently reviewed; hosted CI passed for source `081089b` (run `40343922911`) | Pending: separately approved real-provider flagship |
+| 4 — Agents and review UI | Implemented through Claude Code; mock and real-provider workflows independently verified; final head `6ea1588` passed hosted CI `40346107207` | Accepted: approved Haiku flagship completed within $0.25 cap on 2026-10-26 |
 | 5 — MCP | Not started | Pending |
 | 6 — Evaluation and polish | Not started | Pending |
 
@@ -376,3 +376,35 @@ smoke tests**, web lint/types/104 tests/build, and Docker build/startup/seed/Pha
 smoke. The complete local ML suite had independently passed all 117 tests with that SDK
 available. Final source is reviewable in draft PR #2; Phase 4 acceptance still needs the
 approved real-provider flagship. No paid request has been made for Phase 4.
+
+
+## Phase 4 approved real-provider acceptance — 2026-10-26
+
+The user explicitly approved one synthetic Haiku flagship capped at $0.25. Codex ran
+`smoke_phase4.py` once against the isolated preview with Anthropic `claude-haiku-5-5`,
+the accepted live fp32 model service, concurrency 2, a $0.25 hard cap and a 400,000-token
+cap. Run `abdc0cff-0431-4394-94f8-4070b2ae4dad` completed and every smoke check passed.
+
+Independent database accounting confirms 27 successful non-mock provider attempts,
+26,618 input and 6,778 output tokens, 33,396 total tokens, **$0.006062** charged by
+the application ledger using provider-reported usage, and zero unknown calls or errors.
+This is usage-based accounting, not an independently retrieved Anthropic invoice.
+No retries, extra real reviews, or baseline reruns were needed.
+
+The 58 findings comprise 37 satisfied and 3 violated with verified support, and 18
+explicitly marked `needs_review`. Every reported conclusion passed citation checks;
+Markdown export, missing-contract detection, OCR, citation/document access isolation,
+all seven agent events and SSE replay passed. The Hooli injection fixture did not
+make everything compliant: return/destruction and required protections remain
+`needs_review`. The trained model decided 27 tasks at artifact tau 0.3 with zero
+escalations; no cascade-improvement claim follows. These are synthetic acceptance
+results, not an accuracy benchmark on real contracts.
+
+Evidence: `kaggle-recovery/logs/codex-phase4-haiku-approved.log` and
+`kaggle-recovery/logs/codex-phase4-haiku-evidence.json` (outside the source checkout).
+After completion, Codex removed all three paid-provider preview containers and
+restored the mock preview; its worker has no Anthropic key configured. The original
+production containers and served fp32 model remain unchanged. Combined with final-head
+hosted CI `40346107207`, this accepts Phase 4 and clears implementation of Phase 5.
+Claude Code Max remains responsible for all product implementation. Earlier pending
+statements above describe the historical state before this approved run.

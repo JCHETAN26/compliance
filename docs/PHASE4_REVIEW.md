@@ -9,6 +9,12 @@ written), `verified locally` (named command ran and passed; output recorded belo
 Requirements come from `BUILD_HANDOFF.md` §5, §8, §11, §12 and §14 (Phase 4) and from the
 manager's Phase 4 instructions (2026-10-25).
 
+**Outcome (2026-10-26): Phase 4 accepted by the supervisor** (`SUPERVISION.md`, "Phase 4
+approved real-provider acceptance") after the approved real Haiku flagship ("Real-provider
+flagship evidence" below) and hosted CI run 40346107207 (all three jobs passed, head
+`6ea1588`). Entries below that say acceptance, hosted CI or the real run is pending are
+kept as history of the state before that run.
+
 ## Acceptance checklist
 
 ### Handoff Phase 4 criteria
@@ -16,7 +22,7 @@ manager's Phase 4 instructions (2026-10-25).
 | # | Criterion | Status |
 |---|---|---|
 | H1 | Flagship vendor demo runs end to end with the mock LLM | verified locally (mock LLM; tests, preview smoke, browser) |
-| H2 | Flagship vendor demo runs end to end with a real LLM | not authorized (bounded plan below) |
+| H2 | Flagship vendor demo runs end to end with a real LLM | verified (approved Haiku run `abdc0cff-0431-4394-94f8-4070b2ae4dad`, manager-run and independently checked; see "Real-provider flagship evidence") |
 | H3 | Every finding has a verified citation or is `needs_review` | verified locally |
 | H4 | Prompt-injection regression test passes | verified locally |
 
@@ -149,10 +155,43 @@ cannot overspend. Mock calls record `usage_source = mock_estimate` and cost 0.
 - Report export: Markdown and JSON in Phase 4; PDF export is left to Phase 6 ("report
   export" is listed there).
 
-## Real-provider flagship diagnostic (prepared, not run)
+## Real-provider flagship evidence
 
-Not authorized in this run: no Anthropic/OpenAI/Ollama request and no key read was made.
-The mock flagship is reviewable, so this is the plan submitted for approval.
+The user approved one synthetic Haiku flagship capped at $0.25. Codex ran the plan below
+once on 2026-10-26; the record of acceptance is `SUPERVISION.md`. Facts as independently
+checked by the manager:
+
+- **Run** `abdc0cff-0431-4394-94f8-4070b2ae4dad`: completed; Anthropic
+  `claude-haiku-5-5`, live fp32 model service, concurrency 2, caps **$0.25 and 400,000
+  tokens**.
+- **Provider usage** (database accounting): 27 successful non-mock attempts (9
+  extraction, 9 rule check, 9 citation verifier); 26,618 input + 6,778 output = **33,396
+  tokens**; **$0.006062** in the application ledger from provider-reported usage (not an
+  Anthropic invoice); zero retries, unknown outcomes or errors. No extra real reviews or
+  baseline reruns.
+- **Findings:** 58 in total: 37 satisfied and 3 violated, all 40 with verified
+  citations, plus 18 `needs_review`. The trained model decided 27 tasks at tau 0.3 with
+  zero escalations, so no cascade improvement follows.
+- **Smoke checks, all passed:** OCR; missing-contract detection; report grounding and
+  Markdown export; citation, file and cross-user isolation; all seven agents' events and
+  SSE replay.
+- **Injection:** the Hooli fixture did not make its vendor compliant; return/destruction
+  and required protections stayed `needs_review`.
+- **Environment after the run:** the paid-provider preview containers were removed and
+  the mock preview restored with no Anthropic key configured. The original production
+  containers and the served fp32 model were not changed.
+- **Logs** (outside the checkout): `kaggle-recovery/logs/codex-phase4-haiku-approved.log`,
+  `kaggle-recovery/logs/codex-phase4-haiku-evidence.json`.
+
+These are synthetic acceptance results, not an accuracy benchmark on real contracts. The
+measured usage is within the plan's estimate (about 15k–40k input, 3k–8k output tokens,
+$0.002–$0.01).
+
+## Real-provider flagship plan (historical: prepared before approval, run once as above)
+
+At the time of writing this was not authorized: no Anthropic/OpenAI/Ollama request and no
+key read had been made. The mock flagship was reviewable, so this was the plan submitted
+for approval.
 
 **Scope.** One review run of the synthetic ten-vendor flagship (`compliance_seed.synthetic`:
 invented companies and clauses, no customer or dataset text) with
@@ -237,9 +276,13 @@ PYTHONPATH=/dev/shm/cw-e2e/site python3.11 phase4_ui_check.py http://127.0.0.1:1
 
 ## Evidence log
 
-Entries are appended as gates run.
+Entries are appended as gates run. Real-provider evidence and final acceptance are in
+"Real-provider flagship evidence" above and in `SUPERVISION.md`; "pending" statements
+below are historical. The final head `6ea1588` passed hosted CI run 40346107207 (all
+three jobs).
 
-Independent manager checks (2026-10-26, working tree; final acceptance pending):
+Independent manager checks (2026-10-26, working tree; at that time final acceptance was
+pending):
 
 - **Hosted CI passed for final product source `081089b`:** run
   [40343922911](https://github.com/JCHETAN26/compliance/actions/runs/40343922911), all

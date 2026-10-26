@@ -4,10 +4,11 @@ A full-stack, multi-agent compliance review workspace: upload contracts and vend
 registers, run a versioned rule pack, and get a report whose findings cite the exact
 source passage. The full specification is in [`docs/BUILD_HANDOFF.md`](docs/BUILD_HANDOFF.md).
 
-> **Status: Phases 0–3 accepted (see [`docs/SUPERVISION.md`](docs/SUPERVISION.md)).
-> Phase 4 (agents, live run, report, overrides) is implemented and verified locally with
-> the mock LLM; the real-LLM flagship run and supervisor acceptance are pending
-> ([`docs/PHASE4_REVIEW.md`](docs/PHASE4_REVIEW.md)). Phases 5–6 not started.**
+> **Status: Phases 0–4 accepted (see [`docs/SUPERVISION.md`](docs/SUPERVISION.md)).
+> Phase 4 (agents, live run, report, overrides) was accepted after the user-approved real
+> Claude Haiku flagship run and passing hosted CI for head `6ea1588`
+> ([`docs/PHASE4_REVIEW.md`](docs/PHASE4_REVIEW.md)). A Phase 5 readiness audit is
+> under way; Phase 5–6 implementation has not started.**
 >
 > - **Phase 0** (skeleton, auth, workspaces, compose, CI): accepted, hosted GitHub
 >   Actions run 39678264159 (commit `e6b709e`).
@@ -39,11 +40,14 @@ source passage. The full specification is in [`docs/BUILD_HANDOFF.md`](docs/BUIL
 >   quantized file passed full DEV and TEST but is slower than fp32 on CPU, so fp32 stays
 >   served (user decision). Hosted CI passed for the final Phase 3 head `ccfff28`
 >   (run 40277029790).
-> - **Phase 4** (implemented; acceptance pending): a LangGraph graph of seven agents
+> - **Phase 4** (accepted): a LangGraph graph of seven agents
 >   (planner, extraction, retrieval, rule check, cross-document reasoning, citation
 >   verifier, report writer) run by the worker, with Postgres checkpoints, a budgeted LLM
 >   ledger, live agent events over SSE, human review with audited overrides, and the rule
->   pack, review, live-run and report pages. See "Reviews (Phase 4)" below.
+>   pack, review, live-run and report pages. Hosted CI run 40346107207 passed all three
+>   jobs for head `6ea1588`. One approved synthetic flagship with Claude Haiku 5.5 and
+>   the served fp32 model completed within its $0.25 cap ($0.006062 by the application
+>   ledger). See "Reviews (Phase 4)" below.
 > - **Not implemented yet:** MCP tools (Phase 5), the end-to-end eval suite and dashboard
 >   (Phase 6). The services and panels reserved for them say so explicitly instead of
 >   returning fake results.
@@ -381,8 +385,14 @@ The vendor register's access levels and dates are synthetic; see
 ## Limitations
 
 - No MCP tools or end-to-end evals yet (Phases 5–6); see the phase plan in the handoff.
-- **Reviews (Phase 4):** verified end to end only with the deterministic mock LLM (and a
-  bounded real-model run); no real-LLM flagship run has been made yet. The mock LLM and
+- **Reviews (Phase 4):** verified end to end with the deterministic mock LLM and with one
+  approved real-provider run (Claude Haiku 5.5 plus the served fp32 model) on the
+  synthetic ten-vendor flagship only. That run is acceptance evidence, not an accuracy
+  benchmark on real contracts; 18 of its 58 findings were left `needs_review`, and its
+  cost ($0.006062) is the application ledger's figure from provider-reported usage, not
+  an Anthropic invoice. The trained model decided every model-supported task at tau 0.3
+  with zero escalations, so the run shows no cascade improvement. Only Anthropic was
+  exercised live; the OpenAI and Ollama adapters are tested offline only. The mock LLM and
   mock rule-check backend are lexical stand-ins for offline demos, not legal analysis.
   Report export is Markdown/JSON (PDF export is Phase 6). Documents ingested before Phase 4
   highlight citations at chunk level until re-ingested (no stored line geometry).
