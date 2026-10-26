@@ -143,7 +143,50 @@ class Settings(BaseSettings):
     # Demo data. Seeding is refused in production regardless of this flag.
     seed_demo: bool = False
 
-    @field_validator("cookie_domain", "rule_check_artifact_dir", mode="before")
+    # LLM provider for review runs (Phase 4). ``mock`` is deterministic, offline and reads
+    # no credentials. Real providers read their key from the environment only when they
+    # are actually used (ANTHROPIC_API_KEY / OPENAI_API_KEY); keys are never settings
+    # fields, so they cannot leak through settings dumps, the database or checkpoints.
+    llm_provider: Literal["mock", "anthropic", "openai", "ollama"] = "mock"
+    # Empty: the provider default (mock-deterministic-v1 / claude-haiku-5-5); OpenAI and
+    # Ollama require an explicit model.
+    llm_model: str = ""
+    anthropic_base_url: str = "https://api.anthropic.com"
+    anthropic_effort: Literal["low", "medium", "high"] | None = None
+    openai_base_url: str = "https://api.openai.com"
+    ollama_base_url: str = "http://localhost:11434"
+    llm_timeout_seconds: Annotated[float, Field(gt=0, le=600)] = 60.0
+    # Attempts per LLM step (each attempt is reserved against the run budget first).
+    llm_max_attempts: Annotated[int, Field(ge=1, le=5)] = 3
+    llm_max_output_tokens: Annotated[int, Field(ge=64, le=16_384)] = 1024
+    # USD per million tokens. Overrides the built-in price table; required for OpenAI and
+    # for Anthropic models without a built-in price. Ollama defaults to 0 (local).
+    llm_input_usd_per_mtok: Annotated[float | None, Field(ge=0)] = None
+    llm_output_usd_per_mtok: Annotated[float | None, Field(ge=0)] = None
+
+    # Review runs (Phase 4): defaults for new workspaces and worker behaviour.
+    review_budget_tokens: Annotated[int, Field(ge=1_000, le=50_000_000)] = 400_000
+    review_budget_usd: Annotated[float, Field(ge=0, le=1_000)] = 1.0
+    review_max_concurrency: Annotated[int, Field(ge=1, le=16)] = 4
+    review_pause_on_needs_review: bool = False
+    # ``service`` = the trained model behind the model service; ``mock`` = deterministic
+    # lexical stand-in for tests and offline demos (refused in production).
+    review_rule_check_backend: Literal["service", "mock"] = "service"
+    # The model service's CPU rule check takes ~10-13 s per document on this hardware.
+    review_model_timeout_seconds: Annotated[float, Field(gt=0, le=900)] = 300.0
+    review_lease_seconds: Annotated[int, Field(ge=10, le=600)] = 60
+    review_job_timeout_seconds: Annotated[int, Field(ge=60, le=86_400)] = 4 * 3600
+    review_start_rate_limit_per_minute: Annotated[int, Field(ge=1)] = 10
+    review_max_documents: Annotated[int, Field(ge=1, le=500)] = 100
+
+    @field_validator(
+        "cookie_domain",
+        "rule_check_artifact_dir",
+        "anthropic_effort",
+        "llm_input_usd_per_mtok",
+        "llm_output_usd_per_mtok",
+        mode="before",
+    )
     @classmethod
     def _empty_domain_is_none(cls, value: object) -> object:
         return None if value == "" else value
@@ -165,6 +208,8 @@ class Settings(BaseSettings):
                 )
             if not self.cookie_secure:
                 raise ValueError("COOKIE_SECURE must be true in production")
+            if self.review_rule_check_backend == "mock":
+                raise ValueError("REVIEW_RULE_CHECK_BACKEND=mock is not allowed in production")
         secret = self.jwt_secret.get_secret_value()
         if secret and len(secret) < MIN_SECRET_LENGTH:
             raise ValueError(f"JWT_SECRET must be at least {MIN_SECRET_LENGTH} characters")

@@ -16,6 +16,7 @@ dependencies = [
     "pgvector>=0.4",
     "python-multipart>=0.0.20",
     "httpx>=0.28",
+    "pyyaml>=6.0",
 ]
 
 [build-system]
@@ -24,3 +25,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/compliance_core"]
+
+# The built-in rule packs (repository root rule_packs/*.yaml) ship inside the wheel, so
+# installed services can load them; a source checkout reads them from the repository.
+[tool.hatch.build.targets.wheel.force-include]
+"../../rule_packs" = "compliance_core/builtin_rule_packs"

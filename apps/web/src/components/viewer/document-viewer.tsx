@@ -17,10 +17,14 @@ import {
   api,
   errorMessage,
   unwrap,
+  type BBox,
   type ChunkInfo,
+  type CitationDetail,
   type DocumentInfo,
+  type EntityInfo,
   type PageInfo,
 } from "@/lib/api/client";
+import { fetchCitation, reviewKeys } from "@/lib/api/reviews";
 import {
   documentFileUrl,
   documentKeys,
@@ -126,17 +130,59 @@ function ReadyDocument({ document }: { document: DocumentInfo }) {
   const [focusToken, setFocusToken] = useState(0);
   const [searchCursor, setSearchCursor] = useState<{ page: number; token: number } | null>(null);
   const selectedId = params.get("chunk");
-  const selected = useMemo(
+  const citationId = params.get("citation");
+  const citation = useQuery({
+    queryKey: reviewKeys.citation(citationId ?? ""),
+    queryFn: () => fetchCitation(citationId ?? ""),
+    enabled: !!citationId,
+  });
+  const [entitySelection, setEntitySelection] = useState<ChunkInfo | null>(null);
+  const chunkSelection = useMemo(
     () => chunks.data?.find((chunk) => chunk.id === selectedId) ?? null,
     [chunks.data, selectedId],
   );
-  // A deep link (?chunk=...) focuses its chunk once data is available.
+  const citationSelection = useMemo(
+    () =>
+      citation.data && citation.data.document_id === document.id && citation.data.current === "valid"
+        ? rangeSelection(chunks.data ?? [], {
+            id: `citation:${citation.data.id}`,
+            chunkId: citation.data.chunk_id ?? null,
+            start: citation.data.char_start,
+            end: citation.data.char_end,
+            text: citation.data.quote,
+            page: citation.data.page_number ?? null,
+            bboxes: citation.data.bboxes,
+            tableRowId: citation.data.table_row_id ?? null,
+          })
+        : null,
+    [citation.data, chunks.data, document.id],
+  );
+  const selected = entitySelection ?? chunkSelection ?? citationSelection;
+  // A deep link (?chunk=... or ?citation=...) focuses its range once data is available.
   const effectiveFocus = selected && focusToken === 0 ? 1 : focusToken;
 
   function selectChunk(chunk: ChunkInfo) {
     const next = new URLSearchParams(params.toString());
     next.set("chunk", chunk.id);
     router.replace(`${pathname}?${next.toString()}` as Parameters<typeof router.replace>[0], { scroll: false });
+    setEntitySelection(null);
+    setFocusToken((n) => n + 1);
+  }
+
+  function selectEntity(entity: EntityInfo) {
+    if (entity.char_start === null || entity.char_start === undefined || entity.char_end === null || entity.char_end === undefined) return;
+    setEntitySelection(
+      rangeSelection(chunks.data ?? [], {
+        id: `entity:${entity.id}`,
+        chunkId: entity.chunk_id ?? null,
+        start: entity.char_start,
+        end: entity.char_end,
+        text: entity.quote ?? "",
+        page: entity.page_number ?? null,
+        bboxes: [],
+        tableRowId: null,
+      }),
+    );
     setFocusToken((n) => n + 1);
   }
 
@@ -211,6 +257,7 @@ function ReadyDocument({ document }: { document: DocumentInfo }) {
           </span>
         ) : null}
       </div>
+      {citationId ? <CitationBanner state={citation} documentId={document.id} /> : null}
       <div className="grid h-[calc(100vh-16rem)] min-h-[32rem] gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-h-0 overflow-hidden rounded-xl border">
           {document.file_format === "pdf" ? (
@@ -270,7 +317,7 @@ function ReadyDocument({ document }: { document: DocumentInfo }) {
                 onSelect={selectChunk}
               />
             ) : panel === "entities" ? (
-              <EntitiesPanel documentId={document.id} />
+              <EntitiesPanel documentId={document.id} onSelect={selectEntity} />
             ) : (
               <DetailsPanel document={document} pages={pages.data ?? []} />
             )}
@@ -345,7 +392,7 @@ function ChunkList({
   );
 }
 
-function EntitiesPanel({ documentId }: { documentId: string }) {
+function EntitiesPanel({ documentId, onSelect }: { documentId: string; onSelect: (entity: EntityInfo) => void }) {
   const entities = useQuery({ queryKey: documentKeys.entities(documentId), queryFn: () => fetchEntities(documentId) });
   if (entities.isPending) return <ViewerSkeleton />;
   if (entities.isError)
@@ -365,14 +412,28 @@ function EntitiesPanel({ documentId }: { documentId: string }) {
       </Alert>
     );
   return (
-    <ul className="grid gap-2 p-3 text-sm">
-      {entities.data.entities.map((entity) => (
-        <li key={entity.id} className="rounded-md border p-2">
-          <span className="font-medium">{entity.type}</span>
-          <pre className="mt-1 text-xs whitespace-pre-wrap">{JSON.stringify(entity.value_json, null, 2)}</pre>
-        </li>
-      ))}
-    </ul>
+    <div className="grid gap-2 p-3 text-sm">
+      <p className="text-xs text-muted-foreground">{entities.data.detail}</p>
+      <ul className="grid gap-2">
+        {entities.data.entities.map((entity) => (
+          <li key={entity.id}>
+            <button
+              type="button"
+              onClick={() => onSelect(entity)}
+              disabled={entity.char_start === null || entity.char_start === undefined}
+              className="grid w-full gap-1 rounded-md border p-2 text-left hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-default disabled:hover:bg-transparent"
+            >
+              <span className="flex items-center justify-between gap-2">
+                <span className="font-medium">{entityLabel(entity.type)}</span>
+                <span className="text-xs text-muted-foreground">{entity.method}</span>
+              </span>
+              <span>{entityValue(entity)}</span>
+              {entity.quote ? <span className="line-clamp-2 text-xs text-muted-foreground">“{entity.quote}”</span> : null}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -418,6 +479,107 @@ function DetailsPanel({ document, pages }: { document: DocumentInfo; pages: Page
           </AlertDescription>
         </Alert>
       ) : null}
+    </div>
+  );
+}
+
+interface RangeSpec {
+  id: string;
+  chunkId: string | null;
+  start: number;
+  end: number;
+  text: string;
+  page: number | null;
+  bboxes: BBox[];
+  tableRowId: string | null;
+}
+
+/** A highlight for an exact character range (citation or entity quote), shaped like a
+ * chunk so every source viewer can show it: PDFs use the range's line boxes (or the
+ * containing chunk's boxes), Word/spreadsheet viewers mark the exact range or row. */
+export function rangeSelection(chunks: ChunkInfo[], spec: RangeSpec): ChunkInfo {
+  const base =
+    chunks.find((c) => c.id === spec.chunkId) ??
+    chunks.find((c) => c.char_start <= spec.start && spec.end <= c.char_end) ??
+    null;
+  return {
+    id: spec.id,
+    chunk_index: base?.chunk_index ?? 0,
+    text: spec.text,
+    char_start: spec.start,
+    char_end: spec.end,
+    page_start: spec.page ?? base?.page_start ?? null,
+    page_end: spec.page ?? base?.page_end ?? null,
+    bboxes: spec.bboxes.length ? spec.bboxes : (base?.bboxes ?? []),
+    section_path: base?.section_path ?? null,
+    token_count: base?.token_count ?? 0,
+    embedding_windows: base?.embedding_windows ?? 1,
+    table_row_id: spec.tableRowId ?? base?.table_row_id ?? null,
+  };
+}
+
+const ENTITY_LABELS: Record<string, string> = {
+  party: "Party",
+  effective_date: "Effective date",
+  expiration_date: "Expiry date",
+  term: "Term",
+  governing_law: "Governing law",
+  register_link: "Register link",
+};
+
+function entityLabel(type: string): string {
+  return ENTITY_LABELS[type] ?? type;
+}
+
+function entityValue(entity: EntityInfo): string {
+  const v = entity.value_json as Record<string, unknown>;
+  if (entity.type === "register_link") {
+    const outcome = String(v.outcome ?? "");
+    return `${String(v.vendor ?? "")}: ${outcome.replaceAll("_", " ")}${v.filename ? ` (${String(v.filename)})` : ""}`;
+  }
+  return String(v.date ?? v.label ?? v.text ?? JSON.stringify(v));
+}
+
+function CitationBanner({
+  state,
+  documentId,
+}: {
+  state: ReturnType<typeof useQuery<CitationDetail>>;
+  documentId: string;
+}) {
+  const workspace = useWorkspace();
+  if (state.isPending) return <div className="h-14 animate-pulse rounded-lg bg-muted" />;
+  if (state.isError)
+    return (
+      <Alert variant="destructive">
+        <AlertTriangle aria-hidden />
+        <AlertTitle>Citation unavailable</AlertTitle>
+        <AlertDescription>{errorMessage(state.error)}</AlertDescription>
+      </Alert>
+    );
+  const c = state.data;
+  const elsewhere = c.document_id !== documentId;
+  return (
+    <div className="grid gap-1 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm" role="status">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="font-medium">
+          Cited evidence{c.page_number ? ` · page ${c.page_number}` : ""} ·{" "}
+          {c.current === "valid" ? (c.verified ? "verified" : "unverified") : c.current === "source_deleted" ? "source deleted" : "source changed since verification"}
+          {c.bbox_precision === "chunk" ? " · highlighted at passage level" : ""}
+        </span>
+        <a
+          className="text-primary underline-offset-2 hover:underline"
+          href={`/workspaces/${workspace.id}/reviews/${c.run_id}/report`}
+        >
+          Back to report
+        </a>
+      </div>
+      {elsewhere ? <p>This citation belongs to another document.</p> : null}
+      <p className="whitespace-pre-wrap">
+        <span className="text-muted-foreground">{c.context_before.slice(-160)}</span>
+        <mark className="rounded-sm bg-amber-200 px-0.5">{c.quote}</mark>
+        <span className="text-muted-foreground">{c.context_after.slice(0, 160)}</span>
+      </p>
     </div>
   );
 }

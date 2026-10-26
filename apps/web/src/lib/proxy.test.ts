@@ -37,6 +37,12 @@ describe("header forwarding", () => {
     });
   });
 
+  it("forwards Last-Event-ID so event streams resume from their cursor", () => {
+    const forwarded = forwardRequestHeaders(new Headers({ "last-event-id": "42", accept: "text/event-stream" }));
+    expect(forwarded.get("last-event-id")).toBe("42");
+    expect(forwarded.get("accept")).toBe("text/event-stream");
+  });
+
   it("keeps every Set-Cookie and drops hop-by-hop/encoding headers", () => {
     const upstream = new Headers();
     upstream.append("set-cookie", "cw_access=a; HttpOnly; Path=/");

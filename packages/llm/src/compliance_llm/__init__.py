@@ -1,8 +1,63 @@
-"""LLM provider abstraction (Anthropic, OpenAI, Ollama, mock).
+"""LLM provider abstraction: Anthropic, OpenAI and Ollama over HTTP, and an offline mock.
 
-NOT IMPLEMENTED YET. This package is a Phase 0 skeleton that only reserves its place
-in the monorepo. Its functionality is scheduled for Phase 4 of docs/BUILD_HANDOFF.md.
+Every call is a single structured-output request; budgeting, retries and grounding are
+done by the caller (``compliance_agents``).
 """
 
-IMPLEMENTED = False
-PLANNED_PHASE = "Phase 4"
+from compliance_llm.factory import (
+    PROVIDERS,
+    ProviderChoice,
+    available_providers,
+    build_provider,
+    credential_present,
+    default_model,
+    resolve_choice,
+)
+from compliance_llm.mock import MOCK_MODEL, MockProvider, lexical_judgement
+from compliance_llm.pricing import (
+    RequestTooLargeError,
+    estimate_input_tokens,
+    reservation,
+    resolve_price,
+    usage_cost_micro,
+)
+from compliance_llm.types import (
+    LLMConfigurationError,
+    LLMError,
+    LLMInvalidOutputError,
+    LLMProvider,
+    LLMRejectedError,
+    LLMRequest,
+    LLMResponse,
+    LLMTransientError,
+    LLMUsage,
+    Price,
+)
+
+__all__ = [
+    "MOCK_MODEL",
+    "PROVIDERS",
+    "LLMConfigurationError",
+    "LLMError",
+    "LLMInvalidOutputError",
+    "LLMProvider",
+    "LLMRejectedError",
+    "LLMRequest",
+    "LLMResponse",
+    "LLMTransientError",
+    "LLMUsage",
+    "MockProvider",
+    "Price",
+    "ProviderChoice",
+    "RequestTooLargeError",
+    "available_providers",
+    "build_provider",
+    "credential_present",
+    "default_model",
+    "estimate_input_tokens",
+    "lexical_judgement",
+    "reservation",
+    "resolve_choice",
+    "resolve_price",
+    "usage_cost_micro",
+]

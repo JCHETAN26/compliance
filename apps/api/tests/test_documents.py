@@ -14,8 +14,8 @@ import pymupdf
 import pytest
 from arq.jobs import Job, JobStatus
 
+from compliance_core.config import Settings
 from compliance_core.jobs import QUEUE_NAME, ingest_job_id
-from conftest import TEST_MAX_FILE_BYTES
 
 pytestmark = pytest.mark.integration
 
@@ -129,10 +129,10 @@ async def test_spoofed_and_unsupported_files_rejected_per_file(clients: Any, api
     assert list((storage_root / ".staging").iterdir()) == [], "no staging leftovers"
 
 
-async def test_size_limits(clients: Any) -> None:
+async def test_size_limits(clients: Any, test_settings: Settings) -> None:
     owner = await clients.signed_up("owner@example.com")
     ws = await _workspace(owner)
-    big = b"a,b\n" + b"x" * (TEST_MAX_FILE_BYTES + 10)
+    big = b"a,b\n" + b"x" * (test_settings.max_upload_file_bytes + 10)
     response = await _upload(owner, ws, [("big.csv", big), ("ok.csv", b"a,b\n1,2\n")])
     results = response.json()["results"]
     assert results[0]["outcome"] == "rejected"
@@ -222,7 +222,7 @@ async def test_unprocessed_document_has_no_derived_data_and_honest_entities(clie
     entities = (await owner.get(f"/api/v1/documents/{doc_id}/entities")).json()
     assert entities["status"] == "not_available"
     assert entities["entities"] == []
-    assert "Phase 4" in entities["detail"]
+    assert "No review has extracted entities" in entities["detail"]
 
 
 async def test_delete_removes_row_and_file_and_retry_rules(clients: Any, api_app: Any) -> None:

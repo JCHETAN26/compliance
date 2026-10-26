@@ -128,6 +128,43 @@ describe("DocumentViewerRoute", () => {
     nav.replace.mockReset();
   });
 
+  it("opens a review citation with exactly its characters marked", async () => {
+    const start = TEXT.indexOf("It must be returned.");
+    nav.search = new URLSearchParams("citation=cit1");
+    mockFetch({
+      "GET /api/v1/workspaces/ws1": () =>
+        json(200, { id: "ws1", name: "Demo", owner_id: "u", created_at: "2026-10-01T00:00:00Z", role: "owner", member_count: 1, document_count: 1 }),
+      "GET /api/v1/documents/d1": () =>
+        json(200, {
+          id: "d1", workspace_id: "ws1", filename: "nda.docx",
+          mime_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          file_format: "docx", size_bytes: 100, sha256: "b".repeat(64), status: "ready", stage: null, progress: 100,
+          doc_type: "contract", page_count: null, ocr_page_count: 0, chunk_count: 2, error: null, warnings: [], attempts: 1,
+          embedding_model: "m", created_at: "2026-10-21T00:00:00Z", updated_at: "2026-10-21T00:00:00Z", ingested_at: null,
+        }),
+      "GET /api/v1/documents/d1/chunks": () => json(200, { total: 2, items: chunks }),
+      "GET /api/v1/documents/d1/blocks": () => json(200, blocks),
+      "GET /api/v1/citations/cit1": () =>
+        json(200, {
+          id: "cit1", role: "evidence", document_id: "d1", document_filename: "nda.docx", chunk_id: "c2",
+          table_row_id: null, quote: "It must be returned.", char_start: start, char_end: start + 20, page_number: null,
+          bboxes: [], bbox_precision: "chunk", exact_match: true, supported: true, support_score: 0.9,
+          support_method: "model", verified: true, current: "valid", run_id: "r1", finding_id: "f1",
+          workspace_id: "ws1", file_format: "docx", context_before: "Confidential Information means data. ",
+          context_after: "",
+        }),
+    });
+    renderWithQuery(
+      <WorkspaceShell workspaceId="ws1">
+        <DocumentViewerRoute documentId="d1" />
+      </WorkspaceShell>,
+    );
+    expect(await screen.findByText(/Cited evidence/)).toHaveTextContent("verified");
+    const marks = await screen.findAllByText("It must be returned.");
+    expect(marks.some((m) => m.tagName === "MARK" && m.hasAttribute("data-chunk-mark"))).toBe(true);
+    expect(screen.getByRole("link", { name: "Back to report" })).toHaveAttribute("href", "/workspaces/ws1/reviews/r1/report");
+  });
+
   it("marks exactly the clicked chunk's characters in the DOCX source view", async () => {
     const { rerender, client } = setup();
     const items = await screen.findAllByTestId("chunk-item");

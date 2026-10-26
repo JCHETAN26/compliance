@@ -11,7 +11,7 @@ import asyncpg
 import pytest
 from sqlalchemy.engine import make_url
 
-from conftest import TEST_DATABASE_URL
+from compliance_core.config import Settings
 from evals.retrieval import sweep
 
 RESULTS = Path(__file__).resolve().parents[2] / "results" / "hnsw_sweep.json"
@@ -54,10 +54,12 @@ def test_committed_sweep_result_matches_the_valid_grid() -> None:
 
 @pytest.mark.integration
 @pytest.mark.parametrize(("m", "efc", "accepted"), [(32, 32, False), (32, 64, True), (8, 16, True)])
-async def test_skip_rule_matches_pgvector(m: int, efc: int, accepted: bool) -> None:
+async def test_skip_rule_matches_pgvector(
+    m: int, efc: int, accepted: bool, test_settings: Settings
+) -> None:
     """pgvector rejects ef_construction < 2*m and accepts the boundary. Runs in a rolled-back
     transaction on a temporary table, so nothing persists."""
-    parsed = make_url(TEST_DATABASE_URL)
+    parsed = make_url(test_settings.database_url)
     conn = await asyncpg.connect(
         user=parsed.username,
         password=parsed.password,

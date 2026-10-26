@@ -20,7 +20,8 @@ export function ModelStatusBanner() {
     refetchInterval: 120_000,
   });
   const ruleCheck = status.data?.rule_check;
-  if (!ruleCheck || ruleCheck.state === "trained") return null;
+  // A trained model needs no notice unless reviews deliberately use the mock backend.
+  if (!ruleCheck || (ruleCheck.state === "trained" && status.data?.review_rule_check_backend !== "mock")) return null;
   const severe = ruleCheck.state === "smoke";
   const Icon = severe ? FlaskConical : TriangleAlert;
   return (

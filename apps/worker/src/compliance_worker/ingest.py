@@ -199,6 +199,7 @@ async def _store(
                 document_id=document_id,
                 text=result.text,
                 text_sha256=hashlib.sha256(result.text.encode()).hexdigest(),
+                line_boxes=result.line_boxes or None,
             )
         )
         page_ids: dict[int, uuid.UUID] = {}

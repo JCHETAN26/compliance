@@ -11,6 +11,25 @@ x-python-service: &python-service
     DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-compliance}:${POSTGRES_PASSWORD:-compliance}@postgres:5432/${POSTGRES_DB:-compliance}
     REDIS_URL: redis://redis:6379/0
 
+# Review runs (Phase 4): LLM provider and review defaults, shared by the API (validation,
+# catalog) and the worker (execution). Keys are passed through from the host environment
+# only when set there; they are never written to the database, events or logs.
+x-review-env: &review-env
+  LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+  LLM_MODEL: ${LLM_MODEL:-}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+  LLM_INPUT_USD_PER_MTOK: ${LLM_INPUT_USD_PER_MTOK:-}
+  LLM_OUTPUT_USD_PER_MTOK: ${LLM_OUTPUT_USD_PER_MTOK:-}
+  REVIEW_BUDGET_TOKENS: ${REVIEW_BUDGET_TOKENS:-400000}
+  REVIEW_BUDGET_USD: ${REVIEW_BUDGET_USD:-1.0}
+  REVIEW_MAX_CONCURRENCY: ${REVIEW_MAX_CONCURRENCY:-4}
+  REVIEW_PAUSE_ON_NEEDS_REVIEW: ${REVIEW_PAUSE_ON_NEEDS_REVIEW:-false}
+  REVIEW_RULE_CHECK_BACKEND: ${REVIEW_RULE_CHECK_BACKEND:-service}
+  LANGSMITH_TRACING: "false"
+  LANGCHAIN_TRACING_V2: "false"
+
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -58,7 +77,7 @@ services:
       - -c
       - python -m compliance_core.db.migrate upgrade head && exec uvicorn --factory compliance_api.main:create_app --host 0.0.0.0 --port 8000 --no-access-log
     environment:
-      <<: *python-env
+      <<: [*python-env, *review-env]
       # Empty JWT_SECRET in development => a random secret is generated once into the
       # api-data volume. Production refuses to start without an explicit secret.
       JWT_SECRET: ${JWT_SECRET:-}
@@ -106,7 +125,10 @@ services:
         SYSTEM_PACKAGES: tesseract-ocr tesseract-ocr-eng
     command: ["arq", "compliance_worker.main.WorkerSettings"]
     environment:
-      <<: *python-env
+      <<: [*python-env, *review-env]
+      # Rule checks (trained model) and query embeddings for retrieval.
+      MODEL_SERVICE_URL: http://model-service:8010
+      REVIEW_MODEL_TIMEOUT_SECONDS: ${REVIEW_MODEL_TIMEOUT_SECONDS:-300}
       # Demo workspace is seeded automatically on the first clean start (never in production).
       SEED_DEMO: ${SEED_DEMO:-true}
       # The pinned embedding model and the ContractNLI archive are fetched into the

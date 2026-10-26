@@ -73,11 +73,17 @@ extend-exclude = ["apps/web", "node_modules"]
 [tool.ruff.lint]
 select = [
     "E", "W", "F", "I", "B", "UP", "N", "S", "ASYNC", "C4", "SIM", "RUF", "PT", "T20", "DTZ",
+    "TID251",
 ]
 ignore = [
     "E501",  # formatter handles line length
     "ASYNC240",  # tiny pathlib metadata ops (unlink/stat) in async code are acceptable
 ]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+# With --import-mode=importlib, pytest evicts sys.modules["conftest"] whenever it loads
+# another non-package conftest, and `uv run pytest` does not put the repo root on sys.path.
+"conftest".msg = "conftest.py is not importable; request a fixture (e.g. test_settings) instead"
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S101", "S105", "S106", "S311"]
@@ -145,6 +151,8 @@ asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 testpaths = [
     "packages/core/tests",
+    "packages/llm/tests",
+    "packages/agents/tests",
     "apps/api/tests",
     "apps/worker/tests",
     "apps/model-service/tests",

@@ -4,8 +4,9 @@ import { json, mockFetch, renderWithQuery } from "@/test/utils";
 
 import { ModelStatusBanner } from "./model-status-banner";
 
-const status = (state: string, extra: Record<string, unknown> = {}) => ({
+const status = (state: string, extra: Record<string, unknown> = {}, backend = "service") => ({
   rule_check: { state, message: `message for ${state}`, model_version: null, variant: null, ...extra },
+  review_rule_check_backend: backend,
 });
 
 describe("ModelStatusBanner", () => {
@@ -43,5 +44,11 @@ describe("ModelStatusBanner", () => {
     renderWithQuery(<ModelStatusBanner />);
     await waitFor(() => expect(calls).toHaveLength(1));
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("explains a trained model that reviews deliberately bypass with the mock backend", async () => {
+    mockFetch({ "GET /api/v1/models/status": () => json(200, status("trained", {}, "mock")) });
+    renderWithQuery(<ModelStatusBanner />);
+    expect(await screen.findByRole("status")).toHaveTextContent("message for trained");
   });
 });

@@ -72,6 +72,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/citations/{citation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Citation
+         * @description The quote, its document/page/offsets/boxes, surrounding context, and whether the
+         *     quote is still exactly at its offsets.
+         */
+        get: operations["get_citation_api_v1_citations__citation_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/documents/{document_id}": {
         parameters: {
             query?: never;
@@ -229,6 +250,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/findings/{finding_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Finding */
+        get: operations["get_finding_api_v1_findings__finding_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/findings/{finding_id}/override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Override Finding
+         * @description Record an audited human decision (with a comment). The machine finding is kept.
+         */
+        post: operations["override_finding_api_v1_findings__finding_id__override_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -284,6 +342,231 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reviews/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Review */
+        get: operations["get_review_api_v1_reviews__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reviews/{run_id}/control": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Control Review
+         * @description Pause (at the next step boundary), resume (from the last checkpoint) or cancel.
+         */
+        post: operations["control_review_api_v1_reviews__run_id__control_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reviews/{run_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Review Events */
+        get: operations["review_events_api_v1_reviews__run_id__events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reviews/{run_id}/events/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Review Event History */
+        get: operations["review_event_history_api_v1_reviews__run_id__events_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reviews/{run_id}/findings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Review Findings */
+        get: operations["review_findings_api_v1_reviews__run_id__findings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reviews/{run_id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Review Report
+         * @description The report, rendered live from verified findings and human overrides (citations are
+         *     re-checked against the current documents). ``format=md`` downloads Markdown.
+         */
+        get: operations["review_report_api_v1_reviews__run_id__report_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reviews/{run_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resume Review
+         * @description Resume a paused, failed or review-waiting run from its last checkpoint.
+         */
+        post: operations["resume_review_api_v1_reviews__run_id__resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reviews/{run_id}/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Review Tasks */
+        get: operations["review_tasks_api_v1_reviews__run_id__tasks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rule-packs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Rule Packs
+         * @description Built-in packs plus the given workspace's packs (members only).
+         */
+        get: operations["list_rule_packs_api_v1_rule_packs_get"];
+        put?: never;
+        /** Create Rule Pack */
+        post: operations["create_rule_pack_api_v1_rule_packs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rule-packs/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Rule Pack
+         * @description Import a YAML rule pack into a workspace (validated like the built-in packs).
+         */
+        post: operations["import_rule_pack_api_v1_rule_packs_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rule-packs/{rule_pack_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Rule Pack */
+        get: operations["get_rule_pack_api_v1_rule_packs__rule_pack_id__get"];
+        /**
+         * Update Rule Pack
+         * @description Replace a workspace pack's content (same key). Existing runs keep their snapshot.
+         */
+        put: operations["update_rule_pack_api_v1_rule_packs__rule_pack_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rule-packs/{rule_pack_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Rule Pack */
+        get: operations["export_rule_pack_api_v1_rule_packs__rule_pack_id__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/search/capabilities": {
         parameters: {
             query?: never;
@@ -296,6 +579,23 @@ export interface paths {
          * @description What the search backend supports right now (e.g. whether reranking is enabled).
          */
         get: operations["capabilities_api_v1_search_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/llm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Llm Settings */
+        get: operations["llm_settings_api_v1_settings_llm_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -400,6 +700,48 @@ export interface paths {
         patch: operations["update_member_api_v1_workspaces__workspace_id__members__user_id__patch"];
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace_id}/review-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Review Settings */
+        get: operations["get_review_settings_api_v1_workspaces__workspace_id__review_settings_get"];
+        /**
+         * Put Review Settings
+         * @description Owner only. The provider must be configured on this server (mock always is).
+         */
+        put: operations["put_review_settings_api_v1_workspaces__workspace_id__review_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace_id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Reviews */
+        get: operations["list_reviews_api_v1_workspaces__workspace_id__reviews_get"];
+        put?: never;
+        /**
+         * Start Review
+         * @description Validate and queue a review run (the worker executes it).
+         */
+        post: operations["start_review_api_v1_workspaces__workspace_id__reviews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace_id}/search": {
         parameters: {
             query?: never;
@@ -426,6 +768,24 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AgentEventRead */
+        AgentEventRead: {
+            /** Agent */
+            agent: string;
+            /** Event Type */
+            event_type: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Seq */
+            seq: number;
+            /**
+             * Ts
+             * Format: date-time
+             */
+            ts: string;
+        };
         /** BBoxRead */
         BBoxRead: {
             /** Page */
@@ -461,6 +821,39 @@ export interface components {
             style: string | null;
             /** Text */
             text: string;
+        };
+        /** BudgetRead */
+        BudgetRead: {
+            /** Calls */
+            calls: number;
+            /**
+             * Calls Unknown
+             * @description Attempts with unknown outcome (reservation kept)
+             */
+            calls_unknown: number;
+            /** Tokens Cap */
+            tokens_cap: number;
+            /** Tokens Reserved Open */
+            tokens_reserved_open: number;
+            /**
+             * Tokens Used
+             * @description Settled tokens plus held reservations
+             */
+            tokens_used: number;
+            /**
+             * Usage Source
+             * @enum {string}
+             */
+            usage_source: "provider" | "mock_estimate" | "none" | "mixed";
+            /** Usd Cap */
+            usd_cap: number;
+            /** Usd Reserved Open */
+            usd_reserved_open: number;
+            /**
+             * Usd Used
+             * @description Settled cost plus held reservations (rounded up)
+             */
+            usd_used: number;
         };
         /** CellRead */
         CellRead: {
@@ -519,6 +912,144 @@ export interface components {
             text: string;
             /** Token Count */
             token_count: number;
+        };
+        /** CitationDetail */
+        CitationDetail: {
+            /**
+             * Bbox Precision
+             * @enum {string}
+             */
+            bbox_precision: "line" | "chunk" | "none";
+            /** Bboxes */
+            bboxes: components["schemas"]["BBoxRead"][];
+            /** Char End */
+            char_end: number;
+            /** Char Start */
+            char_start: number;
+            /** Chunk Id */
+            chunk_id: string | null;
+            /** Context After */
+            context_after: string;
+            /** Context Before */
+            context_before: string;
+            /**
+             * Current
+             * @description Re-checked on read: the quote still sits at its offsets in the source
+             * @enum {string}
+             */
+            current: "valid" | "source_deleted" | "source_changed";
+            /** Document Filename */
+            document_filename: string;
+            /** Document Id */
+            document_id: string | null;
+            /** Exact Match */
+            exact_match: boolean | null;
+            /** File Format */
+            file_format: string | null;
+            /**
+             * Finding Id
+             * Format: uuid
+             */
+            finding_id: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Page Number */
+            page_number: number | null;
+            /** Quote */
+            quote: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "evidence" | "register_row" | "entity" | "supporting";
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /** Support Method */
+            support_method: string | null;
+            /** Support Score */
+            support_score: number | null;
+            /** Supported */
+            supported: boolean | null;
+            /** Table Row Id */
+            table_row_id: string | null;
+            /** Verified */
+            verified: boolean;
+            /**
+             * Workspace Id
+             * Format: uuid
+             */
+            workspace_id: string;
+        };
+        /** CitationRead */
+        CitationRead: {
+            /**
+             * Bbox Precision
+             * @enum {string}
+             */
+            bbox_precision: "line" | "chunk" | "none";
+            /** Bboxes */
+            bboxes: components["schemas"]["BBoxRead"][];
+            /** Char End */
+            char_end: number;
+            /** Char Start */
+            char_start: number;
+            /** Chunk Id */
+            chunk_id: string | null;
+            /**
+             * Current
+             * @description Re-checked on read: the quote still sits at its offsets in the source
+             * @enum {string}
+             */
+            current: "valid" | "source_deleted" | "source_changed";
+            /** Document Filename */
+            document_filename: string;
+            /** Document Id */
+            document_id: string | null;
+            /** Exact Match */
+            exact_match: boolean | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Page Number */
+            page_number: number | null;
+            /** Quote */
+            quote: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "evidence" | "register_row" | "entity" | "supporting";
+            /** Support Method */
+            support_method: string | null;
+            /** Support Score */
+            support_score: number | null;
+            /** Supported */
+            supported: boolean | null;
+            /** Table Row Id */
+            table_row_id: string | null;
+            /** Verified */
+            verified: boolean;
+        };
+        /** CrossDocumentSpec */
+        CrossDocumentSpec: {
+            /** Date Column */
+            date_column?: ("vendor" | "data_access" | "contract_file" | "renewal_date") | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "contract_on_file" | "required_protections" | "term_covers_date";
+            /** Required Rules */
+            required_rules?: string[];
+            subject_filter?: components["schemas"]["SubjectFilter"] | null;
         };
         /**
          * DocType
@@ -597,6 +1128,8 @@ export interface components {
             detail: string;
             /** Entities */
             entities: components["schemas"]["EntityRead"][];
+            /** Review Run Id */
+            review_run_id?: string | null;
             /**
              * Status
              * @enum {string}
@@ -605,6 +1138,10 @@ export interface components {
         };
         /** EntityRead */
         EntityRead: {
+            /** Char End */
+            char_end?: number | null;
+            /** Char Start */
+            char_start?: number | null;
             /** Chunk Id */
             chunk_id: string | null;
             /** Confidence */
@@ -614,12 +1151,23 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Method */
+            method?: string | null;
+            /** Page Number */
+            page_number?: number | null;
+            /** Quote */
+            quote?: string | null;
             /** Type */
             type: string;
             /** Value Json */
             value_json: {
                 [key: string]: unknown;
             };
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
         };
         /** ErrorBody */
         ErrorBody: {
@@ -643,6 +1191,172 @@ export interface components {
         ErrorResponse: {
             error: components["schemas"]["ErrorBody"];
         };
+        /** EventPage */
+        EventPage: {
+            /** Has More */
+            has_more: boolean;
+            /** Items */
+            items: components["schemas"]["AgentEventRead"][];
+            /**
+             * Next After
+             * @description Pass as ?after= (or Last-Event-ID) to continue
+             */
+            next_after: number;
+            /**
+             * Run Status
+             * @enum {string}
+             */
+            run_status: "queued" | "running" | "paused" | "awaiting_review" | "completed" | "failed" | "cancelled";
+        };
+        /** FindingPage */
+        FindingPage: {
+            /** Items */
+            items: components["schemas"]["FindingRead"][];
+            /** Total */
+            total: number;
+        };
+        /** FindingRead */
+        FindingRead: {
+            /** Citations */
+            citations: components["schemas"]["CitationRead"][];
+            /**
+             * Compliance
+             * @enum {string}
+             */
+            compliance: "compliant" | "non_compliant" | "needs_review" | "not_assessed";
+            /** Confidence */
+            confidence: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Decided By
+             * @enum {string}
+             */
+            decided_by: "model" | "llm" | "system" | "human";
+            /** Document Filename */
+            document_filename: string | null;
+            /** Document Id */
+            document_id: string | null;
+            /** Escalated */
+            escalated: boolean;
+            /** Escalation Reason */
+            escalation_reason: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "per_document" | "cross_document";
+            /** Llm Model */
+            llm_model: string | null;
+            /** Llm Provider */
+            llm_provider: string | null;
+            /**
+             * Machine Decided By
+             * @enum {string}
+             */
+            machine_decided_by: "model" | "llm" | "system";
+            /**
+             * Machine Status
+             * @description What the deciding component concluded
+             * @enum {string}
+             */
+            machine_status: "satisfied" | "violated" | "not_mentioned" | "needs_review";
+            /** Model Version */
+            model_version: string | null;
+            override: components["schemas"]["HumanOverrideRead"] | null;
+            /** Override Count */
+            override_count: number;
+            /** Prompt Version */
+            prompt_version: string | null;
+            /** Rationale */
+            rationale: string;
+            /** Reasoning */
+            reasoning: {
+                [key: string]: unknown;
+            }[];
+            /** Rule Key */
+            rule_key: string;
+            /** Rule Title */
+            rule_title: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "low" | "medium" | "high";
+            /** Source Changed */
+            source_changed: boolean;
+            /**
+             * Status
+             * @description Effective status: latest human override, else the verified machine status (needs_review if a cited source was deleted or changed after verification)
+             * @enum {string}
+             */
+            status: "satisfied" | "violated" | "not_mentioned" | "needs_review";
+            /** Subject Key */
+            subject_key: string;
+            /** Subject Label */
+            subject_label: string;
+            /** Task Key */
+            task_key: string;
+            /** Verification */
+            verification: {
+                [key: string]: unknown;
+            };
+            /** Verified */
+            verified: boolean;
+            /**
+             * Verified Status
+             * @description Status after citation verification
+             * @enum {string}
+             */
+            verified_status: "satisfied" | "violated" | "not_mentioned" | "needs_review";
+        };
+        /** HumanOverrideRead */
+        HumanOverrideRead: {
+            /** Comment */
+            comment: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Finding Id
+             * Format: uuid
+             */
+            finding_id: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * New Status
+             * @enum {string}
+             */
+            new_status: "satisfied" | "violated" | "not_mentioned" | "needs_review";
+            /**
+             * Previous Status
+             * @enum {string}
+             */
+            previous_status: "satisfied" | "violated" | "not_mentioned" | "needs_review";
+            /** User Email */
+            user_email: string | null;
+            /** User Id */
+            user_id: string | null;
+        };
         /** Liveness */
         Liveness: {
             /** Service */
@@ -652,6 +1366,28 @@ export interface components {
              * @constant
              */
             status: "ok";
+        };
+        /** LlmSettingsRead */
+        LlmSettingsRead: {
+            /** Deployment Model */
+            deployment_model: string;
+            /**
+             * Deployment Provider
+             * @enum {string}
+             */
+            deployment_provider: "mock" | "anthropic" | "openai" | "ollama";
+            /**
+             * Mock Only
+             * @description No real LLM provider is configured (UI shows a banner)
+             */
+            mock_only: boolean;
+            /** Providers */
+            providers: components["schemas"]["ProviderOption"][];
+            /**
+             * Rule Check Backend
+             * @enum {string}
+             */
+            rule_check_backend: "service" | "mock";
         };
         /** LoginRequest */
         LoginRequest: {
@@ -716,7 +1452,23 @@ export interface components {
         };
         /** ModelStatus */
         ModelStatus: {
+            /**
+             * Review Rule Check Backend
+             * @description What review runs use for model-supported rules on this server
+             * @enum {string}
+             */
+            review_rule_check_backend: "service" | "mock";
             rule_check: components["schemas"]["RuleCheckModelStatus"];
+        };
+        /** OverrideRequest */
+        OverrideRequest: {
+            /** Comment */
+            comment: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "satisfied" | "violated" | "not_mentioned" | "needs_review";
         };
         /** PageRead */
         PageRead: {
@@ -752,6 +1504,32 @@ export interface components {
             rerank_score?: number | null;
             vector?: components["schemas"]["MethodScore"] | null;
         };
+        /** ProviderOption */
+        ProviderOption: {
+            /**
+             * Credential Configured
+             * @description Whether the provider's key variable is set (its value is never read here)
+             */
+            credential_configured: boolean;
+            /** Default Model */
+            default_model: string;
+            /** Is Mock */
+            is_mock: boolean;
+            /**
+             * Price Source
+             * @description Where token prices come from; None if unknown
+             */
+            price_source: string | null;
+            /** Problem */
+            problem?: string | null;
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "mock" | "anthropic" | "openai" | "ollama";
+            /** Usable */
+            usable: boolean;
+        };
         /** ReadinessReport */
         ReadinessReport: {
             /** Checks */
@@ -775,6 +1553,337 @@ export interface components {
             email: string;
             /** Password */
             password: string;
+        };
+        /** RegisterSpec */
+        RegisterSpec: {
+            /** Columns */
+            columns: {
+                [key: string]: string[];
+            };
+        };
+        /** ReportAction */
+        ReportAction: {
+            /** Action */
+            action: string;
+            /** Finding Ids */
+            finding_ids: string[];
+            /**
+             * Priority
+             * @enum {string}
+             */
+            priority: "high" | "medium" | "low";
+        };
+        /** ReportRead */
+        ReportRead: {
+            /** Actions */
+            actions: components["schemas"]["ReportAction"][];
+            budget: components["schemas"]["BudgetRead"];
+            /**
+             * Complete
+             * @description False while the run has not finished all tasks
+             */
+            complete: boolean;
+            /** Findings */
+            findings: components["schemas"]["FindingRead"][];
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Limitations */
+            limitations: string[];
+            /** Llm Is Mock */
+            llm_is_mock: boolean;
+            /** Llm Model */
+            llm_model: string;
+            /** Llm Provider */
+            llm_provider: string;
+            /** Model Version */
+            model_version: string | null;
+            /** Needs Review */
+            needs_review: components["schemas"]["ReportRisk"][];
+            /** Prompt Versions */
+            prompt_versions: {
+                [key: string]: string;
+            };
+            /** Risks */
+            risks: components["schemas"]["ReportRisk"][];
+            /** Rule Check Backend */
+            rule_check_backend: string;
+            rule_pack: components["schemas"]["RulePackRef"];
+            /** Rules */
+            rules: components["schemas"]["ReportRuleRow"][];
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Run Status
+             * @enum {string}
+             */
+            run_status: "queued" | "running" | "paused" | "awaiting_review" | "completed" | "failed" | "cancelled";
+            /** Subjects */
+            subjects: components["schemas"]["ReportSubjectRow"][];
+            /** Summary */
+            summary: components["schemas"]["ReportStatement"][];
+            /** Tau */
+            tau: number | null;
+            /**
+             * Workspace Id
+             * Format: uuid
+             */
+            workspace_id: string;
+            /** Writer Version */
+            writer_version: string;
+        };
+        /** ReportRisk */
+        ReportRisk: {
+            /**
+             * Compliance
+             * @enum {string}
+             */
+            compliance: "compliant" | "non_compliant" | "needs_review" | "not_assessed";
+            /** Decided By */
+            decided_by: string;
+            /**
+             * Finding Id
+             * Format: uuid
+             */
+            finding_id: string;
+            /** Rank */
+            rank: number;
+            /** Rule Title */
+            rule_title: string;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "low" | "medium" | "high";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "satisfied" | "violated" | "not_mentioned" | "needs_review";
+            /** Subject Label */
+            subject_label: string;
+        };
+        /** ReportRuleRow */
+        ReportRuleRow: {
+            /** Compliance Counts */
+            compliance_counts: {
+                [key: string]: number;
+            };
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Rule Key */
+            rule_key: string;
+            /** Rule Title */
+            rule_title: string;
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "per_document" | "cross_document";
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "low" | "medium" | "high";
+        };
+        /** ReportStatement */
+        ReportStatement: {
+            /**
+             * Finding Ids
+             * @description The findings this statement is based on
+             */
+            finding_ids: string[];
+            /** Text */
+            text: string;
+        };
+        /** ReportSubjectRow */
+        ReportSubjectRow: {
+            /** Compliant */
+            compliant: number;
+            /** Document Id */
+            document_id: string | null;
+            /** Findings */
+            findings: number;
+            /** Needs Review */
+            needs_review: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "compliant" | "at_risk" | "needs_review" | "not_assessed";
+            /** Subject Key */
+            subject_key: string;
+            /** Subject Label */
+            subject_label: string;
+            /** Violated */
+            violated: number;
+            /** Worst Severity */
+            worst_severity: ("low" | "medium" | "high") | null;
+        };
+        /** ReviewRunRead */
+        ReviewRunRead: {
+            budget: components["schemas"]["BudgetRead"];
+            /** Control */
+            control: ("pause" | "cancel") | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string | null;
+            /** Document Count */
+            document_count: number;
+            /** Error Code */
+            error_code: string | null;
+            /** Error Message */
+            error_message: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Event Seq */
+            last_event_seq: number;
+            /** Llm Is Mock */
+            llm_is_mock: boolean;
+            /** Llm Model */
+            llm_model: string;
+            /**
+             * Llm Provider
+             * @enum {string}
+             */
+            llm_provider: "mock" | "anthropic" | "openai" | "ollama";
+            /** Max Concurrency */
+            max_concurrency: number;
+            /** Model Version */
+            model_version: string | null;
+            /** Pause On Needs Review */
+            pause_on_needs_review: boolean;
+            /** Rule Check Backend */
+            rule_check_backend: string;
+            rule_pack: components["schemas"]["RulePackRef"];
+            /** Started At */
+            started_at: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "paused" | "awaiting_review" | "completed" | "failed" | "cancelled";
+            /** Tau */
+            tau: number | null;
+            /** Totals */
+            totals: {
+                [key: string]: unknown;
+            };
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Workspace Id
+             * Format: uuid
+             */
+            workspace_id: string;
+        };
+        /** ReviewSettingsRead */
+        ReviewSettingsRead: {
+            /** Budget Tokens */
+            budget_tokens: number;
+            /** Budget Usd */
+            budget_usd: number;
+            /** Is Default */
+            is_default: boolean;
+            /** Llm Model */
+            llm_model: string;
+            /**
+             * Llm Provider
+             * @enum {string}
+             */
+            llm_provider: "mock" | "anthropic" | "openai" | "ollama";
+            /** Max Concurrency */
+            max_concurrency: number;
+            /** Pause On Needs Review */
+            pause_on_needs_review: boolean;
+            /**
+             * Tau
+             * @description Cascade threshold override; None = the model's DEV-selected tau
+             */
+            tau: number | null;
+            /** Updated At */
+            updated_at: string | null;
+            /**
+             * Workspace Id
+             * Format: uuid
+             */
+            workspace_id: string;
+        };
+        /** ReviewSettingsUpdate */
+        ReviewSettingsUpdate: {
+            /** Budget Tokens */
+            budget_tokens: number;
+            /** Budget Usd */
+            budget_usd: number;
+            /**
+             * Llm Model
+             * @default
+             */
+            llm_model: string;
+            /**
+             * Llm Provider
+             * @enum {string}
+             */
+            llm_provider: "mock" | "anthropic" | "openai" | "ollama";
+            /** Max Concurrency */
+            max_concurrency: number;
+            /** Pause On Needs Review */
+            pause_on_needs_review: boolean;
+            /** Tau */
+            tau?: number | null;
+        };
+        /** ReviewTaskRead */
+        ReviewTaskRead: {
+            /** Document Id */
+            document_id: string | null;
+            /** Finding Id */
+            finding_id: string | null;
+            /** Finding Status */
+            finding_status: ("satisfied" | "violated" | "not_mentioned" | "needs_review") | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "per_document" | "cross_document";
+            /** Rule Key */
+            rule_key: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "running" | "done" | "failed" | "skipped";
+            /** Subject Key */
+            subject_key: string;
+            /** Subject Label */
+            subject_label: string;
+            /** Task Key */
+            task_key: string;
+        };
+        /** ReviewTasksRead */
+        ReviewTasksRead: {
+            /** Rules */
+            rules: components["schemas"]["RulePackRuleRef"][];
+            /** Tasks */
+            tasks: components["schemas"]["ReviewTaskRead"][];
         };
         /** RowPage */
         RowPage: {
@@ -816,6 +1925,262 @@ export interface components {
             state: "trained" | "smoke" | "untrained_fallback" | "unreachable";
             /** Variant */
             variant?: ("int8" | "fp32") | null;
+        };
+        /** RulePackCreate */
+        RulePackCreate: {
+            pack: components["schemas"]["RulePackSpec"];
+            /**
+             * Workspace Id
+             * Format: uuid
+             */
+            workspace_id: string;
+        };
+        /** RulePackImport */
+        RulePackImport: {
+            /**
+             * Workspace Id
+             * Format: uuid
+             */
+            workspace_id: string;
+            /** Yaml */
+            yaml: string;
+        };
+        /** RulePackRead */
+        RulePackRead: {
+            /** Builtin */
+            builtin: boolean;
+            /** Content Sha256 */
+            content_sha256: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Cross Document Count */
+            cross_document_count: number;
+            /** Description */
+            description: string;
+            /**
+             * Editable
+             * @description Whether the caller may edit this pack
+             */
+            editable: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key */
+            key: string;
+            /** Model Supported Count */
+            model_supported_count: number;
+            /** Name */
+            name: string;
+            /** Provenance */
+            provenance: {
+                [key: string]: string;
+            } | null;
+            /** Register */
+            register: {
+                [key: string]: unknown;
+            } | null;
+            /** Rule Count */
+            rule_count: number;
+            /** Rules */
+            rules: components["schemas"]["RuleRead"][];
+            /** Source */
+            source: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: string;
+            /** Workspace Id */
+            workspace_id: string | null;
+        };
+        /** RulePackRef */
+        RulePackRef: {
+            /** Id */
+            id: string | null;
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Version */
+            version: string;
+        };
+        /** RulePackRuleRef */
+        RulePackRuleRef: {
+            /** Key */
+            key: string;
+            /** Model Supported */
+            model_supported: boolean;
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "per_document" | "cross_document";
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "low" | "medium" | "high";
+            /** Title */
+            title: string;
+        };
+        /** RulePackSpec */
+        RulePackSpec: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            register?: components["schemas"]["RegisterSpec"] | null;
+            /** Rules */
+            rules: components["schemas"]["RuleSpec"][];
+            /** Source */
+            source?: {
+                [key: string]: string;
+            } | null;
+            /** Version */
+            version: string;
+        };
+        /** RulePackSummary */
+        RulePackSummary: {
+            /** Builtin */
+            builtin: boolean;
+            /** Content Sha256 */
+            content_sha256: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Cross Document Count */
+            cross_document_count: number;
+            /** Description */
+            description: string;
+            /**
+             * Editable
+             * @description Whether the caller may edit this pack
+             */
+            editable: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key */
+            key: string;
+            /** Model Supported Count */
+            model_supported_count: number;
+            /** Name */
+            name: string;
+            /** Rule Count */
+            rule_count: number;
+            /** Source */
+            source: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: string;
+            /** Workspace Id */
+            workspace_id: string | null;
+        };
+        /** RuleRead */
+        RuleRead: {
+            /** Applies To Doc Types */
+            applies_to_doc_types: string[];
+            /** Compliant Statuses */
+            compliant_statuses: string[] | null;
+            /** Contractnli Key */
+            contractnli_key: string | null;
+            /** Cross Document */
+            cross_document: {
+                [key: string]: unknown;
+            } | null;
+            /** Description */
+            description: string;
+            /** Hypothesis Text */
+            hypothesis_text: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key */
+            key: string;
+            /** Model Supported */
+            model_supported: boolean;
+            /** Remediation */
+            remediation: string | null;
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "per_document" | "cross_document";
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "low" | "medium" | "high";
+            /** Title */
+            title: string;
+        };
+        /** RuleSpec */
+        RuleSpec: {
+            /** Applies To Doc Types */
+            applies_to_doc_types: ("contract" | "spreadsheet" | "policy" | "other")[];
+            /** Compliant Statuses */
+            compliant_statuses?: ("satisfied" | "violated" | "not_mentioned")[] | null;
+            /** Contractnli Key */
+            contractnli_key?: string | null;
+            cross_document?: components["schemas"]["CrossDocumentSpec"] | null;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Hypothesis Text */
+            hypothesis_text: string;
+            /** Key */
+            key: string;
+            /**
+             * Model Supported
+             * @default false
+             */
+            model_supported: boolean;
+            /** Remediation */
+            remediation?: string | null;
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "per_document" | "cross_document";
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "low" | "medium" | "high";
+            /** Title */
+            title: string;
+        };
+        /** RunControl */
+        RunControl: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "pause" | "resume" | "cancel";
         };
         /** SearchCapabilities */
         SearchCapabilities: {
@@ -1018,6 +2383,43 @@ export interface components {
             embedding_model: string | null;
             /** Filename */
             filename: string;
+        };
+        /** StartReview */
+        StartReview: {
+            /** Budget Tokens */
+            budget_tokens?: number | null;
+            /** Budget Usd */
+            budget_usd?: number | null;
+            /**
+             * Document Ids
+             * @description Documents to review; omitted = every ready document
+             */
+            document_ids?: string[] | null;
+            /** Llm Model */
+            llm_model?: string | null;
+            /** Llm Provider */
+            llm_provider?: ("mock" | "anthropic" | "openai" | "ollama") | null;
+            /** Max Concurrency */
+            max_concurrency?: number | null;
+            /** Pause On Needs Review */
+            pause_on_needs_review?: boolean | null;
+            /**
+             * Rule Pack Id
+             * Format: uuid
+             */
+            rule_pack_id: string;
+            /** Tau */
+            tau?: number | null;
+        };
+        /** SubjectFilter */
+        SubjectFilter: {
+            /**
+             * Column
+             * @enum {string}
+             */
+            column: "vendor" | "data_access" | "contract_file" | "renewal_date";
+            /** In */
+            in: string[];
         };
         /** UploadErrorBody */
         UploadErrorBody: {
@@ -1251,6 +2653,55 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_citation_api_v1_citations__citation_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                citation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CitationDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1795,6 +3246,126 @@ export interface operations {
             };
         };
     };
+    get_finding_api_v1_findings__finding_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                finding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    override_finding_api_v1_findings__finding_id__override_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                finding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OverrideRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     live_api_v1_health_get: {
         parameters: {
             query?: never;
@@ -1873,6 +3444,811 @@ export interface operations {
             };
         };
     };
+    get_review_api_v1_reviews__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewRunRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    control_review_api_v1_reviews__run_id__control_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunControl"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewRunRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    review_events_api_v1_reviews__run_id__events_get: {
+        parameters: {
+            query?: {
+                after?: number | null;
+            };
+            header?: {
+                "Last-Event-ID"?: string | null;
+            };
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    review_event_history_api_v1_reviews__run_id__events_history_get: {
+        parameters: {
+            query?: {
+                after?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventPage"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    review_findings_api_v1_reviews__run_id__findings_get: {
+        parameters: {
+            query?: {
+                status?: ("satisfied" | "violated" | "not_mentioned" | "needs_review") | null;
+                severity?: ("low" | "medium" | "high") | null;
+                decided_by?: ("model" | "llm" | "system" | "human") | null;
+                subject_key?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingPage"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    review_report_api_v1_reviews__run_id__report_get: {
+        parameters: {
+            query?: {
+                format?: "json" | "md";
+            };
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportRead"];
+                    "text/markdown": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    resume_review_api_v1_reviews__run_id__resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewRunRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    review_tasks_api_v1_reviews__run_id__tasks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewTasksRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_rule_packs_api_v1_rule_packs_get: {
+        parameters: {
+            query: {
+                workspace_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RulePackSummary"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_rule_pack_api_v1_rule_packs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RulePackCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RulePackRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    import_rule_pack_api_v1_rule_packs_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RulePackImport"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RulePackRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_rule_pack_api_v1_rule_packs__rule_pack_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_pack_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RulePackRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    update_rule_pack_api_v1_rule_packs__rule_pack_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_pack_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RulePackSpec"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RulePackRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_rule_pack_api_v1_rule_packs__rule_pack_id__export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_pack_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/yaml": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     capabilities_api_v1_search_capabilities_get: {
         parameters: {
             query?: never;
@@ -1902,6 +4278,35 @@ export interface operations {
             };
             /** @description Service Unavailable */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    llm_settings_api_v1_settings_llm_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LlmSettingsRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2548,6 +4953,255 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_review_settings_api_v1_workspaces__workspace_id__review_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewSettingsRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    put_review_settings_api_v1_workspaces__workspace_id__review_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewSettingsRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_reviews_api_v1_workspaces__workspace_id__reviews_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewRunRead"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    start_review_api_v1_workspaces__workspace_id__reviews_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartReview"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewRunRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

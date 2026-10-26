@@ -6,39 +6,43 @@ from collections.abc import AsyncIterator
 
 import asyncpg
 import pytest
-from sqlalchemy.engine import make_url
+from sqlalchemy.engine import URL, make_url
 
-from conftest import TEST_DATABASE_URL
+from compliance_core.config import Settings
 from evals.retrieval import corpus
 
 pytestmark = pytest.mark.integration
 
 
-def url_for(name: str) -> str:
-    return make_url(TEST_DATABASE_URL).set(database=name).render_as_string(hide_password=False)
+@pytest.fixture
+def server(test_settings: Settings) -> URL:
+    return make_url(test_settings.database_url)
 
 
-async def admin() -> asyncpg.Connection:
-    parsed = make_url(TEST_DATABASE_URL)
+def url_for(server: URL, name: str) -> str:
+    return server.set(database=name).render_as_string(hide_password=False)
+
+
+async def connect(server: URL, database: str = "postgres") -> asyncpg.Connection:
     return await asyncpg.connect(
-        user=parsed.username,
-        password=parsed.password,
-        host=parsed.host,
-        port=parsed.port,
-        database="postgres",
+        user=server.username,
+        password=server.password,
+        host=server.host,
+        port=server.port,
+        database=database,
     )
 
 
-async def drop(name: str) -> None:
-    conn = await admin()
+async def drop(server: URL, name: str) -> None:
+    conn = await connect(server)
     try:
         await conn.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
     finally:
         await conn.close()
 
 
-async def exists(name: str) -> bool:
-    conn = await admin()
+async def exists(server: URL, name: str) -> bool:
+    conn = await connect(server)
     try:
         return bool(await conn.fetchval("SELECT 1 FROM pg_database WHERE datname = $1", name))
     finally:
@@ -61,9 +65,9 @@ async def exists(name: str) -> bool:
     ],
 )
 async def test_unsafe_names_are_refused_before_any_sql(
-    name: str, monkeypatch: pytest.MonkeyPatch
+    name: str, monkeypatch: pytest.MonkeyPatch, server: URL
 ) -> None:
-    url = url_for(name) if name else url_for("x").rsplit("/", 1)[0] + "/"
+    url = url_for(server, name) if name else url_for(server, "x").rsplit("/", 1)[0] + "/"
     monkeypatch.setenv("EVAL_DATABASE_URL", url)
     with pytest.raises(corpus.IsolationError):
         corpus.eval_database_url()
@@ -76,53 +80,39 @@ async def test_unsafe_names_are_refused_before_any_sql(
         await corpus.recreate_database(url)  # validated inside the destructive function
     with pytest.raises(corpus.IsolationError):
         await corpus.stored_fingerprint(url)
-    assert await exists("compliance_test")
+    assert await exists(server, "compliance_test")
 
 
 @pytest.fixture
-async def unmanaged() -> AsyncIterator[str]:
+async def unmanaged(server: URL) -> AsyncIterator[str]:
     name = "compliance_eval_pytest_unmanaged"
-    await drop(name)
-    conn = await admin()
+    await drop(server, name)
+    conn = await connect(server)
     await conn.execute(f'CREATE DATABASE "{name}"')
     await conn.close()
-    parsed = make_url(TEST_DATABASE_URL)
-    db = await asyncpg.connect(
-        user=parsed.username,
-        password=parsed.password,
-        host=parsed.host,
-        port=parsed.port,
-        database=name,
-    )
+    db = await connect(server, name)
     await db.execute("CREATE TABLE sentinel (x int); INSERT INTO sentinel VALUES (42)")
     await db.close()
     yield name
-    await drop(name)
+    await drop(server, name)
 
 
-async def test_existing_unmanaged_database_is_never_dropped(unmanaged: str) -> None:
-    url = url_for(unmanaged)
+async def test_existing_unmanaged_database_is_never_dropped(unmanaged: str, server: URL) -> None:
+    url = url_for(server, unmanaged)
     assert await corpus.stored_fingerprint(url) is None  # treated as foreign, not stale
     with pytest.raises(corpus.IsolationError, match="not created by this evaluator"):
         await corpus.recreate_database(url)
-    parsed = make_url(TEST_DATABASE_URL)
-    db = await asyncpg.connect(
-        user=parsed.username,
-        password=parsed.password,
-        host=parsed.host,
-        port=parsed.port,
-        database=unmanaged,
-    )
+    db = await connect(server, unmanaged)
     try:
         assert await db.fetchval("SELECT x FROM sentinel") == 42
     finally:
         await db.close()
 
 
-async def test_managed_database_lifecycle_and_lock() -> None:
+async def test_managed_database_lifecycle_and_lock(server: URL) -> None:
     name = "compliance_eval_pytest_managed"
-    url = url_for(name)
-    await drop(name)
+    url = url_for(server, name)
+    await drop(server, name)
     try:
         await corpus.recreate_database(url)  # creates, marks, migrates
         assert await corpus.stored_fingerprint(url) is None  # marked, not yet loaded
@@ -134,4 +124,4 @@ async def test_managed_database_lifecycle_and_lock() -> None:
         async with corpus.EvalLock(url):  # released after the first run ended
             pass
     finally:
-        await drop(name)
+        await drop(server, name)

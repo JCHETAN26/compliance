@@ -15,7 +15,13 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from compliance_core.config import Settings
 from compliance_core.db.session import create_engine, create_session_factory
-from compliance_core.jobs import INGEST_DOCUMENT, QUEUE_NAME, ingest_job_id
+from compliance_core.jobs import (
+    INGEST_DOCUMENT,
+    QUEUE_NAME,
+    RUN_REVIEW,
+    ingest_job_id,
+    review_job_id,
+)
 from compliance_core.model_client import ModelServiceClient
 from compliance_core.security.tokens import TokenSigner
 from compliance_core.services.session_store import (
@@ -93,6 +99,30 @@ class AppContext:
             )
         except (OSError, ConnectionError, RedisError):
             logger.warning("could not enqueue ingestion", extra={"document_id": str(document_id)})
+            return False
+        return True
+
+    async def _pool(self) -> ArqRedis:
+        if self.queue is None:
+            redis_settings = RedisSettings.from_dsn(self.settings.redis_url)
+            redis_settings.conn_retries = 1
+            self.queue = await create_pool(redis_settings, default_queue_name=QUEUE_NAME)
+        return self.queue
+
+    async def enqueue_review(self, run_id: uuid.UUID, generation: int) -> bool:
+        """Queue a review run; returns False if Redis is unavailable (the worker's sweep
+        re-queues runs left ``queued``)."""
+        try:
+            queue = await self._pool()
+            await queue.enqueue_job(
+                RUN_REVIEW,
+                str(run_id),
+                generation,
+                _job_id=review_job_id(run_id, generation),
+                _queue_name=QUEUE_NAME,
+            )
+        except (OSError, ConnectionError, RedisError):
+            logger.warning("could not enqueue review run", extra={"run_id": str(run_id)})
             return False
         return True
 

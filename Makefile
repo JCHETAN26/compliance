@@ -131,6 +131,10 @@ smoke-phase3: ## Phase 3 smoke (rule-check status/UI banner source, /v1/check co
 	$(UV) run python scripts/smoke_phase3.py --web http://127.0.0.1:$(WEB_PORT) \
 		--model-service http://127.0.0.1:$(MODEL_SERVICE_PORT)
 
+.PHONY: smoke-phase4
+smoke-phase4: ## Phase 4 smoke (synthetic flagship review through the web origin; mock LLM by default)
+	$(UV) run python scripts/smoke_phase4.py --web http://127.0.0.1:$(WEB_PORT)
+
 .PHONY: migrate
 migrate: ## Apply database migrations (uses DATABASE_URL)
 	$(UV) run python -m compliance_core.db.migrate upgrade head
