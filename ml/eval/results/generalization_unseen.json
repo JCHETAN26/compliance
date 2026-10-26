@@ -1,0 +1,789 @@
+{
+  "scope": "Official ContractNLI splits; all pairs; every choice fitted on DEV only, no TEST feedback",
+  "data_version": "693b452eef54fdd46c84125278db3c430fbb68f1ed85f098edb5ab4e1675a70f",
+  "provenance": {
+    "timestamp_utc": "2026-10-26T01:25:36+00:00",
+    "command": "/media/grv22/Extreme SSD2/project/compliance/ml/eval/evaluate.py --run-dir /media/grv22/Extreme SSD2/project/kaggle-recovery/eval-haiku-inputs/runs/deberta_v3_base --ablation-run-dir /media/grv22/Extreme SSD2/project/kaggle-recovery/eval-haiku-inputs/runs/modernbert_base --unseen-run-dir /media/grv22/Extreme SSD2/project/kaggle-recovery/eval-haiku-inputs/runs/deberta_v3_base_unseen4 --baselines-dir /media/grv22/Extreme SSD2/project/kaggle-recovery/eval-haiku-inputs/baselines-final --bench /media/grv22/Extreme SSD2/project/kaggle-recovery/eval-haiku-inputs/results/latency_kaggle_cpu.json --data-dir /media/grv22/Extreme SSD2/project/kaggle-recovery/claude-tmp/bundle-data/data --out /media/grv22/Extreme SSD2/project/kaggle-recovery/eval-haiku-final/results",
+    "git_head": "49550f253e173997b9696537761835f944ef5426",
+    "git_dirty": false,
+    "git_dirty_paths": [],
+    "git_dirty_count": 0,
+    "code_fingerprint": {
+      "sha256": "e6dbf5e99c469869441bdeeb377e78fd5149e8ff8e23a8a2838b2b1cd797ba8b",
+      "files": 67,
+      "roots": [
+        "ml",
+        "apps/model-service/src/compliance_model_service/rule_check",
+        "packages/ingestion/src/compliance_ingestion",
+        "rule_packs"
+      ]
+    },
+    "seed": 20261021,
+    "environment": {
+      "python": "3.11.13",
+      "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+      "cpu_model": "AMD Ryzen 7 5800H with Radeon Graphics",
+      "cpu_count": 16,
+      "packages": {
+        "numpy": "2.4.6",
+        "tokenizers": "0.23.3",
+        "onnxruntime": "1.31.0"
+      }
+    }
+  },
+  "held_out_hypotheses": [
+    "nda-1",
+    "nda-16",
+    "nda-18",
+    "nda-8"
+  ],
+  "selection_note": "held-out keys drawn with random.Random(20261021).sample before training",
+  "unseen_run_on_held_out_test": {
+    "label": {
+      "n": 492,
+      "unanswered": 0,
+      "accuracy": 0.33739837398373984,
+      "macro_f1": 0.324303082055359,
+      "per_class": {
+        "entailment": {
+          "precision": 0.46564885496183206,
+          "recall": 0.3674698795180723,
+          "f1": 0.4107744107744108,
+          "support": 166,
+          "predicted": 131
+        },
+        "contradiction": {
+          "precision": 0.08130081300813008,
+          "recall": 0.5405405405405406,
+          "f1": 0.1413427561837456,
+          "support": 37,
+          "predicted": 246
+        },
+        "not_mentioned": {
+          "precision": 0.7391304347826086,
+          "recall": 0.29411764705882354,
+          "f1": 0.4207920792079208,
+          "support": 289,
+          "predicted": 115
+        }
+      },
+      "confusion": {
+        "labels": [
+          "entailment",
+          "contradiction",
+          "not_mentioned"
+        ],
+        "rows_gold_cols_pred": [
+          [
+            61,
+            92,
+            13
+          ],
+          [
+            0,
+            20,
+            17
+          ],
+          [
+            70,
+            134,
+            85
+          ]
+        ]
+      },
+      "macro_f1_ci95": {
+        "low": 0.2834946490807604,
+        "high": 0.36319146159606264,
+        "samples": 2000,
+        "unit": "document"
+      },
+      "accuracy_ci95": {
+        "low": 0.29471544715447157,
+        "high": 0.3821138211382114,
+        "samples": 2000,
+        "unit": "document"
+      }
+    },
+    "per_hypothesis": {
+      "nda-1": {
+        "n": 123,
+        "accuracy": 0.4065040650406504,
+        "macro_f1": 0.296646814065432
+      },
+      "nda-8": {
+        "n": 123,
+        "accuracy": 0.4959349593495935,
+        "macro_f1": 0.4223728813559322
+      },
+      "nda-16": {
+        "n": 123,
+        "accuracy": 0.13821138211382114,
+        "macro_f1": 0.1338399572044432
+      },
+      "nda-18": {
+        "n": 123,
+        "accuracy": 0.3089430894308943,
+        "macro_f1": 0.22363232798015406
+      }
+    },
+    "evidence": {
+      "pairs": 203,
+      "convention": "gold entailment/contradiction pairs; end-to-end denominators (all gold units of the document)",
+      "excluded_not_mentioned_pairs": 289,
+      "units_predicted_on_not_mentioned_pairs": 196,
+      "invalid_claims_counted_as_false_positives": 0,
+      "segment": {
+        "pairs": 203,
+        "precision": 0.609375,
+        "recall": 0.24920127795527156,
+        "f1": 0.3537414965986394,
+        "predicted_units": 128,
+        "gold_units": 313,
+        "map": 0.7600875685965836,
+        "p_at_1": 0.6896551724137931,
+        "p_at_3": 0.37438423645320196,
+        "p_at_5": 0.2571428571428572
+      },
+      "official_span": {
+        "pairs": 203,
+        "precision": 0.43946188340807174,
+        "recall": 0.23058823529411765,
+        "f1": 0.30246913580246915,
+        "predicted_units": 223,
+        "gold_units": 425,
+        "map": 0.7063337787175934,
+        "p_at_8": 0.2105911330049261
+      }
+    },
+    "calibration": {
+      "ece": 0.3109075250449922,
+      "bins": 15,
+      "n": 492,
+      "reliability": [
+        {
+          "lower": 0.0,
+          "upper": 0.06666666666666667,
+          "count": 0,
+          "accuracy": null,
+          "mean_confidence": null
+        },
+        {
+          "lower": 0.06666666666666667,
+          "upper": 0.13333333333333333,
+          "count": 0,
+          "accuracy": null,
+          "mean_confidence": null
+        },
+        {
+          "lower": 0.13333333333333333,
+          "upper": 0.2,
+          "count": 0,
+          "accuracy": null,
+          "mean_confidence": null
+        },
+        {
+          "lower": 0.2,
+          "upper": 0.26666666666666666,
+          "count": 0,
+          "accuracy": null,
+          "mean_confidence": null
+        },
+        {
+          "lower": 0.26666666666666666,
+          "upper": 0.3333333333333333,
+          "count": 0,
+          "accuracy": null,
+          "mean_confidence": null
+        },
+        {
+          "lower": 0.3333333333333333,
+          "upper": 0.4,
+          "count": 12,
+          "accuracy": 0.16666666666666666,
+          "mean_confidence": 0.3858011400990466
+        },
+        {
+          "lower": 0.4,
+          "upper": 0.4666666666666667,
+          "count": 73,
+          "accuracy": 0.4246575342465753,
+          "mean_confidence": 0.43856261648875416
+        },
+        {
+          "lower": 0.4666666666666667,
+          "upper": 0.5333333333333333,
+          "count": 71,
+          "accuracy": 0.352112676056338,
+          "mean_confidence": 0.49969766294394385
+        },
+        {
+          "lower": 0.5333333333333333,
+          "upper": 0.6,
+          "count": 60,
+          "accuracy": 0.35,
+          "mean_confidence": 0.5638268724947825
+        },
+        {
+          "lower": 0.6,
+          "upper": 0.6666666666666666,
+          "count": 43,
+          "accuracy": 0.3488372093023256,
+          "mean_confidence": 0.630950242018876
+        },
+        {
+          "lower": 0.6666666666666666,
+          "upper": 0.7333333333333333,
+          "count": 49,
+          "accuracy": 0.3673469387755102,
+          "mean_confidence": 0.7007933222506727
+        },
+        {
+          "lower": 0.7333333333333333,
+          "upper": 0.8,
+          "count": 86,
+          "accuracy": 0.1511627906976744,
+          "mean_confidence": 0.7723097095936282
+        },
+        {
+          "lower": 0.8,
+          "upper": 0.8666666666666667,
+          "count": 45,
+          "accuracy": 0.28888888888888886,
+          "mean_confidence": 0.8239214037179969
+        },
+        {
+          "lower": 0.8666666666666667,
+          "upper": 0.9333333333333333,
+          "count": 53,
+          "accuracy": 0.5283018867924528,
+          "mean_confidence": 0.9065818835680203
+        },
+        {
+          "lower": 0.9333333333333333,
+          "upper": 1.0,
+          "count": 0,
+          "accuracy": null,
+          "mean_confidence": null
+        }
+      ]
+    },
+    "errors": 0
+  },
+  "unseen_run_on_seen_test": {
+    "label": {
+      "n": 1599,
+      "unanswered": 0,
+      "accuracy": 0.8305190744215134,
+      "macro_f1": 0.7868497957493142,
+      "per_class": {
+        "entailment": {
+          "precision": 0.8481152993348116,
+          "recall": 0.9538653366583542,
+          "f1": 0.8978873239436621,
+          "support": 802,
+          "predicted": 902
+        },
+        "contradiction": {
+          "precision": 0.5942622950819673,
+          "recall": 0.7923497267759563,
+          "f1": 0.6791569086651055,
+          "support": 183,
+          "predicted": 244
+        },
+        "not_mentioned": {
+          "precision": 0.9227373068432672,
+          "recall": 0.6807817589576547,
+          "f1": 0.7835051546391751,
+          "support": 614,
+          "predicted": 453
+        }
+      },
+      "confusion": {
+        "labels": [
+          "entailment",
+          "contradiction",
+          "not_mentioned"
+        ],
+        "rows_gold_cols_pred": [
+          [
+            765,
+            13,
+            24
+          ],
+          [
+            27,
+            145,
+            11
+          ],
+          [
+            110,
+            86,
+            418
+          ]
+        ]
+      },
+      "macro_f1_ci95": {
+        "low": 0.7623826192929994,
+        "high": 0.8102374668872225,
+        "samples": 2000,
+        "unit": "document"
+      },
+      "accuracy_ci95": {
+        "low": 0.8105065666041276,
+        "high": 0.849906191369606,
+        "samples": 2000,
+        "unit": "document"
+      }
+    },
+    "per_hypothesis": {
+      "nda-2": {
+        "n": 123,
+        "accuracy": 0.8373983739837398,
+        "macro_f1": 0.5388198757763975
+      },
+      "nda-3": {
+        "n": 123,
+        "accuracy": 0.7967479674796748,
+        "macro_f1": 0.522633744855967
+      },
+      "nda-4": {
+        "n": 123,
+        "accuracy": 0.8780487804878049,
+        "macro_f1": 0.5105022831050228
+      },
+      "nda-5": {
+        "n": 123,
+        "accuracy": 0.8211382113821138,
+        "macro_f1": 0.45213464696223316
+      },
+      "nda-7": {
+        "n": 123,
+        "accuracy": 0.7154471544715447,
+        "macro_f1": 0.49230839125891607
+      },
+      "nda-10": {
+        "n": 123,
+        "accuracy": 0.8699186991869918,
+        "macro_f1": 0.5768036529680365
+      },
+      "nda-11": {
+        "n": 123,
+        "accuracy": 0.991869918699187,
+        "macro_f1": 0.6527989176391004
+      },
+      "nda-12": {
+        "n": 123,
+        "accuracy": 0.8292682926829268,
+        "macro_f1": 0.5393845319930026
+      },
+      "nda-13": {
+        "n": 123,
+        "accuracy": 0.926829268292683,
+        "macro_f1": 0.587761502548202
+      },
+      "nda-15": {
+        "n": 123,
+        "accuracy": 0.8943089430894309,
+        "macro_f1": 0.579382625071645
+      },
+      "nda-17": {
+        "n": 123,
+        "accuracy": 0.8048780487804879,
+        "macro_f1": 0.7836109773712084
+      },
+      "nda-19": {
+        "n": 123,
+        "accuracy": 0.8536585365853658,
+        "macro_f1": 0.5611709913506321
+      },
+      "nda-20": {
+        "n": 123,
+        "accuracy": 0.5772357723577236,
+        "macro_f1": 0.5989677499111461
+      }
+    },
+    "evidence": {
+      "pairs": 985,
+      "convention": "gold entailment/contradiction pairs; end-to-end denominators (all gold units of the document)",
+      "excluded_not_mentioned_pairs": 614,
+      "units_predicted_on_not_mentioned_pairs": 161,
+      "invalid_claims_counted_as_false_positives": 0,
+      "segment": {
+        "pairs": 985,
+        "precision": 0.7845679012345679,
+        "recall": 0.80239898989899,
+        "f1": 0.7933832709113607,
+        "predicted_units": 1620,
+        "gold_units": 1584,
+        "map": 0.9182332940740167,
+        "p_at_1": 0.9197969543147209,
+        "p_at_3": 0.47106598984771575,
+        "p_at_5": 0.2996954314720813
+      },
+      "official_span": {
+        "pairs": 985,
+        "precision": 0.5390650539391958,
+        "recall": 0.8332491157150076,
+        "f1": 0.6546248511314013,
+        "predicted_units": 3059,
+        "gold_units": 1979,
+        "map": 0.8191019713028741,
+        "p_at_8": 0.23439086294416245
+      }
+    },
+    "calibration": {
+      "ece": 0.06810166778366125,
+      "bins": 15,
+      "n": 1599,
+      "reliability": [
+        {
+          "lower": 0.0,
+          "upper": 0.06666666666666667,
+          "count": 0,
+          "accuracy": null,
+          "mean_confidence": null
+        },
+        {
+          "lower": 0.06666666666666667,
+          "upper": 0.13333333333333333,
+          "count": 0,
+          "accuracy": null,
+          "mean_confidence": null
+        },
+        {
+          "lower": 0.13333333333333333,
+          "upper": 0.2,
+          "count": 0,
+          "accuracy": null,
+          "mean_confidence": null
+        },
+        {
+          "lower": 0.2,
+          "upper": 0.26666666666666666,
+          "count": 0,
+          "accuracy": null,
+          "mean_confidence": null
+        },
+        {
+          "lower": 0.26666666666666666,
+          "upper": 0.3333333333333333,
+          "count": 0,
+          "accuracy": null,
+          "mean_confidence": null
+        },
+        {
+          "lower": 0.3333333333333333,
+          "upper": 0.4,
+          "count": 3,
+          "accuracy": 0.0,
+          "mean_confidence": 0.38924698138116787
+        },
+        {
+          "lower": 0.4,
+          "upper": 0.4666666666666667,
+          "count": 20,
+          "accuracy": 0.15,
+          "mean_confidence": 0.44103272323786225
+        },
+        {
+          "lower": 0.4666666666666667,
+          "upper": 0.5333333333333333,
+          "count": 33,
+          "accuracy": 0.3939393939393939,
+          "mean_confidence": 0.5015942373964332
+        },
+        {
+          "lower": 0.5333333333333333,
+          "upper": 0.6,
+          "count": 44,
+          "accuracy": 0.5,
+          "mean_confidence": 0.5703680171162954
+        },
+        {
+          "lower": 0.6,
+          "upper": 0.6666666666666666,
+          "count": 59,
+          "accuracy": 0.4915254237288136,
+          "mean_confidence": 0.6364747591777399
+        },
+        {
+          "lower": 0.6666666666666666,
+          "upper": 0.7333333333333333,
+          "count": 47,
+          "accuracy": 0.6382978723404256,
+          "mean_confidence": 0.6997567320424074
+        },
+        {
+          "lower": 0.7333333333333333,
+          "upper": 0.8,
+          "count": 104,
+          "accuracy": 0.5576923076923077,
+          "mean_confidence": 0.7668699260590548
+        },
+        {
+          "lower": 0.8,
+          "upper": 0.8666666666666667,
+          "count": 219,
+          "accuracy": 0.7168949771689498,
+          "mean_confidence": 0.8368948555923129
+        },
+        {
+          "lower": 0.8666666666666667,
+          "upper": 0.9333333333333333,
+          "count": 932,
+          "accuracy": 0.944206008583691,
+          "mean_confidence": 0.9131866122470295
+        },
+        {
+          "lower": 0.9333333333333333,
+          "upper": 1.0,
+          "count": 138,
+          "accuracy": 0.9855072463768116,
+          "mean_confidence": 0.9357081991169004
+        }
+      ]
+    },
+    "errors": 0
+  },
+  "primary_run_on_same_held_out_test (trained with them)": {
+    "label": {
+      "n": 492,
+      "unanswered": 0,
+      "accuracy": 0.8373983739837398,
+      "macro_f1": 0.7832267259396755,
+      "per_class": {
+        "entailment": {
+          "precision": 0.7807486631016043,
+          "recall": 0.8795180722891566,
+          "f1": 0.8271954674220963,
+          "support": 166,
+          "predicted": 187
+        },
+        "contradiction": {
+          "precision": 0.5357142857142857,
+          "recall": 0.8108108108108109,
+          "f1": 0.6451612903225806,
+          "support": 37,
+          "predicted": 56
+        },
+        "not_mentioned": {
+          "precision": 0.9477911646586346,
+          "recall": 0.8166089965397924,
+          "f1": 0.8773234200743495,
+          "support": 289,
+          "predicted": 249
+        }
+      },
+      "confusion": {
+        "labels": [
+          "entailment",
+          "contradiction",
+          "not_mentioned"
+        ],
+        "rows_gold_cols_pred": [
+          [
+            146,
+            11,
+            9
+          ],
+          [
+            3,
+            30,
+            4
+          ],
+          [
+            38,
+            15,
+            236
+          ]
+        ]
+      },
+      "macro_f1_ci95": {
+        "low": 0.732416399870014,
+        "high": 0.8290128835054209,
+        "samples": 2000,
+        "unit": "document"
+      },
+      "accuracy_ci95": {
+        "low": 0.8028455284552846,
+        "high": 0.8678861788617886,
+        "samples": 2000,
+        "unit": "document"
+      }
+    },
+    "per_hypothesis": {
+      "nda-1": {
+        "n": 123,
+        "accuracy": 0.7154471544715447,
+        "macro_f1": 0.6804887030169127
+      },
+      "nda-8": {
+        "n": 123,
+        "accuracy": 0.8536585365853658,
+        "macro_f1": 0.554029304029304
+      },
+      "nda-16": {
+        "n": 123,
+        "accuracy": 0.8292682926829268,
+        "macro_f1": 0.5426470588235294
+      },
+      "nda-18": {
+        "n": 123,
+        "accuracy": 0.9512195121951219,
+        "macro_f1": 0.6235390369331463
+      }
+    },
+    "evidence": {
+      "pairs": 203,
+      "convention": "gold entailment/contradiction pairs; end-to-end denominators (all gold units of the document)",
+      "excluded_not_mentioned_pairs": 289,
+      "units_predicted_on_not_mentioned_pairs": 43,
+      "invalid_claims_counted_as_false_positives": 0,
+      "segment": {
+        "pairs": 203,
+        "precision": 0.7972027972027972,
+        "recall": 0.7284345047923323,
+        "f1": 0.7612687813021702,
+        "predicted_units": 286,
+        "gold_units": 313,
+        "map": 0.9523911458939428,
+        "p_at_1": 0.9655172413793104,
+        "p_at_3": 0.458128078817734,
+        "p_at_5": 0.2876847290640394
+      },
+      "official_span": {
+        "pairs": 203,
+        "precision": 0.5414634146341464,
+        "recall": 0.7835294117647059,
+        "f1": 0.6403846153846153,
+        "predicted_units": 615,
+        "gold_units": 425,
+        "map": 0.8803298119086144,
+        "p_at_8": 0.24322660098522167
+      }
+    },
+    "calibration": {
+      "ece": 0.03567253661203927,
+      "bins": 15,
+      "n": 492,
+      "reliability": [
+        {
+          "lower": 0.0,
+          "upper": 0.06666666666666667,
+          "count": 0,
+          "accuracy": null,
+          "mean_confidence": null
+        },
+        {
+          "lower": 0.06666666666666667,
+          "upper": 0.13333333333333333,
+          "count": 0,
+          "accuracy": null,
+          "mean_confidence": null
+        },
+        {
+          "lower": 0.13333333333333333,
+          "upper": 0.2,
+          "count": 0,
+          "accuracy": null,
+          "mean_confidence": null
+        },
+        {
+          "lower": 0.2,
+          "upper": 0.26666666666666666,
+          "count": 0,
+          "accuracy": null,
+          "mean_confidence": null
+        },
+        {
+          "lower": 0.26666666666666666,
+          "upper": 0.3333333333333333,
+          "count": 0,
+          "accuracy": null,
+          "mean_confidence": null
+        },
+        {
+          "lower": 0.3333333333333333,
+          "upper": 0.4,
+          "count": 0,
+          "accuracy": null,
+          "mean_confidence": null
+        },
+        {
+          "lower": 0.4,
+          "upper": 0.4666666666666667,
+          "count": 3,
+          "accuracy": 0.6666666666666666,
+          "mean_confidence": 0.44329751628903935
+        },
+        {
+          "lower": 0.4666666666666667,
+          "upper": 0.5333333333333333,
+          "count": 6,
+          "accuracy": 0.6666666666666666,
+          "mean_confidence": 0.5066495979172695
+        },
+        {
+          "lower": 0.5333333333333333,
+          "upper": 0.6,
+          "count": 12,
+          "accuracy": 0.6666666666666666,
+          "mean_confidence": 0.562568775441904
+        },
+        {
+          "lower": 0.6,
+          "upper": 0.6666666666666666,
+          "count": 10,
+          "accuracy": 0.6,
+          "mean_confidence": 0.6293520046175521
+        },
+        {
+          "lower": 0.6666666666666666,
+          "upper": 0.7333333333333333,
+          "count": 28,
+          "accuracy": 0.5714285714285714,
+          "mean_confidence": 0.7064281895787118
+        },
+        {
+          "lower": 0.7333333333333333,
+          "upper": 0.8,
+          "count": 46,
+          "accuracy": 0.6304347826086957,
+          "mean_confidence": 0.7711799908005311
+        },
+        {
+          "lower": 0.8,
+          "upper": 0.8666666666666667,
+          "count": 98,
+          "accuracy": 0.826530612244898,
+          "mean_confidence": 0.8348056680937622
+        },
+        {
+          "lower": 0.8666666666666667,
+          "upper": 0.9333333333333333,
+          "count": 289,
+          "accuracy": 0.9204152249134948,
+          "mean_confidence": 0.9089523908290508
+        },
+        {
+          "lower": 0.9333333333333333,
+          "upper": 1.0,
+          "count": 0,
+          "accuracy": null,
+          "mean_confidence": null
+        }
+      ]
+    },
+    "errors": 0
+  },
+  "unseen_run": {
+    "dir": "/media/grv22/Extreme SSD2/project/kaggle-recovery/eval-haiku-inputs/runs/deberta_v3_base_unseen4",
+    "k": 5,
+    "temperature": {
+      "temperature": 2.3995768594789495,
+      "nll_before": 0.7356873427227592,
+      "nll_after": 0.4543082237089523,
+      "n": 793
+    }
+  }
+}

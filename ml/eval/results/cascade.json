@@ -1,0 +1,1360 @@
+{
+  "scope": "Official ContractNLI splits; all pairs; every choice fitted on DEV only, no TEST feedback",
+  "data_version": "693b452eef54fdd46c84125278db3c430fbb68f1ed85f098edb5ab4e1675a70f",
+  "provenance": {
+    "timestamp_utc": "2026-10-26T01:25:36+00:00",
+    "command": "/media/grv22/Extreme SSD2/project/compliance/ml/eval/evaluate.py --run-dir /media/grv22/Extreme SSD2/project/kaggle-recovery/eval-haiku-inputs/runs/deberta_v3_base --ablation-run-dir /media/grv22/Extreme SSD2/project/kaggle-recovery/eval-haiku-inputs/runs/modernbert_base --unseen-run-dir /media/grv22/Extreme SSD2/project/kaggle-recovery/eval-haiku-inputs/runs/deberta_v3_base_unseen4 --baselines-dir /media/grv22/Extreme SSD2/project/kaggle-recovery/eval-haiku-inputs/baselines-final --bench /media/grv22/Extreme SSD2/project/kaggle-recovery/eval-haiku-inputs/results/latency_kaggle_cpu.json --data-dir /media/grv22/Extreme SSD2/project/kaggle-recovery/claude-tmp/bundle-data/data --out /media/grv22/Extreme SSD2/project/kaggle-recovery/eval-haiku-final/results",
+    "git_head": "49550f253e173997b9696537761835f944ef5426",
+    "git_dirty": false,
+    "git_dirty_paths": [],
+    "git_dirty_count": 0,
+    "code_fingerprint": {
+      "sha256": "e6dbf5e99c469869441bdeeb377e78fd5149e8ff8e23a8a2838b2b1cd797ba8b",
+      "files": 67,
+      "roots": [
+        "ml",
+        "apps/model-service/src/compliance_model_service/rule_check",
+        "packages/ingestion/src/compliance_ingestion",
+        "rule_packs"
+      ]
+    },
+    "seed": 20261021,
+    "environment": {
+      "python": "3.11.13",
+      "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+      "cpu_model": "AMD Ryzen 7 5800H with Radeon Graphics",
+      "cpu_count": 16,
+      "packages": {
+        "numpy": "2.4.6",
+        "tokenizers": "0.23.3",
+        "onnxruntime": "1.31.0"
+      }
+    }
+  },
+  "llm_baseline": "usable",
+  "tau_selection": {
+    "tau": 0.3,
+    "rule": "smallest tau with DEV cascade accuracy >= LLM-only DEV accuracy - 0.01",
+    "llm_only_dev_accuracy": 0.742526518804243,
+    "satisfiable": true,
+    "provisional": false
+  },
+  "test_at_tau": {
+    "tau": 0.3,
+    "coverage": 1.0,
+    "model_accuracy_on_covered": 0.852702056432329,
+    "cascade_accuracy": 0.852702056432329,
+    "cascade_macro_f1": 0.8137780168594805,
+    "llm_cost_per_document_usd": 0.0,
+    "mean_latency_per_pair_s": 10.012982317000933
+  },
+  "dev_at_tau": {
+    "tau": 0.3,
+    "coverage": 1.0,
+    "model_accuracy_on_covered": 0.8486017357762777,
+    "cascade_accuracy": 0.8486017357762777,
+    "cascade_macro_f1": 0.802027619858945,
+    "llm_cost_per_document_usd": 0.0,
+    "mean_latency_per_pair_s": 10.012982317000933
+  },
+  "llm_only_test": {
+    "accuracy": 0.7393591582974653,
+    "macro_f1": 0.703409437263637,
+    "cost": {
+      "total_usd": 0.24150563000000025,
+      "per_document_usd": 0.001963460406504067,
+      "pairs_with_cost": 2091
+    },
+    "latency_s": {
+      "p50": 1.1636,
+      "p95": 1.6582,
+      "mean": 1.1647646580583453,
+      "n": 2091
+    }
+  },
+  "model_latency_p50_s_per_pair": 10.012982317000933,
+  "curves": {
+    "dev": [
+      {
+        "tau": 0.3,
+        "coverage": 1.0,
+        "model_accuracy_on_covered": 0.8486017357762777,
+        "cascade_accuracy": 0.8486017357762777,
+        "cascade_macro_f1": 0.802027619858945,
+        "llm_cost_per_document_usd": 0.0,
+        "mean_latency_per_pair_s": 10.012982317000933
+      },
+      {
+        "tau": 0.31,
+        "coverage": 1.0,
+        "model_accuracy_on_covered": 0.8486017357762777,
+        "cascade_accuracy": 0.8486017357762777,
+        "cascade_macro_f1": 0.802027619858945,
+        "llm_cost_per_document_usd": 0.0,
+        "mean_latency_per_pair_s": 10.012982317000933
+      },
+      {
+        "tau": 0.32,
+        "coverage": 1.0,
+        "model_accuracy_on_covered": 0.8486017357762777,
+        "cascade_accuracy": 0.8486017357762777,
+        "cascade_macro_f1": 0.802027619858945,
+        "llm_cost_per_document_usd": 0.0,
+        "mean_latency_per_pair_s": 10.012982317000933
+      },
+      {
+        "tau": 0.33,
+        "coverage": 1.0,
+        "model_accuracy_on_covered": 0.8486017357762777,
+        "cascade_accuracy": 0.8486017357762777,
+        "cascade_macro_f1": 0.802027619858945,
+        "llm_cost_per_document_usd": 0.0,
+        "mean_latency_per_pair_s": 10.012982317000933
+      },
+      {
+        "tau": 0.34,
+        "coverage": 1.0,
+        "model_accuracy_on_covered": 0.8486017357762777,
+        "cascade_accuracy": 0.8486017357762777,
+        "cascade_macro_f1": 0.802027619858945,
+        "llm_cost_per_document_usd": 0.0,
+        "mean_latency_per_pair_s": 10.012982317000933
+      },
+      {
+        "tau": 0.35,
+        "coverage": 1.0,
+        "model_accuracy_on_covered": 0.8486017357762777,
+        "cascade_accuracy": 0.8486017357762777,
+        "cascade_macro_f1": 0.802027619858945,
+        "llm_cost_per_document_usd": 0.0,
+        "mean_latency_per_pair_s": 10.012982317000933
+      },
+      {
+        "tau": 0.36,
+        "coverage": 1.0,
+        "model_accuracy_on_covered": 0.8486017357762777,
+        "cascade_accuracy": 0.8486017357762777,
+        "cascade_macro_f1": 0.802027619858945,
+        "llm_cost_per_document_usd": 0.0,
+        "mean_latency_per_pair_s": 10.012982317000933
+      },
+      {
+        "tau": 0.37,
+        "coverage": 0.9990356798457087,
+        "model_accuracy_on_covered": 0.8494208494208494,
+        "cascade_accuracy": 0.849566055930569,
+        "cascade_macro_f1": 0.80273338791761,
+        "llm_cost_per_document_usd": 2.610327868852459e-06,
+        "mean_latency_per_pair_s": 10.014122722015397
+      },
+      {
+        "tau": 0.38,
+        "coverage": 0.9990356798457087,
+        "model_accuracy_on_covered": 0.8494208494208494,
+        "cascade_accuracy": 0.849566055930569,
+        "cascade_macro_f1": 0.80273338791761,
+        "llm_cost_per_document_usd": 2.610327868852459e-06,
+        "mean_latency_per_pair_s": 10.014122722015397
+      },
+      {
+        "tau": 0.39,
+        "coverage": 0.9980713596914176,
+        "model_accuracy_on_covered": 0.8502415458937198,
+        "cascade_accuracy": 0.849566055930569,
+        "cascade_macro_f1": 0.80273338791761,
+        "llm_cost_per_document_usd": 5.064918032786886e-06,
+        "mean_latency_per_pair_s": 10.015372288071328
+      },
+      {
+        "tau": 0.4,
+        "coverage": 0.9980713596914176,
+        "model_accuracy_on_covered": 0.8502415458937198,
+        "cascade_accuracy": 0.849566055930569,
+        "cascade_macro_f1": 0.80273338791761,
+        "llm_cost_per_document_usd": 5.064918032786886e-06,
+        "mean_latency_per_pair_s": 10.015372288071328
+      },
+      {
+        "tau": 0.41,
+        "coverage": 0.9971070395371263,
+        "model_accuracy_on_covered": 0.8500967117988395,
+        "cascade_accuracy": 0.849566055930569,
+        "cascade_macro_f1": 0.80273338791761,
+        "llm_cost_per_document_usd": 6.675245901639345e-06,
+        "mean_latency_per_pair_s": 10.016068430790712
+      },
+      {
+        "tau": 0.42,
+        "coverage": 0.9971070395371263,
+        "model_accuracy_on_covered": 0.8500967117988395,
+        "cascade_accuracy": 0.849566055930569,
+        "cascade_macro_f1": 0.80273338791761,
+        "llm_cost_per_document_usd": 6.675245901639345e-06,
+        "mean_latency_per_pair_s": 10.016068430790712
+      },
+      {
+        "tau": 0.43,
+        "coverage": 0.9951783992285439,
+        "model_accuracy_on_covered": 0.8498062015503876,
+        "cascade_accuracy": 0.849566055930569,
+        "cascade_macro_f1": 0.80273338791761,
+        "llm_cost_per_document_usd": 1.0566393442622952e-05,
+        "mean_latency_per_pair_s": 10.01752841150431
+      },
+      {
+        "tau": 0.44,
+        "coverage": 0.9932497589199615,
+        "model_accuracy_on_covered": 0.8504854368932039,
+        "cascade_accuracy": 0.849566055930569,
+        "cascade_macro_f1": 0.803547210279583,
+        "llm_cost_per_document_usd": 1.5014918032786885e-05,
+        "mean_latency_per_pair_s": 10.020170455863036
+      },
+      {
+        "tau": 0.45,
+        "coverage": 0.9903567984570878,
+        "model_accuracy_on_covered": 0.8510223953261928,
+        "cascade_accuracy": 0.8505303760848602,
+        "cascade_macro_f1": 0.8050514517098221,
+        "llm_cost_per_document_usd": 1.9734426229508198e-05,
+        "mean_latency_per_pair_s": 10.023883281321087
+      },
+      {
+        "tau": 0.46,
+        "coverage": 0.9884281581485053,
+        "model_accuracy_on_covered": 0.8507317073170731,
+        "cascade_accuracy": 0.8505303760848602,
+        "cascade_macro_f1": 0.8050514517098221,
+        "llm_cost_per_document_usd": 2.2905901639344263e-05,
+        "mean_latency_per_pair_s": 10.026396588939217
+      },
+      {
+        "tau": 0.47,
+        "coverage": 0.9864995178399228,
+        "model_accuracy_on_covered": 0.852394916911046,
+        "cascade_accuracy": 0.8505303760848602,
+        "cascade_macro_f1": 0.8043265878095007,
+        "llm_cost_per_document_usd": 2.7075737704918034e-05,
+        "mean_latency_per_pair_s": 10.028747697907395
+      },
+      {
+        "tau": 0.48,
+        "coverage": 0.9855351976856316,
+        "model_accuracy_on_covered": 0.8532289628180039,
+        "cascade_accuracy": 0.8505303760848602,
+        "cascade_macro_f1": 0.8043265878095007,
+        "llm_cost_per_document_usd": 2.9131967213114755e-05,
+        "mean_latency_per_pair_s": 10.029868527222726
+      },
+      {
+        "tau": 0.49,
+        "coverage": 0.982642237222758,
+        "model_accuracy_on_covered": 0.8547595682041217,
+        "cascade_accuracy": 0.8514946962391514,
+        "cascade_macro_f1": 0.8043181670160594,
+        "llm_cost_per_document_usd": 3.6495737704918035e-05,
+        "mean_latency_per_pair_s": 10.033630629440664
+      },
+      {
+        "tau": 0.5,
+        "coverage": 0.9807135969141755,
+        "model_accuracy_on_covered": 0.8544739429695182,
+        "cascade_accuracy": 0.8514946962391514,
+        "cascade_macro_f1": 0.8043181670160594,
+        "llm_cost_per_document_usd": 3.9990163934426237e-05,
+        "mean_latency_per_pair_s": 10.03600999298936
+      },
+      {
+        "tau": 0.51,
+        "coverage": 0.9787849566055931,
+        "model_accuracy_on_covered": 0.8561576354679803,
+        "cascade_accuracy": 0.8524590163934426,
+        "cascade_macro_f1": 0.8065230355956431,
+        "llm_cost_per_document_usd": 4.4130491803278704e-05,
+        "mean_latency_per_pair_s": 10.037446637155226
+      },
+      {
+        "tau": 0.52,
+        "coverage": 0.9768563162970106,
+        "model_accuracy_on_covered": 0.8558736426456071,
+        "cascade_accuracy": 0.8505303760848602,
+        "cascade_macro_f1": 0.8042499857124082,
+        "llm_cost_per_document_usd": 4.794950819672132e-05,
+        "mean_latency_per_pair_s": 10.039319250462842
+      },
+      {
+        "tau": 0.53,
+        "coverage": 0.9758919961427194,
+        "model_accuracy_on_covered": 0.8567193675889329,
+        "cascade_accuracy": 0.8514946962391514,
+        "cascade_macro_f1": 0.8049571006623895,
+        "llm_cost_per_document_usd": 4.9550000000000005e-05,
+        "mean_latency_per_pair_s": 10.040692731658599
+      },
+      {
+        "tau": 0.54,
+        "coverage": 0.9720347155255545,
+        "model_accuracy_on_covered": 0.8591269841269841,
+        "cascade_accuracy": 0.8524590163934426,
+        "cascade_macro_f1": 0.806449689693118,
+        "llm_cost_per_document_usd": 5.8535573770491806e-05,
+        "mean_latency_per_pair_s": 10.045261005525523
+      },
+      {
+        "tau": 0.55,
+        "coverage": 0.9720347155255545,
+        "model_accuracy_on_covered": 0.8591269841269841,
+        "cascade_accuracy": 0.8524590163934426,
+        "cascade_macro_f1": 0.806449689693118,
+        "llm_cost_per_document_usd": 5.8535573770491806e-05,
+        "mean_latency_per_pair_s": 10.045261005525523
+      },
+      {
+        "tau": 0.56,
+        "coverage": 0.9691417550626809,
+        "model_accuracy_on_covered": 0.8597014925373134,
+        "cascade_accuracy": 0.8524590163934426,
+        "cascade_macro_f1": 0.8059022674075461,
+        "llm_cost_per_document_usd": 6.417639344262297e-05,
+        "mean_latency_per_pair_s": 10.048817996846642
+      },
+      {
+        "tau": 0.57,
+        "coverage": 0.9662487945998072,
+        "model_accuracy_on_covered": 0.8602794411177644,
+        "cascade_accuracy": 0.8524590163934426,
+        "cascade_macro_f1": 0.8059022674075461,
+        "llm_cost_per_document_usd": 7.078278688524591e-05,
+        "mean_latency_per_pair_s": 10.052372673799391
+      },
+      {
+        "tau": 0.58,
+        "coverage": 0.9633558341369335,
+        "model_accuracy_on_covered": 0.8608608608608609,
+        "cascade_accuracy": 0.8524590163934426,
+        "cascade_macro_f1": 0.8059022674075461,
+        "llm_cost_per_document_usd": 7.724819672131146e-05,
+        "mean_latency_per_pair_s": 10.055366598582419
+      },
+      {
+        "tau": 0.59,
+        "coverage": 0.9566055930568949,
+        "model_accuracy_on_covered": 0.8659274193548387,
+        "cascade_accuracy": 0.8563162970106075,
+        "cascade_macro_f1": 0.8082493749790262,
+        "llm_cost_per_document_usd": 8.970573770491802e-05,
+        "mean_latency_per_pair_s": 10.06361799684664
+      },
+      {
+        "tau": 0.6,
+        "coverage": 0.9517839922854388,
+        "model_accuracy_on_covered": 0.8682877406281662,
+        "cascade_accuracy": 0.8563162970106075,
+        "cascade_macro_f1": 0.807276809374636,
+        "llm_cost_per_document_usd": 9.901803278688522e-05,
+        "mean_latency_per_pair_s": 10.070079134744423
+      },
+      {
+        "tau": 0.61,
+        "coverage": 0.9488910318225651,
+        "model_accuracy_on_covered": 0.8709349593495935,
+        "cascade_accuracy": 0.8592092574734812,
+        "cascade_macro_f1": 0.8110371287522011,
+        "llm_cost_per_document_usd": 0.00010382934426229507,
+        "mean_latency_per_pair_s": 10.073123782767569
+      },
+      {
+        "tau": 0.62,
+        "coverage": 0.9479267116682739,
+        "model_accuracy_on_covered": 0.8708036622583927,
+        "cascade_accuracy": 0.8592092574734812,
+        "cascade_macro_f1": 0.8110371287522011,
+        "llm_cost_per_document_usd": 0.00010611836065573767,
+        "mean_latency_per_pair_s": 10.075073155959469
+      },
+      {
+        "tau": 0.63,
+        "coverage": 0.9450337512054002,
+        "model_accuracy_on_covered": 0.8724489795918368,
+        "cascade_accuracy": 0.8601735776277725,
+        "cascade_macro_f1": 0.8125205897909303,
+        "llm_cost_per_document_usd": 0.0001118329508196721,
+        "mean_latency_per_pair_s": 10.077859751909322
+      },
+      {
+        "tau": 0.64,
+        "coverage": 0.9411764705882353,
+        "model_accuracy_on_covered": 0.875,
+        "cascade_accuracy": 0.8601735776277725,
+        "cascade_macro_f1": 0.81307987792907,
+        "llm_cost_per_document_usd": 0.0001199185245901639,
+        "mean_latency_per_pair_s": 10.082739211890036
+      },
+      {
+        "tau": 0.65,
+        "coverage": 0.9344262295081968,
+        "model_accuracy_on_covered": 0.8771929824561403,
+        "cascade_accuracy": 0.863066538090646,
+        "cascade_macro_f1": 0.8173312350381418,
+        "llm_cost_per_document_usd": 0.000132451475409836,
+        "mean_latency_per_pair_s": 10.089782220568917
+      },
+      {
+        "tau": 0.66,
+        "coverage": 0.9315332690453231,
+        "model_accuracy_on_covered": 0.8778467908902692,
+        "cascade_accuracy": 0.8621022179363549,
+        "cascade_macro_f1": 0.8157765106336231,
+        "llm_cost_per_document_usd": 0.00013834147540983606,
+        "mean_latency_per_pair_s": 10.09262204699129
+      },
+      {
+        "tau": 0.67,
+        "coverage": 0.9247830279652844,
+        "model_accuracy_on_covered": 0.8769551616266945,
+        "cascade_accuracy": 0.8601735776277725,
+        "cascade_macro_f1": 0.8127787785619112,
+        "llm_cost_per_document_usd": 0.00015181868852459014,
+        "mean_latency_per_pair_s": 10.100225807839891
+      },
+      {
+        "tau": 0.68,
+        "coverage": 0.9170684667309547,
+        "model_accuracy_on_covered": 0.8769716088328076,
+        "cascade_accuracy": 0.8592092574734812,
+        "cascade_macro_f1": 0.8112705091336906,
+        "llm_cost_per_document_usd": 0.0001688767213114754,
+        "mean_latency_per_pair_s": 10.108265441398235
+      },
+      {
+        "tau": 0.69,
+        "coverage": 0.914175506268081,
+        "model_accuracy_on_covered": 0.8786919831223629,
+        "cascade_accuracy": 0.8592092574734812,
+        "cascade_macro_f1": 0.8112705091336906,
+        "llm_cost_per_document_usd": 0.00017464049180327868,
+        "mean_latency_per_pair_s": 10.112400156923787
+      },
+      {
+        "tau": 0.7,
+        "coverage": 0.9103182256509161,
+        "model_accuracy_on_covered": 0.8802966101694916,
+        "cascade_accuracy": 0.8582449373191899,
+        "cascade_macro_f1": 0.8104912665246368,
+        "llm_cost_per_document_usd": 0.0001823867213114754,
+        "mean_latency_per_pair_s": 10.115821661263228
+      },
+      {
+        "tau": 0.71,
+        "coverage": 0.90549662487946,
+        "model_accuracy_on_covered": 0.8807241746538871,
+        "cascade_accuracy": 0.8563162970106075,
+        "cascade_macro_f1": 0.8090074532249956,
+        "llm_cost_per_document_usd": 0.0001936777049180328,
+        "mean_latency_per_pair_s": 10.120849915843749
+      },
+      {
+        "tau": 0.72,
+        "coverage": 0.9016393442622951,
+        "model_accuracy_on_covered": 0.8823529411764706,
+        "cascade_accuracy": 0.8563162970106075,
+        "cascade_macro_f1": 0.8090074532249956,
+        "llm_cost_per_document_usd": 0.0002011354098360656,
+        "mean_latency_per_pair_s": 10.12488029192861
+      },
+      {
+        "tau": 0.73,
+        "coverage": 0.8958534233365477,
+        "model_accuracy_on_covered": 0.883745963401507,
+        "cascade_accuracy": 0.8572806171648988,
+        "cascade_macro_f1": 0.8089892886030171,
+        "llm_cost_per_document_usd": 0.00021353344262295081,
+        "mean_latency_per_pair_s": 10.132356666084828
+      },
+      {
+        "tau": 0.74,
+        "coverage": 0.8900675024108003,
+        "model_accuracy_on_covered": 0.886240520043337,
+        "cascade_accuracy": 0.8572806171648988,
+        "cascade_macro_f1": 0.8097019952892484,
+        "llm_cost_per_document_usd": 0.00022358229508196727,
+        "mean_latency_per_pair_s": 10.139673638119547
+      },
+      {
+        "tau": 0.75,
+        "coverage": 0.8852459016393442,
+        "model_accuracy_on_covered": 0.8856209150326797,
+        "cascade_accuracy": 0.8543876567020251,
+        "cascade_macro_f1": 0.8060218026604581,
+        "llm_cost_per_document_usd": 0.0002344913114754099,
+        "mean_latency_per_pair_s": 10.14489967476371
+      },
+      {
+        "tau": 0.76,
+        "coverage": 0.8784956605593057,
+        "model_accuracy_on_covered": 0.8858397365532382,
+        "cascade_accuracy": 0.8534233365477338,
+        "cascade_macro_f1": 0.8057671953181548,
+        "llm_cost_per_document_usd": 0.00024685868852459023,
+        "mean_latency_per_pair_s": 10.152498035419448
+      },
+      {
+        "tau": 0.77,
+        "coverage": 0.8698167791706847,
+        "model_accuracy_on_covered": 0.8880266075388027,
+        "cascade_accuracy": 0.8524590163934426,
+        "cascade_macro_f1": 0.8051483103487275,
+        "llm_cost_per_document_usd": 0.00026535983606557393,
+        "mean_latency_per_pair_s": 10.162174120279621
+      },
+      {
+        "tau": 0.78,
+        "coverage": 0.863066538090646,
+        "model_accuracy_on_covered": 0.8893854748603351,
+        "cascade_accuracy": 0.8505303760848602,
+        "cascade_macro_f1": 0.8029681438005398,
+        "llm_cost_per_document_usd": 0.00027869278688524596,
+        "mean_latency_per_pair_s": 10.16882310774346
+      },
+      {
+        "tau": 0.79,
+        "coverage": 0.8476374156219865,
+        "model_accuracy_on_covered": 0.8919226393629124,
+        "cascade_accuracy": 0.845708775313404,
+        "cascade_macro_f1": 0.7975445815029509,
+        "llm_cost_per_document_usd": 0.00030701868852459025,
+        "mean_latency_per_pair_s": 10.187129182960433
+      },
+      {
+        "tau": 0.8,
+        "coverage": 0.8273866923818708,
+        "model_accuracy_on_covered": 0.8962703962703963,
+        "cascade_accuracy": 0.8418514946962391,
+        "cascade_macro_f1": 0.7937831089578218,
+        "llm_cost_per_document_usd": 0.00034957163934426234,
+        "mean_latency_per_pair_s": 10.21215010870778
+      },
+      {
+        "tau": 0.81,
+        "coverage": 0.8100289296046287,
+        "model_accuracy_on_covered": 0.8964285714285715,
+        "cascade_accuracy": 0.8360655737704918,
+        "cascade_macro_f1": 0.7847259642175258,
+        "llm_cost_per_document_usd": 0.00038282311475409844,
+        "mean_latency_per_pair_s": 10.233094467434876
+      },
+      {
+        "tau": 0.82,
+        "coverage": 0.793635486981678,
+        "model_accuracy_on_covered": 0.8979343863912516,
+        "cascade_accuracy": 0.8293153326904532,
+        "cascade_macro_f1": 0.7781167062464628,
+        "llm_cost_per_document_usd": 0.0004176855737704918,
+        "mean_latency_per_pair_s": 10.252808835805176
+      },
+      {
+        "tau": 0.83,
+        "coverage": 0.7743490838958534,
+        "model_accuracy_on_covered": 0.9041095890410958,
+        "cascade_accuracy": 0.8264223722275795,
+        "cascade_macro_f1": 0.7709245409269321,
+        "llm_cost_per_document_usd": 0.00045640032786885233,
+        "mean_latency_per_pair_s": 10.275582027704889
+      },
+      {
+        "tau": 0.84,
+        "coverage": 0.7560270009643202,
+        "model_accuracy_on_covered": 0.9119897959183674,
+        "cascade_accuracy": 0.8293153326904532,
+        "cascade_macro_f1": 0.7741492093485616,
+        "llm_cost_per_document_usd": 0.0004898604918032785,
+        "mean_latency_per_pair_s": 10.297414814590134
+      },
+      {
+        "tau": 0.85,
+        "coverage": 0.7357762777242044,
+        "model_accuracy_on_covered": 0.9174311926605505,
+        "cascade_accuracy": 0.8273866923818708,
+        "cascade_macro_f1": 0.7730293238873629,
+        "llm_cost_per_document_usd": 0.000533750245901639,
+        "mean_latency_per_pair_s": 10.32431529675021
+      },
+      {
+        "tau": 0.86,
+        "coverage": 0.7155255544840887,
+        "model_accuracy_on_covered": 0.9204851752021563,
+        "cascade_accuracy": 0.8206364513018322,
+        "cascade_macro_f1": 0.7644092598073066,
+        "llm_cost_per_document_usd": 0.0005784769672131147,
+        "mean_latency_per_pair_s": 10.347469684406912
+      },
+      {
+        "tau": 0.87,
+        "coverage": 0.6875602700096431,
+        "model_accuracy_on_covered": 0.9340813464235624,
+        "cascade_accuracy": 0.8187078109932497,
+        "cascade_macro_f1": 0.7615769477230524,
+        "llm_cost_per_document_usd": 0.0006368141803278687,
+        "mean_latency_per_pair_s": 10.384054255284443
+      },
+      {
+        "tau": 0.88,
+        "coverage": 0.6615236258437801,
+        "model_accuracy_on_covered": 0.9416909620991254,
+        "cascade_accuracy": 0.8138862102217936,
+        "cascade_macro_f1": 0.753688229850702,
+        "llm_cost_per_document_usd": 0.0006869209016393443,
+        "mean_latency_per_pair_s": 10.41750854650913
+      },
+      {
+        "tau": 0.89,
+        "coverage": 0.6104146576663452,
+        "model_accuracy_on_covered": 0.9510268562401264,
+        "cascade_accuracy": 0.8090646094503375,
+        "cascade_macro_f1": 0.7482474462593456,
+        "llm_cost_per_document_usd": 0.0007923305737704925,
+        "mean_latency_per_pair_s": 10.481425229247801
+      },
+      {
+        "tau": 0.9,
+        "coverage": 0.5448408871745419,
+        "model_accuracy_on_covered": 0.968141592920354,
+        "cascade_accuracy": 0.8052073288331726,
+        "cascade_macro_f1": 0.7411473602186739,
+        "llm_cost_per_document_usd": 0.000927998442622952,
+        "mean_latency_per_pair_s": 10.556678749016363
+      },
+      {
+        "tau": 0.91,
+        "coverage": 0.45805207328833175,
+        "model_accuracy_on_covered": 0.9768421052631578,
+        "cascade_accuracy": 0.7965284474445516,
+        "cascade_macro_f1": 0.7340504791602692,
+        "llm_cost_per_document_usd": 0.0011016869672131157,
+        "mean_latency_per_pair_s": 10.658484149209226
+      },
+      {
+        "tau": 0.92,
+        "coverage": 0.2304725168756027,
+        "model_accuracy_on_covered": 0.9790794979079498,
+        "cascade_accuracy": 0.7762777242044359,
+        "cascade_macro_f1": 0.7186588064658457,
+        "llm_cost_per_document_usd": 0.0015917997540983591,
+        "mean_latency_per_pair_s": 10.92932223985532
+      },
+      {
+        "tau": 0.93,
+        "coverage": 0.007714561234329798,
+        "model_accuracy_on_covered": 1.0,
+        "cascade_accuracy": 0.7463837994214079,
+        "cascade_macro_f1": 0.6947901849055326,
+        "llm_cost_per_document_usd": 0.0020584904098360636,
+        "mean_latency_per_pair_s": 11.19468511352938
+      },
+      {
+        "tau": 0.94,
+        "coverage": 0.0,
+        "model_accuracy_on_covered": null,
+        "cascade_accuracy": 0.742526518804243,
+        "cascade_macro_f1": 0.6916041818959083,
+        "llm_cost_per_document_usd": 0.002074210737704916,
+        "mean_latency_per_pair_s": 11.203506425004791
+      },
+      {
+        "tau": 0.95,
+        "coverage": 0.0,
+        "model_accuracy_on_covered": null,
+        "cascade_accuracy": 0.742526518804243,
+        "cascade_macro_f1": 0.6916041818959083,
+        "llm_cost_per_document_usd": 0.002074210737704916,
+        "mean_latency_per_pair_s": 11.203506425004791
+      },
+      {
+        "tau": 0.96,
+        "coverage": 0.0,
+        "model_accuracy_on_covered": null,
+        "cascade_accuracy": 0.742526518804243,
+        "cascade_macro_f1": 0.6916041818959083,
+        "llm_cost_per_document_usd": 0.002074210737704916,
+        "mean_latency_per_pair_s": 11.203506425004791
+      },
+      {
+        "tau": 0.97,
+        "coverage": 0.0,
+        "model_accuracy_on_covered": null,
+        "cascade_accuracy": 0.742526518804243,
+        "cascade_macro_f1": 0.6916041818959083,
+        "llm_cost_per_document_usd": 0.002074210737704916,
+        "mean_latency_per_pair_s": 11.203506425004791
+      },
+      {
+        "tau": 0.98,
+        "coverage": 0.0,
+        "model_accuracy_on_covered": null,
+        "cascade_accuracy": 0.742526518804243,
+        "cascade_macro_f1": 0.6916041818959083,
+        "llm_cost_per_document_usd": 0.002074210737704916,
+        "mean_latency_per_pair_s": 11.203506425004791
+      },
+      {
+        "tau": 0.99,
+        "coverage": 0.0,
+        "model_accuracy_on_covered": null,
+        "cascade_accuracy": 0.742526518804243,
+        "cascade_macro_f1": 0.6916041818959083,
+        "llm_cost_per_document_usd": 0.002074210737704916,
+        "mean_latency_per_pair_s": 11.203506425004791
+      },
+      {
+        "tau": 1.0,
+        "coverage": 0.0,
+        "model_accuracy_on_covered": null,
+        "cascade_accuracy": 0.742526518804243,
+        "cascade_macro_f1": 0.6916041818959083,
+        "llm_cost_per_document_usd": 0.002074210737704916,
+        "mean_latency_per_pair_s": 11.203506425004791
+      }
+    ],
+    "test": [
+      {
+        "tau": 0.3,
+        "coverage": 1.0,
+        "model_accuracy_on_covered": 0.852702056432329,
+        "cascade_accuracy": 0.852702056432329,
+        "cascade_macro_f1": 0.8137780168594805,
+        "llm_cost_per_document_usd": 0.0,
+        "mean_latency_per_pair_s": 10.012982317000933
+      },
+      {
+        "tau": 0.31,
+        "coverage": 1.0,
+        "model_accuracy_on_covered": 0.852702056432329,
+        "cascade_accuracy": 0.852702056432329,
+        "cascade_macro_f1": 0.8137780168594805,
+        "llm_cost_per_document_usd": 0.0,
+        "mean_latency_per_pair_s": 10.012982317000933
+      },
+      {
+        "tau": 0.32,
+        "coverage": 1.0,
+        "model_accuracy_on_covered": 0.852702056432329,
+        "cascade_accuracy": 0.852702056432329,
+        "cascade_macro_f1": 0.8137780168594805,
+        "llm_cost_per_document_usd": 0.0,
+        "mean_latency_per_pair_s": 10.012982317000933
+      },
+      {
+        "tau": 0.33,
+        "coverage": 1.0,
+        "model_accuracy_on_covered": 0.852702056432329,
+        "cascade_accuracy": 0.852702056432329,
+        "cascade_macro_f1": 0.8137780168594805,
+        "llm_cost_per_document_usd": 0.0,
+        "mean_latency_per_pair_s": 10.012982317000933
+      },
+      {
+        "tau": 0.34,
+        "coverage": 1.0,
+        "model_accuracy_on_covered": 0.852702056432329,
+        "cascade_accuracy": 0.852702056432329,
+        "cascade_macro_f1": 0.8137780168594805,
+        "llm_cost_per_document_usd": 0.0,
+        "mean_latency_per_pair_s": 10.012982317000933
+      },
+      {
+        "tau": 0.35,
+        "coverage": 0.9995217599234816,
+        "model_accuracy_on_covered": 0.8531100478468899,
+        "cascade_accuracy": 0.852702056432329,
+        "cascade_macro_f1": 0.8140856224500146,
+        "llm_cost_per_document_usd": 7.522764227642276e-07,
+        "mean_latency_per_pair_s": 10.013642240482522
+      },
+      {
+        "tau": 0.36,
+        "coverage": 0.9990435198469632,
+        "model_accuracy_on_covered": 0.8530397319291527,
+        "cascade_accuracy": 0.852702056432329,
+        "cascade_macro_f1": 0.8140856224500146,
+        "llm_cost_per_document_usd": 1.5866666666666666e-06,
+        "mean_latency_per_pair_s": 10.013949461907675
+      },
+      {
+        "tau": 0.37,
+        "coverage": 0.9980870396939263,
+        "model_accuracy_on_covered": 0.8538572113080978,
+        "cascade_accuracy": 0.8531802965088474,
+        "cascade_macro_f1": 0.8147765124755445,
+        "llm_cost_per_document_usd": 3.5310569105691055e-06,
+        "mean_latency_per_pair_s": 10.014706850716859
+      },
+      {
+        "tau": 0.38,
+        "coverage": 0.9980870396939263,
+        "model_accuracy_on_covered": 0.8538572113080978,
+        "cascade_accuracy": 0.8531802965088474,
+        "cascade_macro_f1": 0.8147765124755445,
+        "llm_cost_per_document_usd": 3.5310569105691055e-06,
+        "mean_latency_per_pair_s": 10.014706850716859
+      },
+      {
+        "tau": 0.39,
+        "coverage": 0.9976087996174079,
+        "model_accuracy_on_covered": 0.8537871524448706,
+        "cascade_accuracy": 0.8531802965088474,
+        "cascade_macro_f1": 0.8147765124755445,
+        "llm_cost_per_document_usd": 4.345934959349593e-06,
+        "mean_latency_per_pair_s": 10.015284182137231
+      },
+      {
+        "tau": 0.4,
+        "coverage": 0.9976087996174079,
+        "model_accuracy_on_covered": 0.8537871524448706,
+        "cascade_accuracy": 0.8531802965088474,
+        "cascade_macro_f1": 0.8147765124755445,
+        "llm_cost_per_document_usd": 4.345934959349593e-06,
+        "mean_latency_per_pair_s": 10.015284182137231
+      },
+      {
+        "tau": 0.41,
+        "coverage": 0.9971305595408895,
+        "model_accuracy_on_covered": 0.8537170263788969,
+        "cascade_accuracy": 0.8531802965088474,
+        "cascade_macro_f1": 0.8147765124755445,
+        "llm_cost_per_document_usd": 5.174634146341463e-06,
+        "mean_latency_per_pair_s": 10.016016941582473
+      },
+      {
+        "tau": 0.42,
+        "coverage": 0.9952175992348159,
+        "model_accuracy_on_covered": 0.8548774627582892,
+        "cascade_accuracy": 0.8536585365853658,
+        "cascade_macro_f1": 0.8151577318583957,
+        "llm_cost_per_document_usd": 9.46178861788618e-06,
+        "mean_latency_per_pair_s": 10.017382317000934
+      },
+      {
+        "tau": 0.43,
+        "coverage": 0.9937828790052606,
+        "model_accuracy_on_covered": 0.8551491819056786,
+        "cascade_accuracy": 0.8536585365853658,
+        "cascade_macro_f1": 0.8151577318583957,
+        "llm_cost_per_document_usd": 1.2329186991869922e-05,
+        "mean_latency_per_pair_s": 10.01916323522188
+      },
+      {
+        "tau": 0.44,
+        "coverage": 0.9913916786226685,
+        "model_accuracy_on_covered": 0.8567293777134588,
+        "cascade_accuracy": 0.8550932568149211,
+        "cascade_macro_f1": 0.8169239627227934,
+        "llm_cost_per_document_usd": 1.5575934959349595e-05,
+        "mean_latency_per_pair_s": 10.022126219439958
+      },
+      {
+        "tau": 0.45,
+        "coverage": 0.9890004782400765,
+        "model_accuracy_on_covered": 0.8568665377176016,
+        "cascade_accuracy": 0.8550932568149211,
+        "cascade_macro_f1": 0.8165845991978214,
+        "llm_cost_per_document_usd": 2.0807235772357725e-05,
+        "mean_latency_per_pair_s": 10.024742431778549
+      },
+      {
+        "tau": 0.46,
+        "coverage": 0.9875657580105213,
+        "model_accuracy_on_covered": 0.8571428571428571,
+        "cascade_accuracy": 0.8555714968914395,
+        "cascade_macro_f1": 0.8169653037192175,
+        "llm_cost_per_document_usd": 2.302747967479675e-05,
+        "mean_latency_per_pair_s": 10.02596361781394
+      },
+      {
+        "tau": 0.47,
+        "coverage": 0.9851745576279293,
+        "model_accuracy_on_covered": 0.8587378640776699,
+        "cascade_accuracy": 0.8560497369679579,
+        "cascade_macro_f1": 0.8173458679931866,
+        "llm_cost_per_document_usd": 2.7304308943089432e-05,
+        "mean_latency_per_pair_s": 10.028692407866547
+      },
+      {
+        "tau": 0.48,
+        "coverage": 0.9813486370157819,
+        "model_accuracy_on_covered": 0.8611111111111112,
+        "cascade_accuracy": 0.8574844571975132,
+        "cascade_macro_f1": 0.8187730095651929,
+        "llm_cost_per_document_usd": 3.617943089430895e-05,
+        "mean_latency_per_pair_s": 10.033378156312269
+      },
+      {
+        "tau": 0.49,
+        "coverage": 0.9775227164036346,
+        "model_accuracy_on_covered": 0.8610567514677103,
+        "cascade_accuracy": 0.8570062171209948,
+        "cascade_macro_f1": 0.8183928160734028,
+        "llm_cost_per_document_usd": 4.305455284552845e-05,
+        "mean_latency_per_pair_s": 10.037484469081276
+      },
+      {
+        "tau": 0.5,
+        "coverage": 0.9746532759445241,
+        "model_accuracy_on_covered": 0.8621197252208047,
+        "cascade_accuracy": 0.8570062171209948,
+        "cascade_macro_f1": 0.8180804560477286,
+        "llm_cost_per_document_usd": 4.898447154471544e-05,
+        "mean_latency_per_pair_s": 10.040101733548038
+      },
+      {
+        "tau": 0.51,
+        "coverage": 0.9722620755619321,
+        "model_accuracy_on_covered": 0.8622725036891293,
+        "cascade_accuracy": 0.8570062171209948,
+        "cascade_macro_f1": 0.8180541227912389,
+        "llm_cost_per_document_usd": 5.3279186991869914e-05,
+        "mean_latency_per_pair_s": 10.042782269176925
+      },
+      {
+        "tau": 0.52,
+        "coverage": 0.9679579148732664,
+        "model_accuracy_on_covered": 0.8631422924901185,
+        "cascade_accuracy": 0.8560497369679579,
+        "cascade_macro_f1": 0.817257976343337,
+        "llm_cost_per_document_usd": 6.215861788617888e-05,
+        "mean_latency_per_pair_s": 10.047989921018148
+      },
+      {
+        "tau": 0.53,
+        "coverage": 0.9650884744141559,
+        "model_accuracy_on_covered": 0.8647175421209118,
+        "cascade_accuracy": 0.8560497369679579,
+        "cascade_macro_f1": 0.8166447029213373,
+        "llm_cost_per_document_usd": 6.686170731707318e-05,
+        "mean_latency_per_pair_s": 10.050902594380178
+      },
+      {
+        "tau": 0.54,
+        "coverage": 0.9612625538020086,
+        "model_accuracy_on_covered": 0.8666666666666667,
+        "cascade_accuracy": 0.8570062171209948,
+        "cascade_macro_f1": 0.8177135227182187,
+        "llm_cost_per_document_usd": 7.334008130081303e-05,
+        "mean_latency_per_pair_s": 10.056397811979412
+      },
+      {
+        "tau": 0.55,
+        "coverage": 0.9588713534194165,
+        "model_accuracy_on_covered": 0.8668329177057357,
+        "cascade_accuracy": 0.8565279770444764,
+        "cascade_macro_f1": 0.816722856012583,
+        "llm_cost_per_document_usd": 7.761447154471547e-05,
+        "mean_latency_per_pair_s": 10.0591221065753
+      },
+      {
+        "tau": 0.56,
+        "coverage": 0.9550454328072693,
+        "model_accuracy_on_covered": 0.8673009514271407,
+        "cascade_accuracy": 0.8570062171209948,
+        "cascade_macro_f1": 0.8177408689220548,
+        "llm_cost_per_document_usd": 8.437008130081301e-05,
+        "mean_latency_per_pair_s": 10.063776147703946
+      },
+      {
+        "tau": 0.57,
+        "coverage": 0.9521759923481588,
+        "model_accuracy_on_covered": 0.8674033149171271,
+        "cascade_accuracy": 0.8560497369679579,
+        "cascade_macro_f1": 0.8166725639630653,
+        "llm_cost_per_document_usd": 8.920000000000001e-05,
+        "mean_latency_per_pair_s": 10.06748872541796
+      },
+      {
+        "tau": 0.58,
+        "coverage": 0.9488283118125299,
+        "model_accuracy_on_covered": 0.8684475806451613,
+        "cascade_accuracy": 0.8560497369679579,
+        "cascade_macro_f1": 0.8160390397493577,
+        "llm_cost_per_document_usd": 9.663666666666668e-05,
+        "mean_latency_per_pair_s": 10.070644105618818
+      },
+      {
+        "tau": 0.59,
+        "coverage": 0.9464371114299378,
+        "model_accuracy_on_covered": 0.8691258211217787,
+        "cascade_accuracy": 0.8555714968914395,
+        "cascade_macro_f1": 0.8150236173157168,
+        "llm_cost_per_document_usd": 0.00010083951219512198,
+        "mean_latency_per_pair_s": 10.073268256742685
+      },
+      {
+        "tau": 0.6,
+        "coverage": 0.9435676709708274,
+        "model_accuracy_on_covered": 0.8707551951343132,
+        "cascade_accuracy": 0.8560497369679579,
+        "cascade_macro_f1": 0.8156531480107744,
+        "llm_cost_per_document_usd": 0.0001060035772357724,
+        "mean_latency_per_pair_s": 10.075809146269226
+      },
+      {
+        "tau": 0.61,
+        "coverage": 0.9378287900526064,
+        "model_accuracy_on_covered": 0.8735339112697603,
+        "cascade_accuracy": 0.8574844571975132,
+        "cascade_macro_f1": 0.8167424390849346,
+        "llm_cost_per_document_usd": 0.00011669105691056918,
+        "mean_latency_per_pair_s": 10.082179734504521
+      },
+      {
+        "tau": 0.62,
+        "coverage": 0.937350549976088,
+        "model_accuracy_on_covered": 0.8739795918367347,
+        "cascade_accuracy": 0.8579626972740315,
+        "cascade_macro_f1": 0.8174269919004988,
+        "llm_cost_per_document_usd": 0.00011748073170731713,
+        "mean_latency_per_pair_s": 10.08273922757004
+      },
+      {
+        "tau": 0.63,
+        "coverage": 0.9359158297465328,
+        "model_accuracy_on_covered": 0.8742973939703628,
+        "cascade_accuracy": 0.8584409373505499,
+        "cascade_macro_f1": 0.8181130168484078,
+        "llm_cost_per_document_usd": 0.00011962455284552853,
+        "mean_latency_per_pair_s": 10.085914550382089
+      },
+      {
+        "tau": 0.64,
+        "coverage": 0.9330463892874223,
+        "model_accuracy_on_covered": 0.8749359302921579,
+        "cascade_accuracy": 0.8593974175035868,
+        "cascade_macro_f1": 0.8188757809617876,
+        "llm_cost_per_document_usd": 0.00012491788617886184,
+        "mean_latency_per_pair_s": 10.088941379650384
+      },
+      {
+        "tau": 0.65,
+        "coverage": 0.9311334289813487,
+        "model_accuracy_on_covered": 0.8751926040061633,
+        "cascade_accuracy": 0.8593974175035868,
+        "cascade_macro_f1": 0.8185717845827641,
+        "llm_cost_per_document_usd": 0.00012942943089430895,
+        "mean_latency_per_pair_s": 10.091084038665207
+      },
+      {
+        "tau": 0.66,
+        "coverage": 0.9282639885222381,
+        "model_accuracy_on_covered": 0.8758371973209685,
+        "cascade_accuracy": 0.8598756575801052,
+        "cascade_macro_f1": 0.8192864832221346,
+        "llm_cost_per_document_usd": 0.00013574227642276427,
+        "mean_latency_per_pair_s": 10.096718806718773
+      },
+      {
+        "tau": 0.67,
+        "coverage": 0.9220468675274988,
+        "model_accuracy_on_covered": 0.8770746887966805,
+        "cascade_accuracy": 0.8589191774270684,
+        "cascade_macro_f1": 0.8185230613230984,
+        "llm_cost_per_document_usd": 0.00014669910569105687,
+        "mean_latency_per_pair_s": 10.102804459516475
+      },
+      {
+        "tau": 0.68,
+        "coverage": 0.9153515064562411,
+        "model_accuracy_on_covered": 0.8787878787878788,
+        "cascade_accuracy": 0.8593974175035868,
+        "cascade_macro_f1": 0.8189048412662009,
+        "llm_cost_per_document_usd": 0.00015906918699186992,
+        "mean_latency_per_pair_s": 10.110533775633167
+      },
+      {
+        "tau": 0.69,
+        "coverage": 0.9096126255380201,
+        "model_accuracy_on_covered": 0.880651945320715,
+        "cascade_accuracy": 0.8579626972740315,
+        "cascade_macro_f1": 0.8165289540351525,
+        "llm_cost_per_document_usd": 0.00016971439024390244,
+        "mean_latency_per_pair_s": 10.117289777546127
+      },
+      {
+        "tau": 0.7,
+        "coverage": 0.9019607843137255,
+        "model_accuracy_on_covered": 0.883881230116649,
+        "cascade_accuracy": 0.860832137733142,
+        "cascade_macro_f1": 0.8197275654617133,
+        "llm_cost_per_document_usd": 0.0001846947154471545,
+        "mean_latency_per_pair_s": 10.1275671089665
+      },
+      {
+        "tau": 0.71,
+        "coverage": 0.896700143472023,
+        "model_accuracy_on_covered": 0.8853333333333333,
+        "cascade_accuracy": 0.8603538976566236,
+        "cascade_macro_f1": 0.8190753987610228,
+        "llm_cost_per_document_usd": 0.00019382747967479675,
+        "mean_latency_per_pair_s": 10.133564430822071
+      },
+      {
+        "tau": 0.72,
+        "coverage": 0.8900047824007652,
+        "model_accuracy_on_covered": 0.8855454056958625,
+        "cascade_accuracy": 0.8584409373505499,
+        "cascade_macro_f1": 0.817851693983988,
+        "llm_cost_per_document_usd": 0.0002066918699186992,
+        "mean_latency_per_pair_s": 10.140303311740292
+      },
+      {
+        "tau": 0.73,
+        "coverage": 0.8842659014825442,
+        "model_accuracy_on_covered": 0.8869659275283938,
+        "cascade_accuracy": 0.8579626972740315,
+        "cascade_macro_f1": 0.8178282714644056,
+        "llm_cost_per_document_usd": 0.00021946552845528456,
+        "mean_latency_per_pair_s": 10.146217132878503
+      },
+      {
+        "tau": 0.74,
+        "coverage": 0.8727881396461024,
+        "model_accuracy_on_covered": 0.890958904109589,
+        "cascade_accuracy": 0.8584409373505499,
+        "cascade_macro_f1": 0.8181574865124097,
+        "llm_cost_per_document_usd": 0.00024081040650406502,
+        "mean_latency_per_pair_s": 10.159344536034888
+      },
+      {
+        "tau": 0.75,
+        "coverage": 0.8632233381157342,
+        "model_accuracy_on_covered": 0.8936288088642659,
+        "cascade_accuracy": 0.8574844571975132,
+        "cascade_macro_f1": 0.8165437499486702,
+        "llm_cost_per_document_usd": 0.00025732341463414636,
+        "mean_latency_per_pair_s": 10.170261896149666
+      },
+      {
+        "tau": 0.76,
+        "coverage": 0.8555714968914395,
+        "model_accuracy_on_covered": 0.8954723309111235,
+        "cascade_accuracy": 0.8574844571975132,
+        "cascade_macro_f1": 0.816502256414668,
+        "llm_cost_per_document_usd": 0.00027163869918699193,
+        "mean_latency_per_pair_s": 10.179240136226184
+      },
+      {
+        "tau": 0.77,
+        "coverage": 0.8450502152080345,
+        "model_accuracy_on_covered": 0.8970005659309565,
+        "cascade_accuracy": 0.8555714968914395,
+        "cascade_macro_f1": 0.8137046458568049,
+        "llm_cost_per_document_usd": 0.00029103430894308966,
+        "mean_latency_per_pair_s": 10.192869452342876
+      },
+      {
+        "tau": 0.78,
+        "coverage": 0.8388330942132951,
+        "model_accuracy_on_covered": 0.8990877993158495,
+        "cascade_accuracy": 0.8560497369679579,
+        "cascade_macro_f1": 0.8137897983477941,
+        "llm_cost_per_document_usd": 0.00030289113821138235,
+        "mean_latency_per_pair_s": 10.200489203658035
+      },
+      {
+        "tau": 0.79,
+        "coverage": 0.8268770923003348,
+        "model_accuracy_on_covered": 0.902834008097166,
+        "cascade_accuracy": 0.8550932568149211,
+        "cascade_macro_f1": 0.8126513727451781,
+        "llm_cost_per_document_usd": 0.0003267826016260162,
+        "mean_latency_per_pair_s": 10.215344583858895
+      },
+      {
+        "tau": 0.8,
+        "coverage": 0.8149210903873745,
+        "model_accuracy_on_covered": 0.9066901408450704,
+        "cascade_accuracy": 0.8541367766618843,
+        "cascade_macro_f1": 0.8115446709502967,
+        "llm_cost_per_document_usd": 0.0003490139024390244,
+        "mean_latency_per_pair_s": 10.22953004536057
+      },
+      {
+        "tau": 0.81,
+        "coverage": 0.8015303682448589,
+        "model_accuracy_on_covered": 0.9087112171837709,
+        "cascade_accuracy": 0.8531802965088474,
+        "cascade_macro_f1": 0.810189197604401,
+        "llm_cost_per_document_usd": 0.0003752329268292687,
+        "mean_latency_per_pair_s": 10.24463616683355
+      },
+      {
+        "tau": 0.82,
+        "coverage": 0.7843137254901961,
+        "model_accuracy_on_covered": 0.9115853658536586,
+        "cascade_accuracy": 0.8483978957436633,
+        "cascade_macro_f1": 0.8057995569861126,
+        "llm_cost_per_document_usd": 0.00041049455284552887,
+        "mean_latency_per_pair_s": 10.26683999275416
+      },
+      {
+        "tau": 0.83,
+        "coverage": 0.765662362505978,
+        "model_accuracy_on_covered": 0.9144284821986258,
+        "cascade_accuracy": 0.8474414155906265,
+        "cascade_macro_f1": 0.8053502010396523,
+        "llm_cost_per_document_usd": 0.0004463699186991871,
+        "mean_latency_per_pair_s": 10.28727318261547
+      },
+      {
+        "tau": 0.84,
+        "coverage": 0.7460545193687231,
+        "model_accuracy_on_covered": 0.9179487179487179,
+        "cascade_accuracy": 0.8421807747489239,
+        "cascade_macro_f1": 0.7997593601248661,
+        "llm_cost_per_document_usd": 0.0004808929268292687,
+        "mean_latency_per_pair_s": 10.311253383476304
+      },
+      {
+        "tau": 0.85,
+        "coverage": 0.727403156384505,
+        "model_accuracy_on_covered": 0.9197896120973044,
+        "cascade_accuracy": 0.8402678144428503,
+        "cascade_macro_f1": 0.7970451316139827,
+        "llm_cost_per_document_usd": 0.0005164317073170736,
+        "mean_latency_per_pair_s": 10.333570265351005
+      },
+      {
+        "tau": 0.86,
+        "coverage": 0.6987087517934003,
+        "model_accuracy_on_covered": 0.9267624914442163,
+        "cascade_accuracy": 0.8350071736011477,
+        "cascade_macro_f1": 0.7933268431187153,
+        "llm_cost_per_document_usd": 0.0005696227642276422,
+        "mean_latency_per_pair_s": 10.366154770372527
+      },
+      {
+        "tau": 0.87,
+        "coverage": 0.6724055475848876,
+        "model_accuracy_on_covered": 0.9324324324324325,
+        "cascade_accuracy": 0.8321377331420373,
+        "cascade_macro_f1": 0.7894105259729128,
+        "llm_cost_per_document_usd": 0.0006212825203252034,
+        "mean_latency_per_pair_s": 10.393785186441391
+      },
+      {
+        "tau": 0.88,
+        "coverage": 0.629842180774749,
+        "model_accuracy_on_covered": 0.9438116932422171,
+        "cascade_accuracy": 0.8263988522238164,
+        "cascade_macro_f1": 0.781315982060189,
+        "llm_cost_per_document_usd": 0.0007033505691056914,
+        "mean_latency_per_pair_s": 10.447901781372046
+      },
+      {
+        "tau": 0.89,
+        "coverage": 0.5915829746532759,
+        "model_accuracy_on_covered": 0.9514955537590946,
+        "cascade_accuracy": 0.8230511716881874,
+        "cascade_macro_f1": 0.7777656351469476,
+        "llm_cost_per_document_usd": 0.0007776432520325195,
+        "mean_latency_per_pair_s": 10.492430093184577
+      },
+      {
+        "tau": 0.9,
+        "coverage": 0.533715925394548,
+        "model_accuracy_on_covered": 0.9650537634408602,
+        "cascade_accuracy": 0.8168340506934482,
+        "cascade_macro_f1": 0.7701269387834553,
+        "llm_cost_per_document_usd": 0.0008879556910569101,
+        "mean_latency_per_pair_s": 10.558672082663294
+      },
+      {
+        "tau": 0.91,
+        "coverage": 0.44285031085604976,
+        "model_accuracy_on_covered": 0.9708423326133909,
+        "cascade_accuracy": 0.806312769010043,
+        "cascade_macro_f1": 0.7607054136317625,
+        "llm_cost_per_document_usd": 0.0010673101626016259,
+        "mean_latency_per_pair_s": 10.66364673593924
+      },
+      {
+        "tau": 0.92,
+        "coverage": 0.2147297943567671,
+        "model_accuracy_on_covered": 0.9799554565701559,
+        "cascade_accuracy": 0.776183644189383,
+        "cascade_macro_f1": 0.7354795234818914,
+        "llm_cost_per_document_usd": 0.00152311268292683,
+        "mean_latency_per_pair_s": 10.925816032926328
+      },
+      {
+        "tau": 0.93,
+        "coverage": 0.006695361071257772,
+        "model_accuracy_on_covered": 1.0,
+        "cascade_accuracy": 0.741272118603539,
+        "cascade_macro_f1": 0.7055338063779463,
+        "llm_cost_per_document_usd": 0.0019502724390243916,
+        "mean_latency_per_pair_s": 11.17023841456191
+      },
+      {
+        "tau": 0.94,
+        "coverage": 0.0,
+        "model_accuracy_on_covered": null,
+        "cascade_accuracy": 0.7393591582974653,
+        "cascade_macro_f1": 0.703409437263637,
+        "llm_cost_per_document_usd": 0.001963460406504067,
+        "mean_latency_per_pair_s": 11.177746975059277
+      },
+      {
+        "tau": 0.95,
+        "coverage": 0.0,
+        "model_accuracy_on_covered": null,
+        "cascade_accuracy": 0.7393591582974653,
+        "cascade_macro_f1": 0.703409437263637,
+        "llm_cost_per_document_usd": 0.001963460406504067,
+        "mean_latency_per_pair_s": 11.177746975059277
+      },
+      {
+        "tau": 0.96,
+        "coverage": 0.0,
+        "model_accuracy_on_covered": null,
+        "cascade_accuracy": 0.7393591582974653,
+        "cascade_macro_f1": 0.703409437263637,
+        "llm_cost_per_document_usd": 0.001963460406504067,
+        "mean_latency_per_pair_s": 11.177746975059277
+      },
+      {
+        "tau": 0.97,
+        "coverage": 0.0,
+        "model_accuracy_on_covered": null,
+        "cascade_accuracy": 0.7393591582974653,
+        "cascade_macro_f1": 0.703409437263637,
+        "llm_cost_per_document_usd": 0.001963460406504067,
+        "mean_latency_per_pair_s": 11.177746975059277
+      },
+      {
+        "tau": 0.98,
+        "coverage": 0.0,
+        "model_accuracy_on_covered": null,
+        "cascade_accuracy": 0.7393591582974653,
+        "cascade_macro_f1": 0.703409437263637,
+        "llm_cost_per_document_usd": 0.001963460406504067,
+        "mean_latency_per_pair_s": 11.177746975059277
+      },
+      {
+        "tau": 0.99,
+        "coverage": 0.0,
+        "model_accuracy_on_covered": null,
+        "cascade_accuracy": 0.7393591582974653,
+        "cascade_macro_f1": 0.703409437263637,
+        "llm_cost_per_document_usd": 0.001963460406504067,
+        "mean_latency_per_pair_s": 11.177746975059277
+      },
+      {
+        "tau": 1.0,
+        "coverage": 0.0,
+        "model_accuracy_on_covered": null,
+        "cascade_accuracy": 0.7393591582974653,
+        "cascade_macro_f1": 0.703409437263637,
+        "llm_cost_per_document_usd": 0.001963460406504067,
+        "mean_latency_per_pair_s": 11.177746975059277
+      }
+    ]
+  }
+}
