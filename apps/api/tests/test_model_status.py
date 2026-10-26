@@ -110,3 +110,25 @@ async def test_outage_is_reported_not_raised(clients: Any, swap_models: Any) -> 
     response = await user.get("/api/v1/models/status")
     assert response.status_code == 200
     assert response.json()["rule_check"]["state"] == "unreachable"
+
+
+async def test_messages_reflect_the_review_backend(
+    clients: Any, api_app: Any, model_client: ModelServiceClient
+) -> None:
+    client = await clients.signed_up("backend@example.com")
+    ctx = api_app.state.ctx
+    original, original_models = ctx.settings, ctx.models
+    ctx.models = model_client  # the real in-process service, untrained fallback
+    try:
+        ctx.settings = original.model_copy(update={"review_rule_check_backend": "mock"})
+        body = (await client.get("/api/v1/models/status")).json()
+        assert body["review_rule_check_backend"] == "mock"
+        assert "mock rule-check backend" in body["rule_check"]["message"]
+        assert "unavailable" not in body["rule_check"]["message"]
+        ctx.settings = original
+        body = (await client.get("/api/v1/models/status")).json()
+        assert body["review_rule_check_backend"] == "service"
+        assert "send model-supported rules to the LLM" in body["rule_check"]["message"]
+    finally:
+        ctx.settings = original
+        ctx.models = original_models

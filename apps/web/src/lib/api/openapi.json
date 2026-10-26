@@ -1,6 +1,41 @@
 {
   "components": {
     "schemas": {
+      "AgentEventRead": {
+        "properties": {
+          "agent": {
+            "title": "Agent",
+            "type": "string"
+          },
+          "event_type": {
+            "title": "Event Type",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "ts": {
+            "format": "date-time",
+            "title": "Ts",
+            "type": "string"
+          }
+        },
+        "required": [
+          "seq",
+          "agent",
+          "event_type",
+          "payload",
+          "ts"
+        ],
+        "title": "AgentEventRead",
+        "type": "object"
+      },
       "BBoxRead": {
         "properties": {
           "page": {
@@ -118,6 +153,68 @@
           "text"
         ],
         "title": "BlockRead",
+        "type": "object"
+      },
+      "BudgetRead": {
+        "properties": {
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "calls_unknown": {
+            "description": "Attempts with unknown outcome (reservation kept)",
+            "title": "Calls Unknown",
+            "type": "integer"
+          },
+          "tokens_cap": {
+            "title": "Tokens Cap",
+            "type": "integer"
+          },
+          "tokens_reserved_open": {
+            "title": "Tokens Reserved Open",
+            "type": "integer"
+          },
+          "tokens_used": {
+            "description": "Settled tokens plus held reservations",
+            "title": "Tokens Used",
+            "type": "integer"
+          },
+          "usage_source": {
+            "enum": [
+              "provider",
+              "mock_estimate",
+              "none",
+              "mixed"
+            ],
+            "title": "Usage Source",
+            "type": "string"
+          },
+          "usd_cap": {
+            "title": "Usd Cap",
+            "type": "number"
+          },
+          "usd_reserved_open": {
+            "title": "Usd Reserved Open",
+            "type": "number"
+          },
+          "usd_used": {
+            "description": "Settled cost plus held reservations (rounded up)",
+            "title": "Usd Used",
+            "type": "number"
+          }
+        },
+        "required": [
+          "tokens_cap",
+          "usd_cap",
+          "tokens_used",
+          "usd_used",
+          "tokens_reserved_open",
+          "usd_reserved_open",
+          "calls",
+          "calls_unknown",
+          "usage_source"
+        ],
+        "title": "BudgetRead",
         "type": "object"
       },
       "CellRead": {
@@ -295,6 +392,457 @@
           "table_row_id"
         ],
         "title": "ChunkRead",
+        "type": "object"
+      },
+      "CitationDetail": {
+        "properties": {
+          "bbox_precision": {
+            "enum": [
+              "line",
+              "chunk",
+              "none"
+            ],
+            "title": "Bbox Precision",
+            "type": "string"
+          },
+          "bboxes": {
+            "items": {
+              "$ref": "#/components/schemas/BBoxRead"
+            },
+            "title": "Bboxes",
+            "type": "array"
+          },
+          "char_end": {
+            "title": "Char End",
+            "type": "integer"
+          },
+          "char_start": {
+            "title": "Char Start",
+            "type": "integer"
+          },
+          "chunk_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Id"
+          },
+          "context_after": {
+            "title": "Context After",
+            "type": "string"
+          },
+          "context_before": {
+            "title": "Context Before",
+            "type": "string"
+          },
+          "current": {
+            "description": "Re-checked on read: the quote still sits at its offsets in the source",
+            "enum": [
+              "valid",
+              "source_deleted",
+              "source_changed"
+            ],
+            "title": "Current",
+            "type": "string"
+          },
+          "document_filename": {
+            "title": "Document Filename",
+            "type": "string"
+          },
+          "document_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Id"
+          },
+          "exact_match": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exact Match"
+          },
+          "file_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Format"
+          },
+          "finding_id": {
+            "format": "uuid",
+            "title": "Finding Id",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "page_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Number"
+          },
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "evidence",
+              "register_row",
+              "entity",
+              "supporting"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "support_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Support Method"
+          },
+          "support_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Support Score"
+          },
+          "supported": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supported"
+          },
+          "table_row_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Table Row Id"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "document_id",
+          "document_filename",
+          "chunk_id",
+          "table_row_id",
+          "quote",
+          "char_start",
+          "char_end",
+          "page_number",
+          "bboxes",
+          "bbox_precision",
+          "exact_match",
+          "supported",
+          "support_score",
+          "support_method",
+          "verified",
+          "current",
+          "run_id",
+          "finding_id",
+          "workspace_id",
+          "file_format",
+          "context_before",
+          "context_after"
+        ],
+        "title": "CitationDetail",
+        "type": "object"
+      },
+      "CitationRead": {
+        "properties": {
+          "bbox_precision": {
+            "enum": [
+              "line",
+              "chunk",
+              "none"
+            ],
+            "title": "Bbox Precision",
+            "type": "string"
+          },
+          "bboxes": {
+            "items": {
+              "$ref": "#/components/schemas/BBoxRead"
+            },
+            "title": "Bboxes",
+            "type": "array"
+          },
+          "char_end": {
+            "title": "Char End",
+            "type": "integer"
+          },
+          "char_start": {
+            "title": "Char Start",
+            "type": "integer"
+          },
+          "chunk_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Id"
+          },
+          "current": {
+            "description": "Re-checked on read: the quote still sits at its offsets in the source",
+            "enum": [
+              "valid",
+              "source_deleted",
+              "source_changed"
+            ],
+            "title": "Current",
+            "type": "string"
+          },
+          "document_filename": {
+            "title": "Document Filename",
+            "type": "string"
+          },
+          "document_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Id"
+          },
+          "exact_match": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exact Match"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "page_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Number"
+          },
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "evidence",
+              "register_row",
+              "entity",
+              "supporting"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "support_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Support Method"
+          },
+          "support_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Support Score"
+          },
+          "supported": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supported"
+          },
+          "table_row_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Table Row Id"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "document_id",
+          "document_filename",
+          "chunk_id",
+          "table_row_id",
+          "quote",
+          "char_start",
+          "char_end",
+          "page_number",
+          "bboxes",
+          "bbox_precision",
+          "exact_match",
+          "supported",
+          "support_score",
+          "support_method",
+          "verified",
+          "current"
+        ],
+        "title": "CitationRead",
+        "type": "object"
+      },
+      "CrossDocumentSpec": {
+        "additionalProperties": false,
+        "properties": {
+          "date_column": {
+            "anyOf": [
+              {
+                "enum": [
+                  "vendor",
+                  "data_access",
+                  "contract_file",
+                  "renewal_date"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Column"
+          },
+          "kind": {
+            "enum": [
+              "contract_on_file",
+              "required_protections",
+              "term_covers_date"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "required_rules": {
+            "items": {
+              "pattern": "^[a-z0-9][a-z0-9_]{0,63}$",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Required Rules",
+            "type": "array"
+          },
+          "subject_filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SubjectFilter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "CrossDocumentSpec",
         "type": "object"
       },
       "DocType": {
@@ -500,6 +1048,18 @@
             "title": "Entities",
             "type": "array"
           },
+          "review_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Run Id"
+          },
           "status": {
             "enum": [
               "not_available",
@@ -519,6 +1079,28 @@
       },
       "EntityRead": {
         "properties": {
+          "char_end": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Char End"
+          },
+          "char_start": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Char Start"
+          },
           "chunk_id": {
             "anyOf": [
               {
@@ -547,6 +1129,39 @@
             "title": "Id",
             "type": "string"
           },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "page_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Number"
+          },
+          "quote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote"
+          },
           "type": {
             "title": "Type",
             "type": "string"
@@ -555,6 +1170,11 @@
             "additionalProperties": true,
             "title": "Value Json",
             "type": "object"
+          },
+          "verified": {
+            "default": false,
+            "title": "Verified",
+            "type": "boolean"
           }
         },
         "required": [
@@ -644,6 +1264,440 @@
         "title": "ErrorResponse",
         "type": "object"
       },
+      "EventPage": {
+        "properties": {
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AgentEventRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_after": {
+            "description": "Pass as ?after= (or Last-Event-ID) to continue",
+            "title": "Next After",
+            "type": "integer"
+          },
+          "run_status": {
+            "enum": [
+              "queued",
+              "running",
+              "paused",
+              "awaiting_review",
+              "completed",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Run Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "next_after",
+          "has_more",
+          "run_status"
+        ],
+        "title": "EventPage",
+        "type": "object"
+      },
+      "FindingPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FindingRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "items"
+        ],
+        "title": "FindingPage",
+        "type": "object"
+      },
+      "FindingRead": {
+        "properties": {
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/CitationRead"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "compliance": {
+            "enum": [
+              "compliant",
+              "non_compliant",
+              "needs_review",
+              "not_assessed"
+            ],
+            "title": "Compliance",
+            "type": "string"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decided_by": {
+            "enum": [
+              "model",
+              "llm",
+              "system",
+              "human"
+            ],
+            "title": "Decided By",
+            "type": "string"
+          },
+          "document_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Filename"
+          },
+          "document_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Id"
+          },
+          "escalated": {
+            "title": "Escalated",
+            "type": "boolean"
+          },
+          "escalation_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Escalation Reason"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "per_document",
+              "cross_document"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "llm_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Model"
+          },
+          "llm_provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Provider"
+          },
+          "machine_decided_by": {
+            "enum": [
+              "model",
+              "llm",
+              "system"
+            ],
+            "title": "Machine Decided By",
+            "type": "string"
+          },
+          "machine_status": {
+            "description": "What the deciding component concluded",
+            "enum": [
+              "satisfied",
+              "violated",
+              "not_mentioned",
+              "needs_review"
+            ],
+            "title": "Machine Status",
+            "type": "string"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "override": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HumanOverrideRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "override_count": {
+            "title": "Override Count",
+            "type": "integer"
+          },
+          "prompt_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Version"
+          },
+          "rationale": {
+            "title": "Rationale",
+            "type": "string"
+          },
+          "reasoning": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Reasoning",
+            "type": "array"
+          },
+          "rule_key": {
+            "title": "Rule Key",
+            "type": "string"
+          },
+          "rule_title": {
+            "title": "Rule Title",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "source_changed": {
+            "title": "Source Changed",
+            "type": "boolean"
+          },
+          "status": {
+            "description": "Effective status: latest human override, else the verified machine status (needs_review if a cited source was deleted or changed after verification)",
+            "enum": [
+              "satisfied",
+              "violated",
+              "not_mentioned",
+              "needs_review"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "subject_key": {
+            "title": "Subject Key",
+            "type": "string"
+          },
+          "subject_label": {
+            "title": "Subject Label",
+            "type": "string"
+          },
+          "task_key": {
+            "title": "Task Key",
+            "type": "string"
+          },
+          "verification": {
+            "additionalProperties": true,
+            "title": "Verification",
+            "type": "object"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          },
+          "verified_status": {
+            "description": "Status after citation verification",
+            "enum": [
+              "satisfied",
+              "violated",
+              "not_mentioned",
+              "needs_review"
+            ],
+            "title": "Verified Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "task_key",
+          "kind",
+          "rule_key",
+          "rule_title",
+          "severity",
+          "document_id",
+          "document_filename",
+          "subject_key",
+          "subject_label",
+          "status",
+          "machine_status",
+          "verified_status",
+          "compliance",
+          "confidence",
+          "decided_by",
+          "machine_decided_by",
+          "rationale",
+          "verified",
+          "source_changed",
+          "verification",
+          "escalated",
+          "escalation_reason",
+          "model_version",
+          "prompt_version",
+          "llm_provider",
+          "llm_model",
+          "reasoning",
+          "citations",
+          "override",
+          "override_count",
+          "created_at"
+        ],
+        "title": "FindingRead",
+        "type": "object"
+      },
+      "HumanOverrideRead": {
+        "properties": {
+          "comment": {
+            "title": "Comment",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "finding_id": {
+            "format": "uuid",
+            "title": "Finding Id",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "new_status": {
+            "enum": [
+              "satisfied",
+              "violated",
+              "not_mentioned",
+              "needs_review"
+            ],
+            "title": "New Status",
+            "type": "string"
+          },
+          "previous_status": {
+            "enum": [
+              "satisfied",
+              "violated",
+              "not_mentioned",
+              "needs_review"
+            ],
+            "title": "Previous Status",
+            "type": "string"
+          },
+          "user_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Email"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          }
+        },
+        "required": [
+          "id",
+          "finding_id",
+          "user_id",
+          "user_email",
+          "previous_status",
+          "new_status",
+          "comment",
+          "created_at"
+        ],
+        "title": "HumanOverrideRead",
+        "type": "object"
+      },
       "Liveness": {
         "properties": {
           "service": {
@@ -661,6 +1715,53 @@
           "service"
         ],
         "title": "Liveness",
+        "type": "object"
+      },
+      "LlmSettingsRead": {
+        "properties": {
+          "deployment_model": {
+            "title": "Deployment Model",
+            "type": "string"
+          },
+          "deployment_provider": {
+            "enum": [
+              "mock",
+              "anthropic",
+              "openai",
+              "ollama"
+            ],
+            "title": "Deployment Provider",
+            "type": "string"
+          },
+          "mock_only": {
+            "description": "No real LLM provider is configured (UI shows a banner)",
+            "title": "Mock Only",
+            "type": "boolean"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/ProviderOption"
+            },
+            "title": "Providers",
+            "type": "array"
+          },
+          "rule_check_backend": {
+            "enum": [
+              "service",
+              "mock"
+            ],
+            "title": "Rule Check Backend",
+            "type": "string"
+          }
+        },
+        "required": [
+          "deployment_provider",
+          "deployment_model",
+          "providers",
+          "rule_check_backend",
+          "mock_only"
+        ],
+        "title": "LlmSettingsRead",
         "type": "object"
       },
       "LoginRequest": {
@@ -780,14 +1881,51 @@
       },
       "ModelStatus": {
         "properties": {
+          "review_rule_check_backend": {
+            "description": "What review runs use for model-supported rules on this server",
+            "enum": [
+              "service",
+              "mock"
+            ],
+            "title": "Review Rule Check Backend",
+            "type": "string"
+          },
           "rule_check": {
             "$ref": "#/components/schemas/RuleCheckModelStatus"
           }
         },
         "required": [
-          "rule_check"
+          "rule_check",
+          "review_rule_check_backend"
         ],
         "title": "ModelStatus",
+        "type": "object"
+      },
+      "OverrideRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "comment": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Comment",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "satisfied",
+              "violated",
+              "not_mentioned",
+              "needs_review"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "comment"
+        ],
+        "title": "OverrideRequest",
         "type": "object"
       },
       "PageRead": {
@@ -901,6 +2039,70 @@
         "title": "Provenance",
         "type": "object"
       },
+      "ProviderOption": {
+        "properties": {
+          "credential_configured": {
+            "description": "Whether the provider's key variable is set (its value is never read here)",
+            "title": "Credential Configured",
+            "type": "boolean"
+          },
+          "default_model": {
+            "title": "Default Model",
+            "type": "string"
+          },
+          "is_mock": {
+            "title": "Is Mock",
+            "type": "boolean"
+          },
+          "price_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Where token prices come from; None if unknown",
+            "title": "Price Source"
+          },
+          "problem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem"
+          },
+          "provider": {
+            "enum": [
+              "mock",
+              "anthropic",
+              "openai",
+              "ollama"
+            ],
+            "title": "Provider",
+            "type": "string"
+          },
+          "usable": {
+            "title": "Usable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "provider",
+          "default_model",
+          "is_mock",
+          "credential_configured",
+          "price_source",
+          "usable"
+        ],
+        "title": "ProviderOption",
+        "type": "object"
+      },
       "ReadinessReport": {
         "properties": {
           "checks": {
@@ -952,6 +2154,938 @@
           "password"
         ],
         "title": "RegisterRequest",
+        "type": "object"
+      },
+      "RegisterSpec": {
+        "additionalProperties": false,
+        "properties": {
+          "columns": {
+            "additionalProperties": {
+              "items": {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 20,
+              "minItems": 1,
+              "type": "array"
+            },
+            "propertyNames": {
+              "enum": [
+                "vendor",
+                "data_access",
+                "contract_file",
+                "renewal_date"
+              ]
+            },
+            "title": "Columns",
+            "type": "object"
+          }
+        },
+        "required": [
+          "columns"
+        ],
+        "title": "RegisterSpec",
+        "type": "object"
+      },
+      "ReportAction": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "finding_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Finding Ids",
+            "type": "array"
+          },
+          "priority": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Priority",
+            "type": "string"
+          }
+        },
+        "required": [
+          "finding_ids",
+          "priority",
+          "action"
+        ],
+        "title": "ReportAction",
+        "type": "object"
+      },
+      "ReportRead": {
+        "properties": {
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/ReportAction"
+            },
+            "title": "Actions",
+            "type": "array"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/BudgetRead"
+          },
+          "complete": {
+            "description": "False while the run has not finished all tasks",
+            "title": "Complete",
+            "type": "boolean"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingRead"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "llm_is_mock": {
+            "title": "Llm Is Mock",
+            "type": "boolean"
+          },
+          "llm_model": {
+            "title": "Llm Model",
+            "type": "string"
+          },
+          "llm_provider": {
+            "title": "Llm Provider",
+            "type": "string"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "needs_review": {
+            "items": {
+              "$ref": "#/components/schemas/ReportRisk"
+            },
+            "title": "Needs Review",
+            "type": "array"
+          },
+          "prompt_versions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Prompt Versions",
+            "type": "object"
+          },
+          "risks": {
+            "items": {
+              "$ref": "#/components/schemas/ReportRisk"
+            },
+            "title": "Risks",
+            "type": "array"
+          },
+          "rule_check_backend": {
+            "title": "Rule Check Backend",
+            "type": "string"
+          },
+          "rule_pack": {
+            "$ref": "#/components/schemas/RulePackRef"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/ReportRuleRow"
+            },
+            "title": "Rules",
+            "type": "array"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "run_status": {
+            "enum": [
+              "queued",
+              "running",
+              "paused",
+              "awaiting_review",
+              "completed",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Run Status",
+            "type": "string"
+          },
+          "subjects": {
+            "items": {
+              "$ref": "#/components/schemas/ReportSubjectRow"
+            },
+            "title": "Subjects",
+            "type": "array"
+          },
+          "summary": {
+            "items": {
+              "$ref": "#/components/schemas/ReportStatement"
+            },
+            "title": "Summary",
+            "type": "array"
+          },
+          "tau": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tau"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          },
+          "writer_version": {
+            "title": "Writer Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "workspace_id",
+          "generated_at",
+          "writer_version",
+          "run_status",
+          "rule_pack",
+          "llm_provider",
+          "llm_model",
+          "llm_is_mock",
+          "rule_check_backend",
+          "model_version",
+          "tau",
+          "prompt_versions",
+          "budget",
+          "complete",
+          "summary",
+          "rules",
+          "subjects",
+          "risks",
+          "actions",
+          "needs_review",
+          "findings",
+          "limitations"
+        ],
+        "title": "ReportRead",
+        "type": "object"
+      },
+      "ReportRisk": {
+        "properties": {
+          "compliance": {
+            "enum": [
+              "compliant",
+              "non_compliant",
+              "needs_review",
+              "not_assessed"
+            ],
+            "title": "Compliance",
+            "type": "string"
+          },
+          "decided_by": {
+            "title": "Decided By",
+            "type": "string"
+          },
+          "finding_id": {
+            "format": "uuid",
+            "title": "Finding Id",
+            "type": "string"
+          },
+          "rank": {
+            "title": "Rank",
+            "type": "integer"
+          },
+          "rule_title": {
+            "title": "Rule Title",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "satisfied",
+              "violated",
+              "not_mentioned",
+              "needs_review"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "subject_label": {
+            "title": "Subject Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "finding_id",
+          "rank",
+          "severity",
+          "rule_title",
+          "subject_label",
+          "status",
+          "compliance",
+          "decided_by"
+        ],
+        "title": "ReportRisk",
+        "type": "object"
+      },
+      "ReportRuleRow": {
+        "properties": {
+          "compliance_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Compliance Counts",
+            "type": "object"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "rule_key": {
+            "title": "Rule Key",
+            "type": "string"
+          },
+          "rule_title": {
+            "title": "Rule Title",
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "per_document",
+              "cross_document"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule_key",
+          "rule_title",
+          "severity",
+          "scope",
+          "counts",
+          "compliance_counts"
+        ],
+        "title": "ReportRuleRow",
+        "type": "object"
+      },
+      "ReportStatement": {
+        "properties": {
+          "finding_ids": {
+            "description": "The findings this statement is based on",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Finding Ids",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "finding_ids"
+        ],
+        "title": "ReportStatement",
+        "type": "object"
+      },
+      "ReportSubjectRow": {
+        "properties": {
+          "compliant": {
+            "title": "Compliant",
+            "type": "integer"
+          },
+          "document_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Id"
+          },
+          "findings": {
+            "title": "Findings",
+            "type": "integer"
+          },
+          "needs_review": {
+            "title": "Needs Review",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "compliant",
+              "at_risk",
+              "needs_review",
+              "not_assessed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "subject_key": {
+            "title": "Subject Key",
+            "type": "string"
+          },
+          "subject_label": {
+            "title": "Subject Label",
+            "type": "string"
+          },
+          "violated": {
+            "title": "Violated",
+            "type": "integer"
+          },
+          "worst_severity": {
+            "anyOf": [
+              {
+                "enum": [
+                  "low",
+                  "medium",
+                  "high"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worst Severity"
+          }
+        },
+        "required": [
+          "subject_key",
+          "subject_label",
+          "document_id",
+          "findings",
+          "violated",
+          "needs_review",
+          "compliant",
+          "worst_severity",
+          "status"
+        ],
+        "title": "ReportSubjectRow",
+        "type": "object"
+      },
+      "ReviewRunRead": {
+        "properties": {
+          "budget": {
+            "$ref": "#/components/schemas/BudgetRead"
+          },
+          "control": {
+            "anyOf": [
+              {
+                "enum": [
+                  "pause",
+                  "cancel"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Control"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "document_count": {
+            "title": "Document Count",
+            "type": "integer"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_event_seq": {
+            "title": "Last Event Seq",
+            "type": "integer"
+          },
+          "llm_is_mock": {
+            "title": "Llm Is Mock",
+            "type": "boolean"
+          },
+          "llm_model": {
+            "title": "Llm Model",
+            "type": "string"
+          },
+          "llm_provider": {
+            "enum": [
+              "mock",
+              "anthropic",
+              "openai",
+              "ollama"
+            ],
+            "title": "Llm Provider",
+            "type": "string"
+          },
+          "max_concurrency": {
+            "title": "Max Concurrency",
+            "type": "integer"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "pause_on_needs_review": {
+            "title": "Pause On Needs Review",
+            "type": "boolean"
+          },
+          "rule_check_backend": {
+            "title": "Rule Check Backend",
+            "type": "string"
+          },
+          "rule_pack": {
+            "$ref": "#/components/schemas/RulePackRef"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "paused",
+              "awaiting_review",
+              "completed",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tau": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tau"
+          },
+          "totals": {
+            "additionalProperties": true,
+            "title": "Totals",
+            "type": "object"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "rule_pack",
+          "status",
+          "control",
+          "created_by",
+          "created_at",
+          "updated_at",
+          "started_at",
+          "finished_at",
+          "llm_provider",
+          "llm_model",
+          "llm_is_mock",
+          "rule_check_backend",
+          "model_version",
+          "tau",
+          "pause_on_needs_review",
+          "max_concurrency",
+          "document_count",
+          "budget",
+          "totals",
+          "error_code",
+          "error_message",
+          "last_event_seq"
+        ],
+        "title": "ReviewRunRead",
+        "type": "object"
+      },
+      "ReviewSettingsRead": {
+        "properties": {
+          "budget_tokens": {
+            "title": "Budget Tokens",
+            "type": "integer"
+          },
+          "budget_usd": {
+            "title": "Budget Usd",
+            "type": "number"
+          },
+          "is_default": {
+            "title": "Is Default",
+            "type": "boolean"
+          },
+          "llm_model": {
+            "title": "Llm Model",
+            "type": "string"
+          },
+          "llm_provider": {
+            "enum": [
+              "mock",
+              "anthropic",
+              "openai",
+              "ollama"
+            ],
+            "title": "Llm Provider",
+            "type": "string"
+          },
+          "max_concurrency": {
+            "title": "Max Concurrency",
+            "type": "integer"
+          },
+          "pause_on_needs_review": {
+            "title": "Pause On Needs Review",
+            "type": "boolean"
+          },
+          "tau": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Cascade threshold override; None = the model's DEV-selected tau",
+            "title": "Tau"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "llm_provider",
+          "llm_model",
+          "tau",
+          "budget_tokens",
+          "budget_usd",
+          "pause_on_needs_review",
+          "max_concurrency",
+          "is_default",
+          "updated_at"
+        ],
+        "title": "ReviewSettingsRead",
+        "type": "object"
+      },
+      "ReviewSettingsUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "budget_tokens": {
+            "maximum": 50000000.0,
+            "minimum": 1000.0,
+            "title": "Budget Tokens",
+            "type": "integer"
+          },
+          "budget_usd": {
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Budget Usd",
+            "type": "number"
+          },
+          "llm_model": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Llm Model",
+            "type": "string"
+          },
+          "llm_provider": {
+            "enum": [
+              "mock",
+              "anthropic",
+              "openai",
+              "ollama"
+            ],
+            "title": "Llm Provider",
+            "type": "string"
+          },
+          "max_concurrency": {
+            "maximum": 16.0,
+            "minimum": 1.0,
+            "title": "Max Concurrency",
+            "type": "integer"
+          },
+          "pause_on_needs_review": {
+            "title": "Pause On Needs Review",
+            "type": "boolean"
+          },
+          "tau": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tau"
+          }
+        },
+        "required": [
+          "llm_provider",
+          "budget_tokens",
+          "budget_usd",
+          "pause_on_needs_review",
+          "max_concurrency"
+        ],
+        "title": "ReviewSettingsUpdate",
+        "type": "object"
+      },
+      "ReviewTaskRead": {
+        "properties": {
+          "document_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Id"
+          },
+          "finding_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finding Id"
+          },
+          "finding_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "satisfied",
+                  "violated",
+                  "not_mentioned",
+                  "needs_review"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finding Status"
+          },
+          "kind": {
+            "enum": [
+              "per_document",
+              "cross_document"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "rule_key": {
+            "title": "Rule Key",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "running",
+              "done",
+              "failed",
+              "skipped"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "subject_key": {
+            "title": "Subject Key",
+            "type": "string"
+          },
+          "subject_label": {
+            "title": "Subject Label",
+            "type": "string"
+          },
+          "task_key": {
+            "title": "Task Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_key",
+          "kind",
+          "rule_key",
+          "document_id",
+          "subject_key",
+          "subject_label",
+          "status",
+          "finding_id",
+          "finding_status"
+        ],
+        "title": "ReviewTaskRead",
+        "type": "object"
+      },
+      "ReviewTasksRead": {
+        "properties": {
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/RulePackRuleRef"
+            },
+            "title": "Rules",
+            "type": "array"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewTaskRead"
+            },
+            "title": "Tasks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "rules",
+          "tasks"
+        ],
+        "title": "ReviewTasksRead",
         "type": "object"
       },
       "RowPage": {
@@ -1070,6 +3204,685 @@
           "message"
         ],
         "title": "RuleCheckModelStatus",
+        "type": "object"
+      },
+      "RulePackCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "pack": {
+            "$ref": "#/components/schemas/RulePackSpec"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "pack"
+        ],
+        "title": "RulePackCreate",
+        "type": "object"
+      },
+      "RulePackImport": {
+        "additionalProperties": false,
+        "properties": {
+          "workspace_id": {
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          },
+          "yaml": {
+            "maxLength": 262144,
+            "minLength": 1,
+            "title": "Yaml",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "yaml"
+        ],
+        "title": "RulePackImport",
+        "type": "object"
+      },
+      "RulePackRead": {
+        "properties": {
+          "builtin": {
+            "title": "Builtin",
+            "type": "boolean"
+          },
+          "content_sha256": {
+            "title": "Content Sha256",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "cross_document_count": {
+            "title": "Cross Document Count",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "editable": {
+            "description": "Whether the caller may edit this pack",
+            "title": "Editable",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "model_supported_count": {
+            "title": "Model Supported Count",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "provenance": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provenance"
+          },
+          "register": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Register"
+          },
+          "rule_count": {
+            "title": "Rule Count",
+            "type": "integer"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/RuleRead"
+            },
+            "title": "Rules",
+            "type": "array"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          },
+          "workspace_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspace Id"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "version",
+          "description",
+          "builtin",
+          "workspace_id",
+          "source",
+          "rule_count",
+          "model_supported_count",
+          "cross_document_count",
+          "content_sha256",
+          "created_at",
+          "updated_at",
+          "editable",
+          "rules",
+          "register",
+          "provenance"
+        ],
+        "title": "RulePackRead",
+        "type": "object"
+      },
+      "RulePackRef": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "version"
+        ],
+        "title": "RulePackRef",
+        "type": "object"
+      },
+      "RulePackRuleRef": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "model_supported": {
+            "title": "Model Supported",
+            "type": "boolean"
+          },
+          "scope": {
+            "enum": [
+              "per_document",
+              "cross_document"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "scope",
+          "severity",
+          "model_supported"
+        ],
+        "title": "RulePackRuleRef",
+        "type": "object"
+      },
+      "RulePackSpec": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "",
+            "maxLength": 4000,
+            "title": "Description",
+            "type": "string"
+          },
+          "key": {
+            "pattern": "^[a-z0-9][a-z0-9_]{0,63}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "register": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RegisterSpec"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/RuleSpec"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Rules",
+            "type": "array"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "version": {
+            "pattern": "^\\d+\\.\\d+\\.\\d+$",
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "version",
+          "rules"
+        ],
+        "title": "RulePackSpec",
+        "type": "object"
+      },
+      "RulePackSummary": {
+        "properties": {
+          "builtin": {
+            "title": "Builtin",
+            "type": "boolean"
+          },
+          "content_sha256": {
+            "title": "Content Sha256",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "cross_document_count": {
+            "title": "Cross Document Count",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "editable": {
+            "description": "Whether the caller may edit this pack",
+            "title": "Editable",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "model_supported_count": {
+            "title": "Model Supported Count",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "rule_count": {
+            "title": "Rule Count",
+            "type": "integer"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          },
+          "workspace_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspace Id"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "version",
+          "description",
+          "builtin",
+          "workspace_id",
+          "source",
+          "rule_count",
+          "model_supported_count",
+          "cross_document_count",
+          "content_sha256",
+          "created_at",
+          "updated_at",
+          "editable"
+        ],
+        "title": "RulePackSummary",
+        "type": "object"
+      },
+      "RuleRead": {
+        "properties": {
+          "applies_to_doc_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Applies To Doc Types",
+            "type": "array"
+          },
+          "compliant_statuses": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compliant Statuses"
+          },
+          "contractnli_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contractnli Key"
+          },
+          "cross_document": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cross Document"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "hypothesis_text": {
+            "title": "Hypothesis Text",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "model_supported": {
+            "title": "Model Supported",
+            "type": "boolean"
+          },
+          "remediation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remediation"
+          },
+          "scope": {
+            "enum": [
+              "per_document",
+              "cross_document"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "title",
+          "description",
+          "hypothesis_text",
+          "scope",
+          "applies_to_doc_types",
+          "severity",
+          "model_supported",
+          "contractnli_key",
+          "compliant_statuses",
+          "cross_document",
+          "remediation"
+        ],
+        "title": "RuleRead",
+        "type": "object"
+      },
+      "RuleSpec": {
+        "additionalProperties": false,
+        "properties": {
+          "applies_to_doc_types": {
+            "items": {
+              "enum": [
+                "contract",
+                "spreadsheet",
+                "policy",
+                "other"
+              ],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Applies To Doc Types",
+            "type": "array"
+          },
+          "compliant_statuses": {
+            "anyOf": [
+              {
+                "items": {
+                  "enum": [
+                    "satisfied",
+                    "violated",
+                    "not_mentioned"
+                  ],
+                  "type": "string"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compliant Statuses"
+          },
+          "contractnli_key": {
+            "anyOf": [
+              {
+                "pattern": "^nda-\\d{1,2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contractnli Key"
+          },
+          "cross_document": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CrossDocumentSpec"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "default": "",
+            "maxLength": 4000,
+            "title": "Description",
+            "type": "string"
+          },
+          "hypothesis_text": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Hypothesis Text",
+            "type": "string"
+          },
+          "key": {
+            "pattern": "^[a-z0-9][a-z0-9_]{0,63}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "model_supported": {
+            "default": false,
+            "title": "Model Supported",
+            "type": "boolean"
+          },
+          "remediation": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remediation"
+          },
+          "scope": {
+            "enum": [
+              "per_document",
+              "cross_document"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "hypothesis_text",
+          "scope",
+          "applies_to_doc_types",
+          "severity"
+        ],
+        "title": "RuleSpec",
+        "type": "object"
+      },
+      "RunControl": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "pause",
+              "resume",
+              "cancel"
+            ],
+            "title": "Action",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "RunControl",
         "type": "object"
       },
       "SearchCapabilities": {
@@ -1673,6 +4486,162 @@
         "title": "StaleDocument",
         "type": "object"
       },
+      "StartReview": {
+        "additionalProperties": false,
+        "properties": {
+          "budget_tokens": {
+            "anyOf": [
+              {
+                "maximum": 50000000.0,
+                "minimum": 1000.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Tokens"
+          },
+          "budget_usd": {
+            "anyOf": [
+              {
+                "maximum": 1000.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Usd"
+          },
+          "document_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 500,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Documents to review; omitted = every ready document",
+            "title": "Document Ids"
+          },
+          "llm_model": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Model"
+          },
+          "llm_provider": {
+            "anyOf": [
+              {
+                "enum": [
+                  "mock",
+                  "anthropic",
+                  "openai",
+                  "ollama"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Provider"
+          },
+          "max_concurrency": {
+            "anyOf": [
+              {
+                "maximum": 16.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Concurrency"
+          },
+          "pause_on_needs_review": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pause On Needs Review"
+          },
+          "rule_pack_id": {
+            "format": "uuid",
+            "title": "Rule Pack Id",
+            "type": "string"
+          },
+          "tau": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tau"
+          }
+        },
+        "required": [
+          "rule_pack_id"
+        ],
+        "title": "StartReview",
+        "type": "object"
+      },
+      "SubjectFilter": {
+        "additionalProperties": false,
+        "properties": {
+          "column": {
+            "enum": [
+              "vendor",
+              "data_access",
+              "contract_file",
+              "renewal_date"
+            ],
+            "title": "Column",
+            "type": "string"
+          },
+          "in": {
+            "items": {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "In",
+            "type": "array"
+          }
+        },
+        "required": [
+          "column",
+          "in"
+        ],
+        "title": "SubjectFilter",
+        "type": "object"
+      },
       "UploadErrorBody": {
         "properties": {
           "code": {
@@ -2044,6 +5013,70 @@
         "summary": "Register",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/v1/citations/{citation_id}": {
+      "get": {
+        "description": "The quote, its document/page/offsets/boxes, surrounding context, and whether the\nquote is still exactly at its offsets.",
+        "operationId": "get_citation_api_v1_citations__citation_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "citation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Citation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CitationDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get Citation",
+        "tags": [
+          "reviews"
         ]
       }
     },
@@ -2790,6 +5823,163 @@
         ]
       }
     },
+    "/api/v1/findings/{finding_id}": {
+      "get": {
+        "operationId": "get_finding_api_v1_findings__finding_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "finding_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Finding Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get Finding",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/v1/findings/{finding_id}/override": {
+      "post": {
+        "description": "Record an audited human decision (with a comment). The machine finding is kept.",
+        "operationId": "override_finding_api_v1_findings__finding_id__override_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "finding_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Finding Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverrideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Override Finding",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
     "/api/v1/health": {
       "get": {
         "operationId": "live_api_v1_health_get",
@@ -2874,6 +6064,1178 @@
         ]
       }
     },
+    "/api/v1/reviews/{run_id}": {
+      "get": {
+        "operationId": "get_review_api_v1_reviews__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewRunRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get Review",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/v1/reviews/{run_id}/control": {
+      "post": {
+        "description": "Pause (at the next step boundary), resume (from the last checkpoint) or cancel.",
+        "operationId": "control_review_api_v1_reviews__run_id__control_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunControl"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewRunRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Control Review",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/v1/reviews/{run_id}/events": {
+      "get": {
+        "operationId": "review_events_api_v1_reviews__run_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Last-Event-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {}
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Review Events",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/v1/reviews/{run_id}/events/history": {
+      "get": {
+        "operationId": "review_event_history_api_v1_reviews__run_id__events_history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "After",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Review Event History",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/v1/reviews/{run_id}/findings": {
+      "get": {
+        "operationId": "review_findings_api_v1_reviews__run_id__findings_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "satisfied",
+                    "violated",
+                    "not_mentioned",
+                    "needs_review"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "severity",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Severity"
+            }
+          },
+          {
+            "in": "query",
+            "name": "decided_by",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "model",
+                    "llm",
+                    "system",
+                    "human"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Decided By"
+            }
+          },
+          {
+            "in": "query",
+            "name": "subject_key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject Key"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 500,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Review Findings",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/v1/reviews/{run_id}/report": {
+      "get": {
+        "description": "The report, rendered live from verified findings and human overrides (citations are\nre-checked against the current documents). ``format=md`` downloads Markdown.",
+        "operationId": "review_report_api_v1_reviews__run_id__report_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "json",
+              "enum": [
+                "json",
+                "md"
+              ],
+              "title": "Format",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportRead"
+                }
+              },
+              "text/markdown": {}
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Review Report",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/v1/reviews/{run_id}/resume": {
+      "post": {
+        "description": "Resume a paused, failed or review-waiting run from its last checkpoint.",
+        "operationId": "resume_review_api_v1_reviews__run_id__resume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewRunRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Resume Review",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/v1/reviews/{run_id}/tasks": {
+      "get": {
+        "operationId": "review_tasks_api_v1_reviews__run_id__tasks_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewTasksRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Review Tasks",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/v1/rule-packs": {
+      "get": {
+        "description": "Built-in packs plus the given workspace's packs (members only).",
+        "operationId": "list_rule_packs_api_v1_rule_packs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RulePackSummary"
+                  },
+                  "title": "Response List Rule Packs Api V1 Rule Packs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Rule Packs",
+        "tags": [
+          "rule-packs"
+        ]
+      },
+      "post": {
+        "operationId": "create_rule_pack_api_v1_rule_packs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RulePackCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RulePackRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Create Rule Pack",
+        "tags": [
+          "rule-packs"
+        ]
+      }
+    },
+    "/api/v1/rule-packs/import": {
+      "post": {
+        "description": "Import a YAML rule pack into a workspace (validated like the built-in packs).",
+        "operationId": "import_rule_pack_api_v1_rule_packs_import_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RulePackImport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RulePackRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Import Rule Pack",
+        "tags": [
+          "rule-packs"
+        ]
+      }
+    },
+    "/api/v1/rule-packs/{rule_pack_id}": {
+      "get": {
+        "operationId": "get_rule_pack_api_v1_rule_packs__rule_pack_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule_pack_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rule Pack Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RulePackRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get Rule Pack",
+        "tags": [
+          "rule-packs"
+        ]
+      },
+      "put": {
+        "description": "Replace a workspace pack's content (same key). Existing runs keep their snapshot.",
+        "operationId": "update_rule_pack_api_v1_rule_packs__rule_pack_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule_pack_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rule Pack Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RulePackSpec"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RulePackRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Update Rule Pack",
+        "tags": [
+          "rule-packs"
+        ]
+      }
+    },
+    "/api/v1/rule-packs/{rule_pack_id}/export": {
+      "get": {
+        "operationId": "export_rule_pack_api_v1_rule_packs__rule_pack_id__export_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule_pack_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rule Pack Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/yaml": {}
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Export Rule Pack",
+        "tags": [
+          "rule-packs"
+        ]
+      }
+    },
     "/api/v1/search/capabilities": {
       "get": {
         "description": "What the search backend supports right now (e.g. whether reranking is enabled).",
@@ -2913,6 +7275,37 @@
         "summary": "Capabilities",
         "tags": [
           "search"
+        ]
+      }
+    },
+    "/api/v1/settings/llm": {
+      "get": {
+        "operationId": "llm_settings_api_v1_settings_llm_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LlmSettingsRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          }
+        },
+        "summary": "Llm Settings",
+        "tags": [
+          "settings"
         ]
       }
     },
@@ -3752,6 +8145,330 @@
         "summary": "Update Member",
         "tags": [
           "workspaces"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspace_id}/review-settings": {
+      "get": {
+        "operationId": "get_review_settings_api_v1_workspaces__workspace_id__review_settings_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewSettingsRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get Review Settings",
+        "tags": [
+          "settings"
+        ]
+      },
+      "put": {
+        "description": "Owner only. The provider must be configured on this server (mock always is).",
+        "operationId": "put_review_settings_api_v1_workspaces__workspace_id__review_settings_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewSettingsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewSettingsRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Put Review Settings",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspace_id}/reviews": {
+      "get": {
+        "operationId": "list_reviews_api_v1_workspaces__workspace_id__reviews_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReviewRunRead"
+                  },
+                  "title": "Response List Reviews Api V1 Workspaces  Workspace Id  Reviews Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Reviews",
+        "tags": [
+          "reviews"
+        ]
+      },
+      "post": {
+        "description": "Validate and queue a review run (the worker executes it).",
+        "operationId": "start_review_api_v1_workspaces__workspace_id__reviews_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartReview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewRunRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "summary": "Start Review",
+        "tags": [
+          "reviews"
         ]
       }
     },

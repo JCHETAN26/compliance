@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from compliance_core.rule_packs import RulePackValidationError
 from compliance_core.services.errors import (
     AuthenticationError,
     ConflictError,
@@ -86,6 +87,12 @@ async def _service_error(_: Request, exc: Exception) -> JSONResponse:
     return error_response(status_code, exc.code, exc.message, headers=headers)
 
 
+async def _rule_pack_error(_: Request, exc: Exception) -> JSONResponse:
+    assert isinstance(exc, RulePackValidationError)  # noqa: S101
+    details = [ErrorDetail(loc=["body"], msg=msg, type="rule_pack") for msg in exc.errors[:50]]
+    return error_response(422, exc.code, exc.message, details)
+
+
 async def _upload_error(_: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, UploadError)  # noqa: S101
     return error_response(exc.status_code, exc.code, str(exc))
@@ -119,6 +126,7 @@ async def _unhandled_error(_: Request, exc: Exception) -> JSONResponse:
 
 
 def install_error_handlers(app: FastAPI) -> None:
+    app.add_exception_handler(RulePackValidationError, _rule_pack_error)
     app.add_exception_handler(ServiceError, _service_error)
     app.add_exception_handler(UploadError, _upload_error)
     app.add_exception_handler(StarletteHTTPException, _http_error)

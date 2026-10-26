@@ -12,13 +12,25 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
+from sqlalchemy.exc import SQLAlchemyError
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from compliance_api.context import AppContext
 from compliance_api.errors import install_error_handlers
-from compliance_api.routes import auth, documents, health, models, search, workspaces
+from compliance_api.routes import (
+    auth,
+    documents,
+    health,
+    models,
+    reviews,
+    rule_packs,
+    search,
+    workspaces,
+)
+from compliance_api.routes import settings as settings_routes
 from compliance_core.config import Settings, get_settings
 from compliance_core.logs import configure_logging, request_id_var
+from compliance_core.services.rule_packs import sync_builtin_packs
 
 API_PREFIX = "/api/v1"
 logger = logging.getLogger("compliance_api.access")
@@ -74,6 +86,17 @@ class RequestContextMiddleware:
             request_id_var.reset(token)
 
 
+async def sync_rule_packs(ctx: AppContext) -> None:
+    """Insert or refresh the built-in rule packs (idempotent, serialised across processes).
+    A database that is not migrated yet is reported, not fatal: the packs appear on the
+    next start."""
+    try:
+        async with ctx.session_factory() as session:
+            await sync_builtin_packs(session)
+    except (OSError, SQLAlchemyError):
+        logger.warning("could not synchronise built-in rule packs", exc_info=True)
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     configure_logging("api", settings.log_level)
@@ -82,6 +105,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         ctx = AppContext.create(settings)
         app.state.ctx = ctx
+        await sync_rule_packs(ctx)
         logger.info("api started", extra={"app_env": settings.app_env.value})
         try:
             yield
@@ -106,5 +130,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api.include_router(documents.router)
     api.include_router(search.router)
     api.include_router(models.router)
+    api.include_router(rule_packs.router)
+    api.include_router(reviews.router)
+    api.include_router(settings_routes.router)
     app.include_router(api)
     return app

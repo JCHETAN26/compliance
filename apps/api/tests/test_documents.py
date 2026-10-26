@@ -222,7 +222,7 @@ async def test_unprocessed_document_has_no_derived_data_and_honest_entities(clie
     entities = (await owner.get(f"/api/v1/documents/{doc_id}/entities")).json()
     assert entities["status"] == "not_available"
     assert entities["entities"] == []
-    assert "Phase 4" in entities["detail"]
+    assert "No review has extracted entities" in entities["detail"]
 
 
 async def test_delete_removes_row_and_file_and_retry_rules(clients: Any, api_app: Any) -> None:
