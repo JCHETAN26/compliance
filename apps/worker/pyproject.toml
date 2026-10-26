@@ -8,12 +8,14 @@ dependencies = [
     "arq>=0.26",
     "compliance-ingestion",
     "compliance-seed",
+    "compliance-agents",
 ]
 
 [tool.uv.sources]
 compliance-core = { workspace = true }
 compliance-ingestion = { workspace = true }
 compliance-seed = { workspace = true }
+compliance-agents = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

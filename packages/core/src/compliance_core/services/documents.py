@@ -60,8 +60,8 @@ READ_ROLES = frozenset(WorkspaceRole)
 WRITE_ROLES = frozenset({WorkspaceRole.OWNER, WorkspaceRole.REVIEWER})
 DOCUMENT_NOT_FOUND = "Document not found."
 ENTITIES_NOT_AVAILABLE = (
-    "Entity and clause extraction is performed by the extraction agent during reviews, "
-    "which is not implemented yet (Phase 4). No extraction has been run for this document."
+    "Entities are extracted by the extraction agent during review runs. No review has "
+    "extracted entities from this document yet."
 )
 
 
@@ -401,16 +401,34 @@ async def list_entities(
     session: AsyncSession, document_id: uuid.UUID, user_id: uuid.UUID
 ) -> EntitiesResponse:
     await _document_for_member(session, document_id, user_id)
+    # The most recent review that extracted entities from this document (runs are
+    # workspace-scoped, and the document already passed the membership check).
+    latest_run = await session.scalar(
+        select(ExtractedEntity.review_run_id)
+        .where(ExtractedEntity.document_id == document_id)
+        .order_by(ExtractedEntity.created_at.desc())
+        .limit(1)
+    )
+    query = select(ExtractedEntity).where(ExtractedEntity.document_id == document_id)
+    query = (
+        query.where(ExtractedEntity.review_run_id == latest_run)
+        if latest_run is not None
+        else query.where(ExtractedEntity.review_run_id.is_(None))
+    )
     entities = (
         await session.scalars(
-            select(ExtractedEntity).where(ExtractedEntity.document_id == document_id)
+            query.order_by(ExtractedEntity.char_start.nulls_last(), ExtractedEntity.type)
         )
     ).all()
     if not entities:
         return EntitiesResponse(status="not_available", detail=ENTITIES_NOT_AVAILABLE, entities=[])
     return EntitiesResponse(
         status="available",
-        detail="Entities extracted by the review pipeline.",
+        detail=(
+            "Verified entities from the latest review run: each quote was found exactly in "
+            "the cited chunk and its value re-read from the quote."
+        ),
+        review_run_id=latest_run,
         entities=[EntityRead.model_validate(e) for e in entities],
     )
 

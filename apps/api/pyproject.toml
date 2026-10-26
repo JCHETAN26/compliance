@@ -9,11 +9,13 @@ dependencies = [
     "uvicorn[standard]>=0.35",
     "arq>=0.26",
     "compliance-retrieval",
+    "compliance-llm",
 ]
 
 [tool.uv.sources]
 compliance-core = { workspace = true }
 compliance-retrieval = { workspace = true }
+compliance-llm = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

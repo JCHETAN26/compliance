@@ -11,5 +11,4 @@ apps/web
 docs
 ml
 evals
-rule_packs
 **/tests

@@ -146,9 +146,16 @@ class EntityRead(_Read):
     value_json: dict[str, Any]
     chunk_id: uuid.UUID | None
     confidence: float | None
+    quote: str | None = None
+    char_start: int | None = None
+    char_end: int | None = None
+    page_number: int | None = None
+    method: str | None = None
+    verified: bool = False
 
 
 class EntitiesResponse(BaseModel):
     status: Literal["not_available", "available"]
     detail: str
+    review_run_id: uuid.UUID | None = None
     entities: list[EntityRead]

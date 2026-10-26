@@ -145,6 +145,8 @@ asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 testpaths = [
     "packages/core/tests",
+    "packages/llm/tests",
+    "packages/agents/tests",
     "apps/api/tests",
     "apps/worker/tests",
     "apps/model-service/tests",

@@ -1,0 +1,131 @@
+# Vendor confidentiality review: the flagship scenario of docs/BUILD_HANDOFF.md section 1.
+#
+# Per-document rules run on every contract in the review scope:
+# - three ContractNLI hypotheses, VERBATIM (contractnli_key), checked by the trained
+#   rule-check model (model_supported: true) with LLM escalation below tau;
+# - one custom rule (model_supported: false) that always goes to the LLM, because its
+#   text is not a training hypothesis (handoff section 7.6).
+#
+# Cross-document rules are evaluated per vendor row of the vendor register (a spreadsheet
+# whose header contains the columns below). They are deterministic reasoning over
+# verified findings, verified extracted entities and the register row itself.
+#
+# compliant_statuses: the finding statuses that count as compliant for this rule. For
+# example "return_or_destruction" is compliant when the contract *states* the obligation
+# (satisfied); not_mentioned is never compliant here.
+#
+# Severity is an editorial judgement for report ranking (not learned, not evaluated).
+key: vendor_confidentiality_review
+name: Vendor Confidentiality Review
+version: 1.0.0
+description: >-
+  Checks every vendor NDA for core confidentiality protections and cross-references the
+  vendor register: vendors with high data access must have an NDA on file that restricts
+  third-party sharing and requires return or destruction of confidential information,
+  and every contract must remain in force through the vendor's renewal date.
+register:
+  columns:
+    vendor: [vendor name, vendor, supplier, supplier name, company]
+    data_access: [data access level, data access, access level]
+    contract_file: [contract file name, contract file, contract, nda file, agreement file]
+    renewal_date: [renewal date, renewal, next renewal]
+rules:
+  - key: third_party_sharing_restricted
+    title: Third-party sharing restricted
+    description: >-
+      The NDA must not let the receiving party pass confidential information to third
+      parties without the disclosing party's prior written consent.
+    hypothesis_text: Receiving Party shall not disclose Confidential Information to any third party without the prior written consent of Disclosing Party.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: high
+    model_supported: false
+    compliant_statuses: [satisfied]
+    remediation: >-
+      Add a clause prohibiting disclosure of Confidential Information to third parties
+      without the Disclosing Party's prior written consent.
+  - key: return_or_destruction
+    contractnli_key: nda-16
+    title: Return or destruction of confidential information
+    hypothesis_text: Receiving Party shall destroy or return some Confidential Information upon the termination of Agreement.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: high
+    model_supported: true
+    compliant_statuses: [satisfied]
+    remediation: >-
+      Require the vendor to return or destroy Confidential Information when the agreement
+      ends.
+  - key: notice_on_compelled_disclosure
+    contractnli_key: nda-8
+    title: Notice on compelled disclosure
+    hypothesis_text: Receiving Party shall notify Disclosing Party in case Receiving Party is required by law, regulation or judicial process to disclose any Confidential Information.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: medium
+    model_supported: true
+    compliant_statuses: [satisfied]
+    remediation: >-
+      Require prompt notice before any legally compelled disclosure.
+  - key: survival_of_obligations
+    contractnli_key: nda-19
+    title: Survival of obligations
+    hypothesis_text: Some obligations of Agreement may survive termination of Agreement.
+    scope: per_document
+    applies_to_doc_types: [contract]
+    severity: medium
+    model_supported: true
+    compliant_statuses: [satisfied]
+    remediation: >-
+      Make confidentiality obligations survive termination of the agreement.
+  - key: high_access_contract_on_file
+    title: High-access vendor has a contract on file
+    description: >-
+      Every vendor with high data access must list a contract in the register that matches
+      a document in the review scope.
+    hypothesis_text: Every vendor with high data access has its listed contract on file.
+    scope: cross_document
+    applies_to_doc_types: [spreadsheet]
+    severity: high
+    model_supported: false
+    compliant_statuses: [satisfied]
+    cross_document:
+      kind: contract_on_file
+      subject_filter: {column: data_access, in: [high]}
+    remediation: >-
+      Obtain and upload the signed NDA for this vendor, or restrict its data access.
+  - key: high_access_required_protections
+    title: High-access vendor NDA has the required protections
+    description: >-
+      For every vendor with high data access, the matched NDA must restrict third-party
+      sharing and require return or destruction of confidential information (both
+      findings verified and compliant).
+    hypothesis_text: Every vendor with high data access has an NDA that restricts sharing with third parties and requires return or destruction of confidential information.
+    scope: cross_document
+    applies_to_doc_types: [spreadsheet]
+    severity: high
+    model_supported: false
+    compliant_statuses: [satisfied]
+    cross_document:
+      kind: required_protections
+      subject_filter: {column: data_access, in: [high]}
+      required_rules: [third_party_sharing_restricted, return_or_destruction]
+    remediation: >-
+      Amend the vendor's NDA to add the missing protections before renewing access.
+  - key: contract_term_covers_renewal
+    title: Contract in force through the renewal date
+    description: >-
+      The contract's end date (stated, or the effective date plus a stated term) must be
+      on or after the vendor's renewal date in the register. Missing or unreadable dates
+      need human review.
+    hypothesis_text: The vendor's contract remains in force through the register's renewal date.
+    scope: cross_document
+    applies_to_doc_types: [spreadsheet]
+    severity: medium
+    model_supported: false
+    compliant_statuses: [satisfied]
+    cross_document:
+      kind: term_covers_date
+      date_column: renewal_date
+    remediation: >-
+      Renew or extend the contract so it covers the vendor relationship through renewal.

@@ -58,3 +58,31 @@ def test_settings_read_from_environment(monkeypatch: pytest.MonkeyPatch) -> None
 def test_invalid_log_level_rejected() -> None:
     with pytest.raises(ValidationError):
         Settings(log_level="loud")
+
+
+def test_empty_review_env_values_mean_unset(
+    clean_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for name in (
+        "ANTHROPIC_EFFORT",
+        "LLM_INPUT_USD_PER_MTOK",
+        "LLM_OUTPUT_USD_PER_MTOK",
+        "LLM_MODEL",
+    ):
+        monkeypatch.setenv(name, "")
+    settings = Settings()
+    assert settings.anthropic_effort is None
+    assert settings.llm_input_usd_per_mtok is None
+    assert settings.llm_output_usd_per_mtok is None
+    assert settings.llm_provider == "mock"
+    assert settings.llm_model == ""
+
+
+def test_mock_rule_check_backend_is_refused_in_production(clean_env: None) -> None:
+    with pytest.raises(ValueError, match="REVIEW_RULE_CHECK_BACKEND"):
+        Settings(
+            app_env=AppEnv.PRODUCTION,
+            jwt_secret=SecretStr("x" * 40),
+            cookie_secure=True,
+            review_rule_check_backend="mock",
+        )
