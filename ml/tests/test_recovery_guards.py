@@ -508,6 +508,25 @@ def test_fp32_recovery_keeps_tau_only_with_usable_llm_params(tmp_path: Path) -> 
     params.write_text(json.dumps({**good, "temperature": 1.0}))
     with pytest.raises(SystemExit, match="temperature"):
         recover_fp32.recover(source, tmp_path / "other", qe, params)
+    # As in the real evaluation: a local re-fit of the DEV temperature differs in the 13th digit.
+    params.write_text(json.dumps({**good, "temperature": 2.7 + 9e-14}))
+    recover_fp32.recover(source, tmp_path / "refit", qe, params)
+    assert (
+        load_artifact(tmp_path / "refit", variant="fp32", allow_smoke=False).manifest.inference.tau
+        == 0.8
+    )
+
+
+def test_fp32_recovery_refuses_params_for_a_source_without_tau(tmp_path: Path) -> None:
+    # Re-recovering from an earlier fp32 recovery (tau None) must not silently drop --params.
+    source = tmp_path / "source"
+    manifest = _artifact(source, tau=None)
+    qe = _quantization_eval(tmp_path / "q.json", manifest["model_version"])
+    params = tmp_path / "params.json"
+    params.write_text(json.dumps({"tau": 0.8, "llm_baseline_usable": True, "data_version": "v"}))
+    with pytest.raises(SystemExit, match="serves no tau"):
+        recover_fp32.recover(source, tmp_path / "out", qe, params)
+    assert not (tmp_path / "out").exists()
 
 
 def test_fp32_recovery_refuses_unvalidated_inputs(tmp_path: Path) -> None:

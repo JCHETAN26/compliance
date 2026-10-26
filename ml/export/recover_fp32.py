@@ -146,12 +146,29 @@ def check_quantization_eval(manifest: Manifest, path: Path) -> dict[str, Any]:
     }
 
 
+PARAMETER_REL_TOL = 1e-9
+
+
+def same_parameter(evaluated: Any, served: Any) -> bool:
+    """Equal, or for floats equal up to refit noise (a CPU re-fit of the same DEV
+    temperature differs from the exported one in the 13th digit)."""
+    if isinstance(evaluated, float) and isinstance(served, float):
+        return math.isclose(evaluated, served, rel_tol=PARAMETER_REL_TOL)
+    return bool(evaluated == served)
+
+
 def recovered_inference(
     manifest: Manifest, params_path: Path | None
 ) -> tuple[dict[str, Any], str | None]:
     """The source's served parameters; tau kept only with valid evidence (else reason)."""
     inference = manifest.inference.model_dump(mode="json")
     if inference.get("tau") is None:
+        if params_path is not None:
+            # Silently dropping --params would ship tau None while the caller expects a tau.
+            raise RecoveryError(
+                f"{params_path} given, but the source serves no tau to keep: recover from "
+                "the original export instead"
+            )
         return inference, None
     reason: str | None
     if params_path is None:
@@ -161,7 +178,7 @@ def recovered_inference(
         if params.get("data_version") != manifest.provenance.get("data_version"):
             raise RecoveryError(f"{params_path} is for another data version")
         for key in ("top_k", "temperature", "evidence_threshold", "tau"):
-            if params.get(key) != inference[key]:
+            if not same_parameter(params.get(key), inference[key]):
                 raise RecoveryError(
                     f"{params_path} {key}={params.get(key)} differs from the source"
                 )
