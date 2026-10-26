@@ -134,7 +134,7 @@ def quantize_int8(fp32: Path, int8: Path) -> None:
     constant-weight MatMul, then 4-bit ``GatherBlockQuantized`` for the word-embedding
     table (ONNX Runtime quantizes Gather to 4 bits only).
     """
-    import onnx
+    import onnx  # type: ignore[import-not-found,unused-ignore]  # tool overlay
     from onnxruntime.quantization.matmul_nbits_quantizer import (  # type: ignore[import-untyped]
         DefaultWeightOnlyQuantConfig,
         MatMulNBitsQuantizer,

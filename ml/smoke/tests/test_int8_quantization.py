@@ -12,7 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
-import onnx
+import onnx  # type: ignore[import-not-found,unused-ignore]  # tool overlay
 import onnxruntime as ort  # type: ignore[import-untyped]
 from onnx import TensorProto, helper, numpy_helper
 
