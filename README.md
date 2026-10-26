@@ -4,9 +4,10 @@ A full-stack, multi-agent compliance review workspace: upload contracts and vend
 registers, run a versioned rule pack, and get a report whose findings cite the exact
 source passage. The full specification is in [`docs/BUILD_HANDOFF.md`](docs/BUILD_HANDOFF.md).
 
-> **Status: Phases 0–2 accepted. Phase 3 (rule-check model) implemented, trained and
-> evaluated; its acceptance is recorded by the independent supervisor in
-> [`docs/SUPERVISION.md`](docs/SUPERVISION.md). Phases 4–6 not started.**
+> **Status: Phases 0–3 accepted (see [`docs/SUPERVISION.md`](docs/SUPERVISION.md)).
+> Phase 4 (agents, live run, report, overrides) is implemented and verified locally with
+> the mock LLM; the real-LLM flagship run and supervisor acceptance are pending
+> ([`docs/PHASE4_REVIEW.md`](docs/PHASE4_REVIEW.md)). Phases 5–6 not started.**
 >
 > - **Phase 0** (skeleton, auth, workspaces, compose, CI): accepted, hosted GitHub
 >   Actions run 39678264159 (commit `e6b709e`).
@@ -36,11 +37,16 @@ source passage. The full specification is in [`docs/BUILD_HANDOFF.md`](docs/BUIL
 >   baseline (all DEV + TEST pairs) and the offline evaluation are complete (results
 >   below). The local stack serves the fp32 artifact with the DEV-selected tau 0.3. The
 >   quantized file passed full DEV and TEST but is slower than fp32 on CPU, so fp32 stays
->   served (user decision). Hosted CI passed for the latest code commit `5fe419d`
->   (run 40271320856).
-> - **Not implemented yet:** agents/reviews/reports and entity extraction (Phase 4), MCP
->   tools (Phase 5), the end-to-end eval suite and dashboard (Phase 6). The services and
->   panels reserved for them say so explicitly instead of returning fake results.
+>   served (user decision). Hosted CI passed for the final Phase 3 head `ccfff28`
+>   (run 40277029790).
+> - **Phase 4** (implemented; acceptance pending): a LangGraph graph of seven agents
+>   (planner, extraction, retrieval, rule check, cross-document reasoning, citation
+>   verifier, report writer) run by the worker, with Postgres checkpoints, a budgeted LLM
+>   ledger, live agent events over SSE, human review with audited overrides, and the rule
+>   pack, review, live-run and report pages. See "Reviews (Phase 4)" below.
+> - **Not implemented yet:** MCP tools (Phase 5), the end-to-end eval suite and dashboard
+>   (Phase 6). The services and panels reserved for them say so explicitly instead of
+>   returning fake results.
 >
 > Verification logs are in [`docs/BUILD_STATUS.md`](docs/BUILD_STATUS.md).
 
@@ -231,6 +237,45 @@ in [`evals/README.md`](evals/README.md).
 - **Scope:** this is an isolated text-retrieval eval. It does not cover PDF/OCR
   extraction or report quality.
 
+## Reviews (Phase 4)
+
+A review checks a workspace's documents against a rule pack (**Rule packs** tab:
+built-in `nda_standard` and `vendor_confidentiality_review`, YAML import/export, editor).
+**Reviews → Start review** queues a run; the worker executes the agent graph:
+
+```mermaid
+flowchart LR
+  P[planner] --> E[extraction<br/>entities + register links]
+  E --> R[retrieval] --> C[rule check<br/>trained model, LLM below tau<br/>or for custom rules]
+  C --> V[citation verifier<br/>exact text + semantic support]
+  V --> X[cross-document<br/>reasoning] --> V2[citation verifier] --> H{human review<br/>(optional pause)} --> W[report writer]
+```
+
+- **Evidence first.** Every finding cites stored text at exact offsets (with PDF line
+  boxes). The verifier keeps a finding only if each quote is still exactly at its offsets
+  *and* the quotes support the claim (the trained model re-checks model decisions on the
+  cited spans alone; an LLM support check covers LLM decisions); otherwise it is
+  `needs_review`. `not_mentioned` cannot be quoted, so it is presented as needing review.
+  The report states only verified or human-decided findings; recommended actions come from
+  the rule pack, not from a model.
+- **Cascade.** Model-supported rules use the trained model with the DEV-selected tau 0.3
+  (full coverage on DEV/TEST, so escalations are rare); custom rules use the LLM's
+  structured verdict, grounded on the span ids it was shown.
+- **Untrusted documents.** Document text is delimited data; the LLM has no tools; ids it
+  was not shown are rejected; extracted dates/terms are re-read from verbatim quotes.
+- **Budget.** Each provider attempt is reserved against the run's token and USD caps
+  before it is sent (provable bound, rounded up, serialised per run); unknown outcomes
+  stay charged; mock usage is labelled as an estimate.
+- **Durability.** Runs hold a fenced lease; checkpoints and memoized steps let a paused,
+  failed or interrupted run resume without repeating or re-billing finished work.
+- **Live view and report.** The run page streams agent events (SSE with replay) and fills
+  a rules × subjects grid; the report has filters, a per-subject view, citations that open
+  the highlighted source, audited override decisions, and Markdown/JSON export.
+
+Providers are chosen with `LLM_PROVIDER` (`mock` default, `anthropic`, `openai`,
+`ollama`; see `.env.example`). The mock is offline and labelled everywhere. `make
+smoke-phase4` runs the synthetic ten-vendor flagship through a running stack.
+
 ## Results: rule-check model (Phase 3)
 
 Official ContractNLI TEST split, all 2,091 pairs, data version `693b452e…`. Every choice
@@ -335,8 +380,14 @@ The vendor register's access levels and dates are synthetic; see
 
 ## Limitations
 
-- No agents, reviews, MCP tools or end-to-end evals yet (Phases 4–6); see the phase plan
-  in the handoff.
+- No MCP tools or end-to-end evals yet (Phases 5–6); see the phase plan in the handoff.
+- **Reviews (Phase 4):** verified end to end only with the deterministic mock LLM (and a
+  bounded real-model run); no real-LLM flagship run has been made yet. The mock LLM and
+  mock rule-check backend are lexical stand-ins for offline demos, not legal analysis.
+  Report export is Markdown/JSON (PDF export is Phase 6). Documents ingested before Phase 4
+  highlight citations at chunk level until re-ingested (no stored line geometry).
+  Cross-document rules cover the vendor-register scenario only (contract on file,
+  required protections, term vs renewal date).
 - **Rule-check model:** served as CPU fp32 (ONNX fp32 p50 13.4 s per pair on the Kaggle
   CPU bench); the validated quantized file is smaller but slower on CPU and is not served.
   The repository default `RULE_CHECK_VARIANT=int8` refuses the fp32-only artifact, so

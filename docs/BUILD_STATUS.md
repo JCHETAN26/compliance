@@ -5,17 +5,18 @@ kept by the supervisor in `docs/SUPERVISION.md` and `docs/PHASE0_REVIEW.md` …
 `PHASE3_REVIEW.md`; this file does not restate it as fact. Phase acceptance is recorded
 only by the supervisor (Codex).
 
-Current as of the latest code commit `5fe419d` (branch `fix/phase3-kaggle-recovery`, draft
-PR #1), whose hosted CI run 40271320856 passed all three jobs (Web; Python; Docker build +
-compose smoke), 2026-10-26 04:52–05:00 UTC.
+Current work is Phase 4 on `feat/phase4-agents`, based on accepted Phase 3 head `ccfff28`.
+Phase 3 PR #1 is ready for review; its final cleaned head passed all hosted CI jobs in
+run 40277029790. Phase 4 local verification and remaining acceptance gates are below.
 
 | Phase | Status |
 |---|---|
 | 0 — Skeleton | **Accepted.** Hosted GitHub Actions run 39678264159 passed all jobs for `e6b709e`. |
 | 1 — Ingestion + viewer | **Accepted.** Hosted GitHub Actions run 39687462736 passed all jobs for `ec6c254` (auto download, seeding, ingestion, smoke). |
 | 2 — Hybrid retrieval, search UI, retrieval eval | **Accepted.** Hosted run 39699615208 passed all jobs for `c61eab2`. |
-| 3 — Rule-check model | **Implementation, training and evaluation complete.** Acceptance is decided by the supervisor (Codex) and recorded only in `docs/SUPERVISION.md`; this log does not accept it. GPU training ran on Kaggle; the full Claude Haiku 5.5 baseline (1037 DEV + 2091 TEST) and the offline evaluation are done. TEST macro-F1: trained model 0.813778, TF-IDF 0.724374, Haiku 0.703409. fp32 is served locally with the DEV-selected tau 0.3. See "Phase 3 — current status" below. |
-| 4–6 | Not started. Phase 4 is gated on Phase 3 acceptance. |
+| 3 — Rule-check model | **Accepted by the supervisor** (`docs/SUPERVISION.md`, "Phase 3 final independent acceptance"). GPU training ran on Kaggle; the full Claude Haiku 5.5 baseline (1037 DEV + 2091 TEST) and the offline evaluation are done. TEST macro-F1: trained model 0.813778, TF-IDF 0.724374, Haiku 0.703409. fp32 is served locally with the DEV-selected tau 0.3. See "Phase 3 — current status" below. |
+| 4 — Agents and review UI | **In progress** on branch `feat/phase4-agents` (based on `ccfff28`). Plan, checklist and evidence: `docs/PHASE4_REVIEW.md`. Not accepted; the real-provider flagship run is not yet authorized. |
+| 5–6 | Not started. |
 
 **Dates.** The client's timezone is America/Phoenix (UTC−7). Section dates in the Phase 3
 records are mostly local; times marked `Z`/UTC are UTC. Entries dated 2026-10-26 (UTC)
@@ -77,7 +78,38 @@ below where they disagree.
 - **Hosted CI:** `f0548aa` run 40263437150 and the latest code commit `5fe419d` run
   40271320856 passed all jobs.
 - **Acceptance:** the supervisor's final review and decision are recorded in
-  `docs/SUPERVISION.md`. Phase 4 has not started.
+  `docs/SUPERVISION.md`. Phase 4 is in progress (`docs/PHASE4_REVIEW.md`).
+
+## Phase 4 — current status (implementer log; not accepted)
+
+Branch `feat/phase4-agents` (from `ccfff28`), uncommitted working tree handed to the
+supervisor. Plan, checklist, design, evidence and the prepared real-provider plan:
+`docs/PHASE4_REVIEW.md`.
+
+- **Implemented:** migration `0003` (rule packs, review settings, runs, tasks, findings,
+  citations, overrides, agent events, LLM ledger in integer micro-dollars, step memo,
+  report snapshots, LangGraph checkpoint tables, extraction provenance, PDF line boxes);
+  `compliance_llm` (Anthropic/OpenAI/Ollama over HTTP, offline mock); `compliance_agents`
+  (LangGraph 1.2.17 graph of seven agents, Postgres checkpointer, budgeted/memoized LLM
+  gateway, validated model gateway, lease-fenced run executor); worker `run_review` job and
+  stale-run sweeper; API routes (rule packs, review settings, reviews, control, tasks,
+  findings, overrides, citations, report md/json, events JSON + SSE); the
+  `vendor_confidentiality_review` pack; a synthetic ten-vendor flagship corpus
+  (`compliance_seed.synthetic`); web pages (rule packs, reviews, live run, report,
+  settings, citation deep links in the viewer).
+- **New dependency:** `langgraph>=1.2,<1.3` in `compliance-agents` (uv.lock adds only new
+  packages; no existing pin changed). Worker image needs a rebuild before deployment.
+- **Verified locally:** Ruff, strict mypy, full Python suite, web lint/typecheck/Vitest,
+  OpenAPI/TS drift, Next production build, an isolated preview stack (new ports, separate
+  DB) with the Phase 4 smoke and a Playwright browser flagship, and one bounded run against
+  the live fp32 model service (HTTP only). Exact commands and counts: `PHASE4_REVIEW.md`.
+  A second gate fixed two late concurrency findings (killed-worker recovery despite a
+  stale ARQ in-progress lock; run-first locking for overrides) and added verifier
+  negatives; the new tests, the affected suites and the preview smoke passed, and each new
+  test fails on the pre-fix code. The full suite after those fixes is the manager's run.
+- **Not done / not authorized:** the real-LLM flagship run (requires approval; plan and
+  cost estimate prepared); live API/worker/web were not restarted or rebuilt; hosted CI
+  has not run this branch.
 
 ## Phase 3 — rule-check model (historical record, superseded)
 

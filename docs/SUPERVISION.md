@@ -10,14 +10,31 @@ verification to Codex. The authoritative requirements are in `BUILD_HANDOFF.md`.
 | 0 — Skeleton | Complete | Accepted: local gates and hosted CI passed |
 | 1 — Ingestion and viewer | Complete | Accepted: local gates and hosted CI passed |
 | 2 — Retrieval | Complete | Accepted: local gates and hosted CI passed |
-| 3 — Trained model | Full Kaggle training, real Haiku baseline, calibration/cascade evaluation, exports and batching verified; fp32 remains served by user decision | Accepted: independent final review passed; hosted CI passed for `5fe419d` |
-| 4 — Agents and review UI | Not started | Pending |
+| 3 — Trained model | Full Kaggle training, real Haiku baseline, calibration/cascade evaluation, exports and batching verified; fp32 remains served by user decision | Accepted: independent final review passed; final cleaned head `ccfff28` passed hosted CI `40277029790` |
+| 4 — Agents and review UI | Implemented through Claude Code; mock workflow independently reviewed on `feat/phase4-agents` | Pending: hosted CI and separately approved real-provider flagship |
 | 5 — MCP | Not started | Pending |
 | 6 — Evaluation and polish | Not started | Pending |
 
 No phase is accepted solely on the implementer's report. Checks must be run and
 results recorded. Mock, synthetic, and smoke results do not establish performance
 on official datasets, real-provider behavior, or Claude Desktop interoperability.
+
+## Live source isolation during Phase 4 (2026-10-26)
+
+The recovered worker/model-service containers had a read-only bind to the active
+checkout. While Phase 4 added imports, the worker's fresh health-check process imported
+unfinished code and failed on the new LangGraph dependency; the original worker process
+continued heartbeating and processing its existing cron. Codex pinned the existing
+runtime `.pth` import paths to an exact `git archive` source snapshot of accepted commit
+`ccfff2863eac45c3f36d825f1c0a8103804a806d` under
+`.cache/runtime-phase3/<commit>/` (101 source/rule-pack files). The original path file is
+retained at `kaggle-recovery/runtime-recovery/zz_compliance_src.before-phase4.pth`.
+
+Independent `arq compliance_worker.main.WorkerSettings --check` now passes, and fresh
+imports in both recovered containers resolve to the pinned snapshot. No container was
+restarted, no image/environment/model artifact changed, and no Phase 4 code was deployed.
+Retain this pin until the reviewed Phase 4 deployment deliberately replaces it. The
+isolated Phase 4 test helper uses its own paths and is unaffected.
 
 ## Initial environment observations
 
@@ -298,3 +315,41 @@ results establish no benefit from Haiku escalation. CPU inference is slow; tiny 
 smoke timings are not representative document latencies. Model and baseline input
 scopes differ. None of this establishes Phase 4 real-provider workflow acceptance.
 Phases 4–6 remain unfinished. Phase 4 implementation can now proceed through Claude Code.
+
+## Phase 4 independent local review (2026-10-26)
+
+Claude Code Max implemented the product code, including all review corrections. Codex
+reviewed budget accounting, citation exactness and semantic support, current-source
+invalidation, trained-hypothesis validation, tenant/role checks, checkpoints, lease
+fencing, stale-job recovery and override/resume lock ordering. Corrected concurrency
+and verifier tests also fail against the old code, as recorded in `PHASE4_REVIEW.md`.
+
+Independent checks, with logs under `../kaggle-recovery/logs/`:
+
+- Full application suite on separate DB `compliance_codex_phase4_test` and Redis 12:
+  **436 passed in 337.31s** (`codex-phase4-full-application.log`).
+- Late crash recovery, override/resume and negative citation tests: **7 passed in
+  42.92s** (`codex-phase4-review-regressions.log`).
+- Complete ML suite, offline with read-only Git tools: **117 passed in 25.73s**
+  (`codex-phase4-ml-tests.log`).
+- Offline provider, rule-pack and agent helper tests: **45 passed in 2.04s**
+  (`codex-phase4-offline-units.log`).
+- Packaging and rule-pack tests after the Docker-context fix: **11 passed in 0.27s**
+  (`codex-phase4-packaging-tests.log`).
+- Visually inspected the PDF citation: source quote and measured line highlights align.
+  Claude's isolated production browser walkthrough passed upload, human review,
+  audited decision, resume, report, citation navigation and mobile layout without
+  console/page errors. Its mock smoke produced 58 findings (40 satisfied, 5 violated,
+  13 needs_review), 27 mock calls, $0, with SSE replay and cross-user isolation checks.
+
+Claude's latest static gates pass (Ruff/format, strict mypy), as do frontend lint,
+TypeScript, 104 Vitest tests, OpenAPI/type generation and the production Next build.
+The lightweight installed core wheel was verified outside the checkout; hosted CI
+must still verify the complete Docker build and startup.
+
+This accepts the local mock implementation for publication as a draft PR, not Phase 4
+as a whole. The real-provider flagship remains unstarted and needs separate approval;
+the proposed synthetic-only Haiku run has $0.25 and 400,000-token caps. No new provider
+key was read or paid request made. Phase 5 remains unstarted. All seven original live
+services remain healthy on the accepted Phase 3 source pin; Phase 4 uses a separate
+preview at ports 13300/18000.
