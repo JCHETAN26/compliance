@@ -1,14 +1,18 @@
-"""LLM provider catalog (global, read-only, from env) and per-workspace review defaults.
+"""LLM provider catalog (global, read-only, from env), per-workspace review defaults and
+the caller's MCP API tokens.
 
 Credentials are never accepted, stored or returned; the catalog only says whether the
 key *variable* of the deployment's provider is set.
+
+API tokens are managed with the browser session (cookie + CSRF) only: the REST API never
+accepts an API token itself. A new token's secret appears once, in the creation response.
 """
 
 from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response, status
 
 from compliance_api.deps import Ctx, CurrentPrincipal, Session
 from compliance_api.errors import error_responses
@@ -20,9 +24,12 @@ from compliance_core.review_schemas import (
     ReviewSettingsRead,
     ReviewSettingsUpdate,
 )
+from compliance_core.services import api_tokens
 from compliance_core.services import review_settings as service
 from compliance_core.services.errors import InvalidOperationError
+from compliance_core.services.session_store import FixedWindowLimiter
 from compliance_core.services.workspaces import require_role
+from compliance_core.token_schemas import ApiTokenCreate, ApiTokenCreated, ApiTokenRead
 from compliance_llm import (
     LLMConfigurationError,
     available_providers,
@@ -32,6 +39,7 @@ from compliance_llm import (
 )
 
 router = APIRouter(tags=["settings"])
+TOKEN_CREATIONS_PER_MINUTE = 10
 
 
 def provider_catalog(settings: Settings) -> list[ProviderOption]:
@@ -118,3 +126,43 @@ async def put_review_settings(
         settings,
         default_model(settings, settings.llm_provider),
     )
+
+
+@router.get("/settings/api-tokens", responses=error_responses(401))
+async def list_api_tokens(
+    principal: CurrentPrincipal, session: Session, response: Response
+) -> list[ApiTokenRead]:
+    """The caller's MCP API tokens (newest first; secrets are never returned)."""
+    response.headers["Cache-Control"] = "no-store"
+    return await api_tokens.list_tokens(session, principal.user.id)
+
+
+@router.post(
+    "/settings/api-tokens",
+    status_code=status.HTTP_201_CREATED,
+    responses=error_responses(401, 403, 404, 409, 422, 429),
+)
+async def create_api_token(
+    payload: ApiTokenCreate,
+    principal: CurrentPrincipal,
+    session: Session,
+    ctx: Ctx,
+    response: Response,
+) -> ApiTokenCreated:
+    """Create a token for the MCP server. ``token`` is shown only in this response.
+    Defaults: ``read`` scope, 90-day expiry, every workspace the caller belongs to."""
+    response.headers["Cache-Control"] = "no-store"
+    limiter = FixedWindowLimiter(
+        ctx.redis, "api-token-create", TOKEN_CREATIONS_PER_MINUTE, "token creations"
+    )
+    await limiter.reserve(str(principal.user.id))
+    return await api_tokens.create_token(session, principal.user.id, payload)
+
+
+@router.delete("/settings/api-tokens/{token_id}", responses=error_responses(401, 403, 404, 422))
+async def revoke_api_token(
+    token_id: uuid.UUID, principal: CurrentPrincipal, session: Session, response: Response
+) -> ApiTokenRead:
+    """Revoke one of the caller's tokens; MCP calls with it fail from the next call on."""
+    response.headers["Cache-Control"] = "no-store"
+    return await api_tokens.revoke_token(session, principal.user.id, token_id)

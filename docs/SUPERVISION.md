@@ -12,7 +12,7 @@ verification to Codex. The authoritative requirements are in `BUILD_HANDOFF.md`.
 | 2 — Retrieval | Complete | Accepted: local gates and hosted CI passed |
 | 3 — Trained model | Full Kaggle training, real Haiku baseline, calibration/cascade evaluation, exports and batching verified; fp32 remains served by user decision | Accepted: independent final review passed; final cleaned head `ccfff28` passed hosted CI `40277029790` |
 | 4 — Agents and review UI | Implemented through Claude Code; mock and real-provider workflows independently verified; final head `6ea1588` passed hosted CI `40346107207` | Accepted: approved Haiku flagship completed within $0.25 cap on 2026-10-26 |
-| 5 — MCP | Not started | Pending |
+| 5 — MCP | Implemented through Claude Code Max; independent software checks and actual Linux Desktop workflow passed | Accepted on 2026-10-27: Desktop search, one mock review, report and citation retrieved; source `80432fe` hosted CI `40396544929` green |
 | 6 — Evaluation and polish | Not started | Pending |
 
 No phase is accepted solely on the implementer's report. Checks must be run and
@@ -408,3 +408,132 @@ production containers and served fp32 model remain unchanged. Combined with fina
 hosted CI `40346107207`, this accepts Phase 4 and clears implementation of Phase 5.
 Claude Code Max remains responsible for all product implementation. Earlier pending
 statements above describe the historical state before this approved run.
+
+
+## Phase 5 independent software review — 2026-10-26
+
+Claude Code Max implemented the MCP server, shared REST/MCP services, per-user hashed
+API tokens, Settings UI, deployment wiring, stdio wrapper and guide. Current work is in
+stacked draft PR #3 (`feat/phase5-mcp`, based on Phase 4). Source `54d0647` passed all
+three hosted CI jobs in run `40369092514`, including image build, clean stack startup
+and Phase 0–5 smoke. The implementer recorded 464 application tests, clean static gates,
+109 frontend tests and a production build; the hosted workflow independently ran the
+repository gates. Existing pushed commits were preserved during this review.
+
+Codex independently ran **33 tests in 60.52s** on a separate review database/Redis index:
+token API, HTTP authentication/authorization, MCP server and real stdio subprocess
+integration, and rule-pack/ad-hoc checks. All passed (`codex-phase5-independent-tests.log`).
+The separate HTTP smoke passed review start, single-rule check, search, citations, report
+and resource retrieval, and revocation within an open client session
+(`codex-phase5-smoke.log`). The exact SSH stdio wrapper was executed locally against
+the mock preview: search, review, report/resource equality and citation retrieval passed;
+all stdout lines were JSON-RPC and no token appeared in stdout or stderr. Its temporary
+scoped token was revoked and its private file removed (`codex-phase5-wrapper-stdio.log`).
+
+Independent review found and verified fixes, both authored by Claude Code:
+
+- Concurrent token creation could exceed the documented 20-active-token cap (19 + four
+  requests yielded 23). With the user row lock, the original unchanged diagnostic permits
+  one request and refuses three, leaving exactly 20. The regression fails without the fix.
+- At a 390 px viewport, the token table's absolutely positioned screen-reader header
+  escaped its scroll container and widened the page to 655 px. Making that scroller
+  positioned preserves its accessible label and internal scrolling. Codex reran the full
+  browser flow after the fix: signup, Settings, read-only/90-day defaults, workspace
+  restriction, create, clipboard copy, one-time reveal, reload/list redaction, MCP
+  authentication, revoke and immediate MCP refusal, desktop/mobile layout and no console
+  errors all passed (`codex-phase5-browser-fixed.log`). The final CSS fix was separately
+  checked with lint, types, 109 Vitest tests and the production build through Claude Code.
+
+Evidence lives in `kaggle-recovery/logs/` outside the checkout. The existing stdio wrapper
+at `~/bin/compliance-mcp-stdio` matches the reviewed source. SSH is listening on the Linux
+host. The concrete mock preview handoff is in `docs/PHASE5_REVIEW.md`: web 13300, API
+18000, MCP 18020/container `cw-p4-mcp`. This RAM preview does not survive a reboot.
+No new paid provider calls or provider-key reads were made for Phase 5; all test and
+preview LLM calls were mock. The original live stack and fp32 source/artifact pin remain
+unchanged. Earlier Phase 4 pending statements in this historical ledger predate acceptance.
+
+**Phase 5 is not accepted yet:** local stdio and wrapper checks do not establish the Mac
+SSH hop or Claude Desktop behavior. The user must perform search, review and report
+retrieval in Claude Desktop using the prepared handoff. Final mobile-fix hosted CI is
+tracked on PR #3. Phase 6 implementation remains unstarted until that device gate is met;
+pre-existing document/workspace mobile layout issues are recorded for its polish work.
+
+
+## Phase 5 final code CI and Desktop platform correction
+
+Final code head `eba716c` passed all three hosted jobs in run `40394225222`, including
+Docker image builds and the complete Phase 0–5 smoke suite. The source tree was clean
+after publication. No additional product defect remains from this independent review.
+
+The earlier assumption that this Linux host cannot run Claude Desktop was incorrect.
+Codex checked the current official Linux Desktop documentation
+(https://code.claude.com/docs/en/desktop-linux) and the local installation: native
+`claude-desktop` **2.7032.0** is installed. A normal new-chat window was opened for
+readiness checking and then closed. No account, sign-in or MCP configuration was
+changed, no private chat or authentication storage was inspected, and no model prompt
+was submitted. The app rejected debugging flags; that restriction was respected.
+Its normal accessibility interface was not exposed to the available test tools.
+
+The correct remaining gate is an actual interactive **Claude Desktop** search, review
+and report check, on Linux or on the user's Mac. Native-app availability alone does not
+satisfy that gate; sign-in status was not established. The prepared Mac SSH path remains
+optional and unverified. A secret-free concrete Mac configuration is retained outside
+the checkout at `kaggle-recovery/claude-desktop-preview.json`; no device token file was
+created. The installed `~/bin/compliance-mcp-stdio` matches the reviewed source.
+
+Claude Code completed a read-only Phase 6 readiness audit, retained outside the checkout
+at `kaggle-recovery/PHASE6_READINESS.md`. It is a plan, not implemented work or verified
+evaluation results. Proposed future paid evaluations require separate authorization;
+the Phase 4 $0.25 approval has not been reused. Any future key loading must use the
+existing private-file pattern rather than a literal shell command.
+
+
+## Phase 5 actual Linux Desktop acceptance — 2026-10-27
+
+**Accepted by Codex. Phase 6 is cleared to begin.** The user signed in personally to
+Claude Desktop Linux 2.7032.0. Codex configured one temporary, workspace-restricted
+read/review token and used the normal native client UI to request search, one mock
+Vendor Confidentiality Review, status polling, report retrieval and citation detail.
+Tool permissions were approved once for this task. No application API key was read.
+
+Desktop displayed completed run `ed98117f-77f0-40d4-ba8b-4009e274f424`, independently
+matched to `compliance_preview_oct27`: 11 documents, 61 tasks, 24 successful mock calls,
+zero errors and **$0.00** application-ledger cost. The report had 17 satisfied, 6 violated
+and 38 needs_review findings (23 verified). Desktop retrieved the report and a citation,
+including filename/page and current-valid offsets. Its platform saved the long report
+to an artifact which Desktop read; that behavior did not prevent report retrieval.
+Source `80432fe` passed all hosted CI jobs in run `40396544929`. This satisfies the
+actual-client criterion in BUILD_HANDOFF §14; Mac SSH interoperability remains untested
+and is no longer a required acceptance gate.
+
+An initial accessibility text-entry attempt crashed the Desktop app before any MCP
+call. Standard software rendering (`--disable-gpu`) and normal X11 keyboard input
+recovered the test. Debugging restrictions were respected. The user's sign-in was
+preserved; no private chats or authentication storage were inspected. Screenshots
+exclude the history sidebar. Afterward, the one-time token was revoked, its private
+RAM file removed, only the temporary MCP entry removed, and the original accessibility
+setting restored.
+
+Evidence retained outside the source checkout:
+
+- `kaggle-recovery/logs/codex-oct27-linux-desktop-evidence.json` (database accounting).
+- `codex-oct27-desktop-response.txt` and `codex-oct27-desktop-permissions.log` (same log directory).
+- `codex-oct27-linux-desktop-result.png` and `codex-oct27-linux-desktop-report.png`
+  (actual native client search, run, report and citation views).
+
+This establishes interoperability, not model quality. Desktop correctly noticed a
+mock-verifier error: a return/destruction finding cited the survival clause in
+`ready4s_mutual_nda.pdf`, page 2, chars 3106–3309 (clause 2.3); the actual return clause
+is section 8 on page 4. Phase 6 must distinguish structural exact-match/verified flags
+from task-specific gold semantic support; the mock must not be presented as an accuracy
+benchmark. This negative example is recorded for that evaluation work.
+
+The host reboot had removed the RAM kit and preview. Codex restarted only the unchanged
+original model/worker and existing test Postgres/Redis containers; both original services
+are healthy again. Trained metadata confirms production fp32 and artifact tau 0.3.
+Claude Code restored the mock preview in a **new** database `compliance_preview_oct27`
+(without dropping the old preview DB), seeded it, passed smokes 0/5 including stdio,
+24 MCP/token tests, static checks and 109 web tests/build. A durable `restore_kit.sh`
+recipe is saved in `kaggle-recovery/validation-scripts/`. The accepted production source
+pin, model artifact, cache and data remain unchanged. No new paid application LLM run
+was performed; the earlier Phase 4 $0.25 approval has not been reused.

@@ -138,7 +138,10 @@ def main() -> int:
         else:  # a verified production artifact is installed
             expect(r.status_code == 200 and r.json()["model_kind"] == "production", r.text)
         r = httpx.get(f"{args.mcp}/health", timeout=10)
-        expect(r.status_code == 200 and r.json()["implemented_tools"] == [], r.text)
+        expect(r.status_code == 200 and len(r.json()["implemented_tools"]) == 9, r.text)
+        # The MCP endpoint itself demands a per-user API token (Phase 5).
+        r = httpx.post(f"{args.mcp}/mcp", json={"jsonrpc": "2.0", "id": 1, "method": "ping"})
+        expect(r.status_code == 401 and r.headers["www-authenticate"].startswith("Bearer"), r.text)
 
     try:
         step("web /healthz reaches API", web_health)
@@ -150,7 +153,7 @@ def main() -> int:
         step("membership: non-member 404, viewer cannot rename", membership)
         step("owner rename + delete", rename_and_delete)
         step("logout revokes session server-side", logout)
-        step("api ready; model-service rule check honest; mcp health", backend_health)
+        step("api ready; model-service rule check honest; mcp health + token auth", backend_health)
     except (SmokeError, httpx.HTTPError, KeyError) as exc:
         print(f"FAIL  {type(exc).__name__}: {exc}", file=sys.stderr)  # noqa: T201
         return 1

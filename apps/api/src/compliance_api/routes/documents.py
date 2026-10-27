@@ -6,8 +6,6 @@ and retry additionally require the ``owner`` or ``reviewer`` role.
 
 from __future__ import annotations
 
-import asyncio
-import logging
 import uuid
 from typing import Annotated
 from urllib.parse import quote
@@ -25,12 +23,10 @@ from compliance_core.document_schemas import (
     PageRead,
     RowPage,
     SheetRead,
-    UploadErrorBody,
     UploadResponse,
-    UploadResult,
 )
-from compliance_core.files import UnsupportedFileError, ZipLimits, detect_format
 from compliance_core.services import documents as service
+from compliance_core.services.upload_ingest import register_staged_files
 from compliance_core.uploads import (
     MalformedUploadError,
     UploadLimits,
@@ -39,7 +35,6 @@ from compliance_core.uploads import (
 )
 
 router = APIRouter(tags=["documents"])
-logger = logging.getLogger(__name__)
 
 _MULTIPART_SCHEMA = {
     "requestBody": {
@@ -101,78 +96,9 @@ async def upload_documents(
     )
     if not staged:
         raise MalformedUploadError("No files were included in the upload (field 'files').")
-    try:
-        # Every file part counts, whatever its outcome, before validation or storage.
-        await ctx.upload_limiter.reserve_files(str(user_id), len(staged))
-    except BaseException:
-        for item in staged:
-            if item.path is not None:
-                item.path.unlink(missing_ok=True)
-        raise
-    zip_limits = ZipLimits(
-        max_entries=settings.max_zip_entries,
-        max_uncompressed_bytes=settings.max_zip_uncompressed_bytes,
-        max_ratio=settings.max_zip_compression_ratio,
+    return await register_staged_files(
+        ctx, session, workspace_id=workspace_id, user_id=user_id, staged=staged
     )
-    results: list[UploadResult] = []
-    try:
-        for item in staged:
-            if item.error or item.path is None:
-                results.append(
-                    UploadResult(
-                        filename=item.filename,
-                        outcome="rejected",
-                        error=UploadErrorBody(
-                            code="file_too_large", message=item.error or "Rejected."
-                        ),
-                    )
-                )
-                continue
-            try:
-                fmt = await asyncio.to_thread(detect_format, item.path, item.filename, zip_limits)
-            except UnsupportedFileError as exc:
-                item.path.unlink(missing_ok=True)
-                results.append(
-                    UploadResult(
-                        filename=item.filename,
-                        outcome="rejected",
-                        error=UploadErrorBody(code="unsupported_file", message=str(exc)),
-                    )
-                )
-                continue
-            registered = await service.register_upload(
-                session,
-                ctx.storage,
-                workspace_id=workspace_id,
-                user_id=user_id,
-                filename=item.filename,
-                fmt=fmt,
-                staged_path=item.path,
-                sha256=item.sha256,
-                size=item.size,
-            )
-            if registered.created:
-                await ctx.enqueue_ingestion(registered.document.id, 1)
-                logger.info(
-                    "document uploaded",
-                    extra={
-                        "document_id": str(registered.document.id),
-                        "format": fmt,
-                        "bytes": item.size,
-                    },
-                )
-            results.append(
-                UploadResult(
-                    filename=item.filename,
-                    outcome="created" if registered.created else "duplicate",
-                    document=registered.document,
-                )
-            )
-    finally:
-        for item in staged:
-            if item.path is not None:
-                item.path.unlink(missing_ok=True)  # no-op for files moved into storage
-    return UploadResponse(results=results)
 
 
 @router.get("/workspaces/{workspace_id}/documents", responses=error_responses(401, 404, 422))

@@ -10,8 +10,12 @@ from __future__ import annotations
 
 import asyncio
 import os
-from collections.abc import AsyncIterator, Awaitable, Callable
-from dataclasses import dataclass
+import socket
+import threading
+import time
+import uuid
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -278,3 +282,182 @@ def clean_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Remove any app settings from the process environment for config unit tests."""
     for name in Settings.model_fields:
         monkeypatch.delenv(name.upper(), raising=False)
+
+
+# --------------------------------------------------------------------------- MCP server
+# A real model service and MCP HTTP app on loopback ports (threads; reachable from MCP
+# subprocesses), a workspace with an ingested contract, API tokens, and an in-process
+# stand-in for the worker that executes queued runs with the mock LLM and mock model.
+
+MCP_OWNER = "mcp-owner@example.com"
+MCP_CONTRACT = "globex_nda.docx"
+
+
+def free_port() -> int:
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
+@dataclass
+class ThreadedServer:
+    url: str
+    server: Any
+    thread: threading.Thread
+
+    def stop(self) -> None:
+        self.server.should_exit = True
+        self.thread.join(timeout=20)
+
+
+def serve_in_thread(app: Any, startup_seconds: float = 120) -> ThreadedServer:
+    import uvicorn
+
+    port = free_port()
+    server = uvicorn.Server(
+        uvicorn.Config(app, host="127.0.0.1", port=port, log_config=None, lifespan="on")
+    )
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    deadline = time.monotonic() + startup_seconds
+    while not server.started:
+        if time.monotonic() > deadline or not thread.is_alive():
+            raise RuntimeError("server did not start")
+        time.sleep(0.05)
+    return ThreadedServer(f"http://127.0.0.1:{port}", server, thread)
+
+
+@pytest.fixture(scope="session")
+def model_service_url(test_settings: Settings, model_path: Path) -> Iterator[str]:
+    """The real model service (pinned encoder, no rule-check artifact) on a loopback
+    port. Never the host's own model service."""
+    from compliance_model_service.main import create_app
+
+    served = serve_in_thread(create_app(test_settings))
+    yield served.url
+    served.stop()
+
+
+@pytest.fixture(scope="session")
+def mcp_settings_for_tests(test_settings: Settings, model_service_url: str) -> Settings:
+    return test_settings.model_copy(
+        update={
+            "model_service_url": model_service_url,
+            "review_rule_check_backend": "mock",
+            "llm_provider": "mock",
+        }
+    )
+
+
+@dataclass
+class McpEnv:
+    client: httpx.AsyncClient
+    user_id: uuid.UUID
+    workspace_id: uuid.UUID
+    sessions: Any
+    settings: Settings
+    model_service_url: str
+    docs: dict[str, uuid.UUID] = field(default_factory=dict)
+
+    async def token(
+        self,
+        scopes: tuple[str, ...] = ("read",),
+        workspace_ids: list[uuid.UUID] | None = None,
+        user_id: uuid.UUID | None = None,
+    ) -> str:
+        from compliance_core.services import api_tokens
+        from compliance_core.token_schemas import ApiTokenCreate
+
+        async with self.sessions() as session:
+            created = await api_tokens.create_token(
+                session,
+                user_id or self.user_id,
+                ApiTokenCreate.model_validate(
+                    {"name": "test", "scopes": list(scopes), "workspace_ids": workspace_ids}
+                ),
+            )
+        return created.token
+
+    def runner(self) -> Any:
+        from compliance_agents.model import MockRuleCheckModel
+        from compliance_agents.runner import RunnerDeps
+        from compliance_core.model_client import ModelServiceClient
+        from compliance_llm import MockProvider
+        from compliance_retrieval.config import RetrievalConfig
+        from compliance_retrieval.service import SearchDependencies
+
+        return RunnerDeps(
+            settings=self.settings,
+            sessions=self.sessions,
+            search=SearchDependencies(
+                session_factory=self.sessions,
+                models=ModelServiceClient(self.model_service_url, timeout=60, retries=0),
+                config=RetrievalConfig.from_settings(self.settings),
+            ),
+            worker_id="mcp-test-worker",
+            provider_factory=lambda settings, run: MockProvider(),
+            model_factory=lambda settings, run: MockRuleCheckModel(),
+        )
+
+    async def drain(self) -> dict[uuid.UUID, str]:
+        """Execute every queued run, as the worker would."""
+        from sqlalchemy import select
+
+        from compliance_agents.runner import execute_run
+        from compliance_core.db.models import ReviewRun
+
+        async with self.sessions() as session:
+            queued = list(
+                await session.scalars(select(ReviewRun.id).where(ReviewRun.status == "queued"))
+            )
+        return {run_id: await execute_run(self.runner(), run_id) for run_id in queued}
+
+    async def background_worker(self, stop: asyncio.Event) -> None:
+        while not stop.is_set():
+            await self.drain()
+            await asyncio.sleep(0.2)
+
+
+@pytest.fixture
+async def mcp_env(
+    clients: ApiClientFactory,
+    api_app: Any,
+    ingest_ready: Ingest,
+    mcp_settings_for_tests: Settings,
+    model_service_url: str,
+) -> McpEnv:
+    from compliance_core.services.rule_packs import sync_builtin_packs
+    from compliance_seed.synthetic import build
+
+    ctx = api_app.state.ctx
+    client = await clients.signed_up(MCP_OWNER)
+    me = (await client.get("/api/v1/auth/me")).json()
+    ws = await client.post("/api/v1/workspaces", json={"name": "MCP workspace"})
+    assert ws.status_code == 201, ws.text
+    async with ctx.session_factory() as session:
+        await sync_builtin_packs(session)
+    env = McpEnv(
+        client=client,
+        user_id=uuid.UUID(me["id"]),
+        workspace_id=uuid.UUID(ws.json()["id"]),
+        sessions=ctx.session_factory,
+        settings=mcp_settings_for_tests,
+        model_service_url=model_service_url,
+    )
+    env.docs[MCP_CONTRACT] = await ingest_ready(
+        env.workspace_id, env.user_id, MCP_CONTRACT, build()[MCP_CONTRACT], "docx"
+    )
+    return env
+
+
+@pytest.fixture
+async def mcp_http(mcp_settings_for_tests: Settings, migrated_database: str) -> AsyncIterator[str]:
+    """The MCP streamable-HTTP app (bearer auth, stateless) on a loopback port."""
+    from compliance_mcp_server.config import McpSettings
+    from compliance_mcp_server.runtime import McpRuntime
+    from compliance_mcp_server.server import build_http_app
+
+    runtime = McpRuntime(transport="http", settings=mcp_settings_for_tests, mcp=McpSettings())
+    served = await asyncio.to_thread(serve_in_thread, build_http_app(runtime), 30)
+    yield served.url
+    await asyncio.to_thread(served.stop)

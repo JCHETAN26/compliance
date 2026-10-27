@@ -3,14 +3,20 @@ name = "compliance-mcp-server"
 version = "0.1.0"
 description = "MCP server exposing workspace tools"
 requires-python = ">=3.11"
+# Deliberately not compliance-agents: review runs execute in the worker, so the MCP image
+# carries no LangGraph. compliance-llm validates provider choices (it reads no keys here).
 dependencies = [
     "compliance-core",
-    "mcp>=1.20",
+    "compliance-retrieval",
+    "compliance-llm",
+    "mcp>=2.3,<3",
     "uvicorn[standard]>=0.35",
 ]
 
 [tool.uv.sources]
 compliance-core = { workspace = true }
+compliance-retrieval = { workspace = true }
+compliance-llm = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

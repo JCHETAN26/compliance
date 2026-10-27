@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, LogOut, ShieldCheck } from "lucide-react";
+import { KeyRound, Loader2, LogOut, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createContext, useContext, type ReactNode } from "react";
@@ -53,6 +53,12 @@ export function AppShell({ user, children }: { user: User; children: ReactNode }
             <span className="hidden text-sm text-muted-foreground sm:inline" title="Signed in as">
               {user.email}
             </span>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/settings">
+                <KeyRound aria-hidden />
+                Settings
+              </Link>
+            </Button>
             <Button
               variant="ghost"
               size="sm"

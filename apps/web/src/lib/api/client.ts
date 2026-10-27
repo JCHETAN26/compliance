@@ -43,6 +43,10 @@ export type StartReview = components["schemas"]["StartReview"];
 export type ReviewSettings = components["schemas"]["ReviewSettingsRead"];
 export type ReviewSettingsUpdate = components["schemas"]["ReviewSettingsUpdate"];
 export type LlmSettings = components["schemas"]["LlmSettingsRead"];
+export type ApiToken = components["schemas"]["ApiTokenRead"];
+export type ApiTokenCreated = components["schemas"]["ApiTokenCreated"];
+export type ApiTokenCreate = components["schemas"]["ApiTokenCreate"];
+export type ApiTokenScope = ApiToken["scopes"][number];
 type ErrorEnvelope = components["schemas"]["ErrorResponse"];
 
 const AUTH_ENTRY_PATHS = ["/api/v1/auth/login", "/api/v1/auth/register"];

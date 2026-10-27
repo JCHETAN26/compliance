@@ -639,6 +639,7 @@ source = { editable = "packages/core" }
 dependencies = [
     { name = "alembic" },
     { name = "argon2-cffi" },
+    { name = "arq" },
     { name = "asyncpg" },
     { name = "email-validator" },
     { name = "httpx" },
@@ -656,6 +657,7 @@ dependencies = [
 requires-dist = [
     { name = "alembic", specifier = ">=1.16" },
     { name = "argon2-cffi", specifier = ">=25.1" },
+    { name = "arq", specifier = ">=0.26" },
     { name = "asyncpg", specifier = ">=0.30" },
     { name = "email-validator", specifier = ">=2.2" },
     { name = "httpx", specifier = ">=0.28" },
@@ -723,6 +725,8 @@ version = "0.1.0"
 source = { editable = "apps/mcp-server" }
 dependencies = [
     { name = "compliance-core" },
+    { name = "compliance-llm" },
+    { name = "compliance-retrieval" },
     { name = "mcp" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -730,7 +734,9 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "compliance-core", editable = "packages/core" },
-    { name = "mcp", specifier = ">=1.20" },
+    { name = "compliance-llm", editable = "packages/llm" },
+    { name = "compliance-retrieval", editable = "packages/retrieval" },
+    { name = "mcp", specifier = ">=2.3,<3" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.35" },
 ]
 

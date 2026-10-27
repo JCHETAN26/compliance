@@ -12,13 +12,10 @@ x-python-service: &python-service
     REDIS_URL: redis://redis:6379/0
 
 # Review runs (Phase 4): LLM provider and review defaults, shared by the API (validation,
-# catalog) and the worker (execution). Keys are passed through from the host environment
-# only when set there; they are never written to the database, events or logs.
+# catalog), the worker (execution) and the MCP server (validation only).
 x-review-env: &review-env
   LLM_PROVIDER: ${LLM_PROVIDER:-mock}
   LLM_MODEL: ${LLM_MODEL:-}
-  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
   OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
   LLM_INPUT_USD_PER_MTOK: ${LLM_INPUT_USD_PER_MTOK:-}
   LLM_OUTPUT_USD_PER_MTOK: ${LLM_OUTPUT_USD_PER_MTOK:-}
@@ -29,6 +26,13 @@ x-review-env: &review-env
   REVIEW_RULE_CHECK_BACKEND: ${REVIEW_RULE_CHECK_BACKEND:-service}
   LANGSMITH_TRACING: "false"
   LANGCHAIN_TRACING_V2: "false"
+
+# Provider keys: only the API (credential check) and the worker (provider calls) get them.
+# Passed through from the host environment when set there; never written to the database,
+# events or logs. The MCP server receives only which providers have one (see below).
+x-provider-keys: &provider-keys
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
 
 services:
   postgres:
@@ -77,7 +81,7 @@ services:
       - -c
       - python -m compliance_core.db.migrate upgrade head && exec uvicorn --factory compliance_api.main:create_app --host 0.0.0.0 --port 8000 --no-access-log
     environment:
-      <<: [*python-env, *review-env]
+      <<: [*python-env, *review-env, *provider-keys]
       # Empty JWT_SECRET in development => a random secret is generated once into the
       # api-data volume. Production refuses to start without an explicit secret.
       JWT_SECRET: ${JWT_SECRET:-}
@@ -125,7 +129,7 @@ services:
         SYSTEM_PACKAGES: tesseract-ocr tesseract-ocr-eng
     command: ["arq", "compliance_worker.main.WorkerSettings"]
     environment:
-      <<: [*python-env, *review-env]
+      <<: [*python-env, *review-env, *provider-keys]
       # Rule checks (trained model) and query embeddings for retrieval.
       MODEL_SERVICE_URL: http://model-service:8010
       REVIEW_MODEL_TIMEOUT_SECONDS: ${REVIEW_MODEL_TIMEOUT_SECONDS:-300}
@@ -218,17 +222,37 @@ services:
         DEPS_PACKAGE: compliance-mcp-server
     command: ["python", "-m", "compliance_mcp_server", "--transport", "http", "--host", "0.0.0.0", "--port", "8020"]
     environment:
-      <<: *python-env
+      <<: [*python-env, *review-env]
+      # Search embeds queries on the model service; uploads (stdio) land in the shared
+      # document storage the worker ingests from.
+      MODEL_SERVICE_URL: http://model-service:8010
+      MAX_UPLOAD_FILE_BYTES: ${MAX_UPLOAD_FILE_BYTES:-52428800}
+      UPLOAD_RATE_LIMIT_PER_MINUTE: ${UPLOAD_RATE_LIMIT_PER_MINUTE:-60}
+      SEARCH_RATE_LIMIT_PER_MINUTE: ${SEARCH_RATE_LIMIT_PER_MINUTE:-120}
+      # Non-secret: the providers whose key the worker holds, derived from the same host
+      # variables (the key values themselves never reach this container). Used only to
+      # refuse review starts the worker could not run.
+      MCP_CREDENTIALED_PROVIDERS: ${ANTHROPIC_API_KEY:+anthropic},${OPENAI_API_KEY:+openai}
       MCP_ALLOWED_HOSTS: ${MCP_ALLOWED_HOSTS:-localhost:*,127.0.0.1:*,mcp-server:*}
       MCP_ALLOWED_ORIGINS: ${MCP_ALLOWED_ORIGINS:-http://localhost:*,http://127.0.0.1:*}
+      MCP_UPLOAD_MAX_BYTES: ${MCP_UPLOAD_MAX_BYTES:-10485760}
+      MCP_CHECK_RULE_WAIT_SECONDS: ${MCP_CHECK_RULE_WAIT_SECONDS:-30}
+      MCP_CHECK_RULE_BUDGET_TOKENS: ${MCP_CHECK_RULE_BUDGET_TOKENS:-20000}
+      MCP_CHECK_RULE_BUDGET_USD: ${MCP_CHECK_RULE_BUDGET_USD:-0.05}
+      MCP_REVIEW_BUDGET_TOKENS: ${MCP_REVIEW_BUDGET_TOKENS:-400000}
+      MCP_REVIEW_BUDGET_USD: ${MCP_REVIEW_BUDGET_USD:-1.0}
+    volumes:
+      - document-storage:/data/storage
     ports:
       - "${BIND_ADDRESS:-127.0.0.1}:${MCP_PORT:-8020}:8020"
     depends_on:
       api:
         condition: service_healthy
+      model-service:
+        condition: service_started
     healthcheck:
-      # A real MCP client handshake + tools/list over streamable HTTP, then the
-      # database probe on /health.
+      # /health (database probe) plus the MCP endpoint refusing an unauthenticated request
+      # with a Bearer challenge. Tool calls need a user's API token.
       test: ["CMD", "python", "-m", "compliance_mcp_server.healthcheck", "http://127.0.0.1:8020"]
       interval: 15s
       timeout: 12s

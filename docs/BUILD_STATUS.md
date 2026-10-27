@@ -7,9 +7,13 @@ only by the supervisor (Codex).
 
 Phase 4 on `feat/phase4-agents` (based on accepted Phase 3 head `ccfff28`) is accepted by
 the supervisor: final head `6ea1588` passed all three hosted CI jobs in run 40346107207
-and the approved real Haiku flagship completed. A Phase 5 readiness audit is under way;
-Phase 5 implementation has not started. Phase 3 PR #1's final cleaned head passed all
-hosted CI jobs in run 40277029790.
+and the approved real Haiku flagship completed. Phase 5 (MCP server, API tokens) on
+`feat/phase5-mcp` (draft PR #3) is accepted by the supervisor (2026-10-27,
+America/Phoenix): source head `80432fe` passed all three hosted CI jobs in run
+40396544929, and the interactive Claude Desktop for Linux check (search, review, report)
+passed against the isolated mock preview. Phase 6 has not started; it will begin on a
+separate branch from the accepted Phase 5 commit. Phase 3
+PR #1's final cleaned head passed all hosted CI jobs in run 40277029790.
 
 | Phase | Status |
 |---|---|
@@ -18,7 +22,8 @@ hosted CI jobs in run 40277029790.
 | 2 — Hybrid retrieval, search UI, retrieval eval | **Accepted.** Hosted run 39699615208 passed all jobs for `c61eab2`. |
 | 3 — Rule-check model | **Accepted by the supervisor** (`docs/SUPERVISION.md`, "Phase 3 final independent acceptance"). GPU training ran on Kaggle; the full Claude Haiku 5.5 baseline (1037 DEV + 2091 TEST) and the offline evaluation are done. TEST macro-F1: trained model 0.813778, TF-IDF 0.724374, Haiku 0.703409. fp32 is served locally with the DEV-selected tau 0.3. See "Phase 3 — current status" below. |
 | 4 — Agents and review UI | **Accepted by the supervisor** (`docs/SUPERVISION.md`, "Phase 4 approved real-provider acceptance"). Hosted run 40346107207 passed all jobs for `6ea1588`; approved Haiku flagship run `abdc0cff-0431-4394-94f8-4070b2ae4dad` completed for $0.006062 (application ledger) under a $0.25 cap. Plan, checklist and evidence: `docs/PHASE4_REVIEW.md`. |
-| 5–6 | Not started (Phase 5 readiness audit under way; no implementation yet). |
+| 5 — MCP server and API tokens | **Accepted by the supervisor** (2026-10-27, America/Phoenix). Hosted run 40396544929 passed all three jobs for source head `80432fe` (draft PR #3); earlier, runs 40394225222 (`eba716c`) and 40369092514 (`54d0647`) passed. Device gate passed in the official [Claude Desktop for Linux beta](https://code.claude.com/docs/en/desktop-linux) 2.7032.0 against the mock preview: mock run `ed98117f-77f0-40d4-ba8b-4009e274f424` completed (61 tasks, 11 documents, 24 mock calls, $0.00, 0 errors) and matched the database. The Mac SSH path is untested and was not required. Known limitation: the mock citation verifier is lexical and accepted one wrong citation (see `docs/PHASE5_REVIEW.md`, "Device gate result"). No new paid calls in Phase 5. Plan, checklist and evidence: `docs/PHASE5_REVIEW.md`. |
+| 6 | Not started (will start on a separate branch from the accepted Phase 5 commit). |
 
 **Dates.** The client's timezone is America/Phoenix (UTC−7). Section dates in the Phase 3
 records are mostly local; times marked `Z`/UTC are UTC. Entries dated 2026-10-26 (UTC)

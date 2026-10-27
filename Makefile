@@ -135,6 +135,11 @@ smoke-phase3: ## Phase 3 smoke (rule-check status/UI banner source, /v1/check co
 smoke-phase4: ## Phase 4 smoke (synthetic flagship review through the web origin; mock LLM by default)
 	$(UV) run python scripts/smoke_phase4.py --web http://127.0.0.1:$(WEB_PORT)
 
+.PHONY: smoke-phase5
+smoke-phase5: ## Phase 5 smoke (MCP over HTTP with API tokens, plus stdio via docker compose exec; mock LLM by default)
+	$(UV) run python scripts/smoke_phase5.py --web http://127.0.0.1:$(WEB_PORT) --mcp http://127.0.0.1:$(MCP_PORT) \
+		--stdio-command "docker compose exec -T -e COMPLIANCE_MCP_TOKEN mcp-server python -m compliance_mcp_server --transport stdio"
+
 .PHONY: migrate
 migrate: ## Apply database migrations (uses DATABASE_URL)
 	$(UV) run python -m compliance_core.db.migrate upgrade head
