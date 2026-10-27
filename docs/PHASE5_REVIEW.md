@@ -7,6 +7,13 @@ written), `verified locally` (named command ran and passed; output recorded belo
 `blocked` (with the reason), `device gate` (needs an interactive check in a real client;
 cannot be claimed from mock or stdio tests).
 
+> **Current status (2026-10-27, America/Phoenix): accepted by the supervisor (Codex).**
+> Source head `80432fe` passed all three hosted CI jobs in run 40396544929, and the
+> device gate H7 passed in Claude Desktop for Linux 2.7032.0 against the isolated mock
+> preview (see "Device gate result"). The acceptance itself is recorded by the supervisor
+> in `SUPERVISION.md`. Sections below that say "pending", "not yet verified" or "not
+> accepted" are kept as the record of their time.
+
 Requirements come from `BUILD_HANDOFF.md` §9, §11 (settings API tokens), §12 (Settings
 page), §13 and §14 (Phase 5); from the read-only readiness audit (2026-10-26); and from the
 manager's Phase 5 decisions (2026-10-26), summarised here:
@@ -40,8 +47,8 @@ manager's Phase 5 decisions (2026-10-26), summarised here:
 | H3 | Per-user API token created on the Settings page; MCP authenticates with it | verified locally (token API tests, Vitest UI tests, preview smoke via Settings endpoints) |
 | H4 | MCP tools call the same service layer as REST (no duplicated logic) | implemented; existing REST suites pass unchanged on the refactor (E1) |
 | H5 | stdio integration test that runs the server over stdio and calls every tool (and both resources) | verified locally (`apps/mcp-server/tests/test_mcp_stdio.py`) |
-| H6 | `apps/mcp-server/README.md` with a ready-to-paste Claude Desktop config | implemented (Desktop configs for local Docker and Mac-to-Linux SSH; not run on a real Desktop) |
-| H7 | From Claude Desktop: search documents, run a review, fetch the report | **device gate**: needs an interactive check in Claude Desktop, either on this Linux host (official Linux beta, installed) or on the user's Mac. Not claimable from mock or stdio tests. |
+| H6 | `apps/mcp-server/README.md` with a ready-to-paste Claude Desktop config | implemented (Desktop configs for local Docker and Mac-to-Linux SSH). A real Linux Desktop was configured by the manager for H7; the Mac SSH config has not been run. |
+| H7 | From Claude Desktop: search documents, run a review, fetch the report | **passed (device gate, 2026-10-27)** in Claude Desktop for Linux 2.7032.0 against the mock preview: run `ed98117f-77f0-40d4-ba8b-4009e274f424` completed and matched the database (see "Device gate result"). Before that, this row was `device gate` (needed an interactive check; not claimable from mock or stdio tests). The Mac path stays untested and is not required. |
 
 ### Shared service layer (WS1)
 
@@ -90,7 +97,7 @@ manager's Phase 5 decisions (2026-10-26), summarised here:
 | D2 | `pyproject`: `mcp>=2.3,<3`, plus retrieval and llm (not agents: no LangGraph in the MCP image); core gains `arq`; `uv.lock` updated consistently | verified locally (`uv lock` diff is these lines only; `uv lock --check --offline` passes; MCP export has no LangGraph/torch) |
 | D3 | Web: user Settings page (header link) with create, list and revoke. The token is shown once, with copy and ready config snippets. Vitest coverage and loading, empty and error states. | verified locally (Vitest, lint, typecheck, production build) |
 | D4 | `apps/mcp-server/README.md`: tools and resources, tokens and scopes, local Docker stdio config, Mac-to-Linux SSH stdio config (wrapper reads a 0600 token file), HTTP bearer for Claude Code and other clients, limitations | implemented; wrapper script shellchecked and run against the preview container (SSH hop itself not run) |
-| D5 | `scripts/smoke_phase5.py` (HTTP plus optional stdio through `docker exec`); Phase 0 smoke, healthcheck and skeleton tests updated; CI runs smoke 5 | verified locally on the preview (smoke 5 all steps); CI step added; hosted CI pending |
+| D5 | `scripts/smoke_phase5.py` (HTTP plus optional stdio through `docker exec`); Phase 0 smoke, healthcheck and skeleton tests updated; CI runs smoke 5 | verified locally on the preview (smoke 5 all steps); CI step added; hosted CI passed (latest run 40396544929 for `80432fe`, all three jobs) |
 | D6 | Root README MCP sections updated (no "no tools yet") | implemented |
 
 ## Test plan and environment
@@ -107,7 +114,52 @@ manager's Phase 5 decisions (2026-10-26), summarised here:
   an MCP container on 18020 runs `smoke_phase5.py`. The live seven containers, their
   `.pth` pin and the model artifacts are not touched.
 
-## Remaining device gate (not yet verified)
+## Device gate result (2026-10-27, America/Phoenix): passed
+
+The actual Claude Desktop for Linux app (2.7032.0) ran the H7 check against the isolated
+mock preview, and the supervisor (Codex) accepted Phase 5 on that basis together with
+hosted CI run 40396544929 (all three jobs) for source head `80432fe`. Evidence is
+outside the checkout, in `../kaggle-recovery/logs/`.
+
+- **Preview recovery first.** A reboot had cleared the RAM preview. Claude Code rebuilt
+  it from the recovery kit with DB `compliance_preview_oct27` and Redis db 13, mock LLM and
+  mock rule-check backend only. Smoke 0 and smoke 5 passed every step, the 24 MCP/token
+  regression tests passed, web Vitest gave 109 passed, and static checks were clean.
+  Result-only record: `../kaggle-recovery/claude-oct27-preview-recovery.jsonl`.
+- **How the check ran.** The user signed in to Desktop personally. Codex then used
+  Desktop's normal UI to submit one project prompt. Desktop's native MCP tools
+  (`list_workspaces`, `search_documents`, `list_rule_packs`, `run_review`,
+  `get_run_status`, `get_report`, `get_citation`) ran, each after a one-time approval in Desktop
+  (`codex-oct27-desktop-permissions.log`).
+- **Result.** The run ID shown in Desktop matched the database:
+  `ed98117f-77f0-40d4-ba8b-4009e274f424`, status `completed`, 11 documents, 61 of 61
+  tasks, 24 calls to the mock provider (`usage_source` `mock_estimate`), $0.00, 0 errors.
+  Findings: 17 satisfied, 6 violated, 38 `needs_review`; 23 marked verified (the
+  satisfied and violated ones). The summary Desktop showed matched an independent
+  database query (`codex-oct27-linux-desktop-evidence.json`,
+  `codex-oct27-desktop-response.txt`). Screenshots: `codex-oct27-linux-desktop-result.png`
+  and `codex-oct27-linux-desktop-report.png` (no history sidebar visible).
+- **App incident.** A first attempt to enter text through accessibility crashed the app
+  before any MCP request was made. It was recovered with the standard `--disable-gpu`
+  flag and normal X11 keyboard input. No debug bypass was used, and no authentication
+  storage or private chat was inspected.
+- **Housekeeping.** The user's sign-in is preserved. The manager revokes the one-time
+  test token and restores the prior Desktop MCP configuration after the check.
+- **Not tested.** Claude Desktop on the Mac and the Mac-to-Linux SSH hop. Now that Linux
+  has passed, they are not needed for Phase 5 acceptance.
+- **Cost.** No paid call was made in Phase 5. The last paid run remains the Phase 4 Haiku
+  flagship ($0.006062), accepted earlier.
+
+**Known limitation: the mock verifier accepted a wrong citation.** Desktop itself noticed
+that one return/destruction finding cited `ready4s_mutual_nda.pdf` page 2, characters
+3106–3309, which is the survival clause (2.3). The document's return section is section 8
+on page 4. The mock citation verifier is a lexical heuristic and can be wrong like this.
+This does not block interoperability (the gate tests that Desktop can drive the server),
+but it means "verified" on a mock run says only that the heuristic accepted the passage,
+not that the citation is semantically correct against a gold answer. The case is carried
+into Phase 6 as a semantic negative example.
+
+## Remaining device gate (historical, before 2026-10-27; superseded by "Device gate result")
 
 "From Claude Desktop: search, run a review, fetch the report" stays **unverified** until
 someone runs those three steps interactively in Claude Desktop. That can be done on this
@@ -194,9 +246,22 @@ provider key was read.
   were not rerun: `ml/` does not import any changed module.
 - **E12 — Phase 0 smoke (updated MCP check) on the preview.** All ten steps passed,
   including `/mcp` answering 401 with a Bearer challenge (`claude-phase5-smoke0-preview.log`).
-- **Not run:** Docker image builds, the hosted CI stack job, and Claude Desktop.
+- **Not run (at the time of E1–E12):** Docker image builds, the hosted CI stack job, and
+  Claude Desktop. All three were covered later: hosted CI (image builds and the Phase 0–5
+  smoke) passed in runs 40369092514, 40394225222 and 40396544929, and Claude Desktop
+  for Linux in E14.
+- **E13 — Hosted CI on the accepted source head.** Run 40396544929 passed all three jobs
+  for `80432fe`.
+- **E14 — Claude Desktop for Linux device gate (2026-10-27).** Passed; see "Device gate
+  result" above for the preview recovery, the run and the citation limitation.
 
 ## Device-gate handoff (isolated mock preview)
+
+> **Historical; the Mac path is still optional and untested.** The gate passed on Linux
+> (see "Device gate result"). Since the 2026-10-27 reboot the preview database is
+> `compliance_preview_oct27`, not `compliance_preview` as written below; the ports,
+> container and Redis db are unchanged. The preview lives in RAM and must be rebuilt
+> after a reboot before this path can be used.
 
 This is what the user can run from the Mac (one option; see the correction under
 "Remaining device gate"). Nothing here touches the original seven

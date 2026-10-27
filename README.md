@@ -4,16 +4,17 @@ A full-stack, multi-agent compliance review workspace: upload contracts and vend
 registers, run a versioned rule pack, and get a report whose findings cite the exact
 source passage. The full specification is in [`docs/BUILD_HANDOFF.md`](docs/BUILD_HANDOFF.md).
 
-> **Status: Phases 0–4 accepted (see [`docs/SUPERVISION.md`](docs/SUPERVISION.md)).
-> Phase 4 (agents, live run, report, overrides) was accepted after the user-approved real
-> Claude Haiku flagship run and passing hosted CI for head `6ea1588`
-> ([`docs/PHASE4_REVIEW.md`](docs/PHASE4_REVIEW.md)). Phase 5 (MCP server) is
-> implemented and under supervisor review; hosted CI run 40394225222 passed all three
-> jobs for head `eba716c` ([`docs/PHASE5_REVIEW.md`](docs/PHASE5_REVIEW.md)). It is not
-> accepted: the interactive Claude Desktop check (search, review, report) has not been
-> run. It can be run with the official
-> [Claude Desktop for Linux beta](https://code.claude.com/docs/en/desktop-linux) on the
-> Linux host or on the user's Mac. Phase 6 has not started.**
+> **Status: Phases 0–5 accepted (see [`docs/SUPERVISION.md`](docs/SUPERVISION.md)).
+> Phase 5 (MCP server, API tokens) was accepted by the supervisor on 2026-10-27
+> (America/Phoenix) at source head `80432fe`, after hosted CI run 40396544929 passed all
+> three jobs and the interactive check in the official
+> [Claude Desktop for Linux beta](https://code.claude.com/docs/en/desktop-linux) (2.7032.0)
+> passed: search, run a review and fetch the report, against the isolated mock preview
+> ([`docs/PHASE5_REVIEW.md`](docs/PHASE5_REVIEW.md)). Phase 4 (agents, live run, report,
+> overrides) was accepted earlier after the user-approved real Claude Haiku flagship run
+> and passing hosted CI for head `6ea1588`
+> ([`docs/PHASE4_REVIEW.md`](docs/PHASE4_REVIEW.md)). Phase 6 has not started; it will
+> begin on a separate branch from the accepted Phase 5 commit.**
 >
 > - **Phase 0** (skeleton, auth, workspaces, compose, CI): accepted, hosted GitHub
 >   Actions run 39678264159 (commit `e6b709e`).
@@ -53,13 +54,16 @@ source passage. The full specification is in [`docs/BUILD_HANDOFF.md`](docs/BUIL
 >   jobs for head `6ea1588`. One approved synthetic flagship with Claude Haiku 5.5 and
 >   the served fp32 model completed within its $0.25 cap ($0.006062 by the application
 >   ledger). See "Reviews (Phase 4)" below.
-> - **Phase 5** (implemented, not yet accepted): the MCP server
+> - **Phase 5** (accepted): the MCP server
 >   ([`apps/mcp-server/README.md`](apps/mcp-server/README.md)) exposes nine tools
 >   (plus `list_rule_packs`) and the `rulepack://` and `report://` resources over stdio
 >   and streamable HTTP. Every call is authenticated with a per-user API token created on
 >   the Settings page, and goes through the same service layer as the REST API. Verified
->   with stdio and HTTP integration tests and an isolated mock preview; **not yet run from
->   Claude Desktop** (device check pending).
+>   with stdio and HTTP integration tests, an isolated mock preview, hosted CI run
+>   40396544929 (`80432fe`), and an interactive Claude Desktop for Linux check: Desktop's
+>   native MCP tools searched, ran the mock Vendor Confidentiality Review (run
+>   `ed98117f-…`, 61 tasks, $0.00) and fetched the report, and the run matched the
+>   database. The Mac-to-Linux SSH path is still untested (not needed for acceptance).
 > - **Not implemented yet:** the end-to-end eval suite and dashboard (Phase 6). The
 >   panels reserved for them say so explicitly instead of returning fake results.
 >
@@ -415,10 +419,16 @@ The vendor register's access levels and dates are synthetic; see
 ## Limitations
 
 - No end-to-end evals yet (Phase 6); see the phase plan in the handoff.
-- **MCP (Phase 5):** tested over stdio (as Desktop launches it, including `docker exec`)
-  and HTTP with the mock LLM. It has **not** been exercised from Claude Desktop itself
-  (Linux beta or Mac), or over the Mac-to-Linux SSH hop the guide describes. API tokens are this app's own
-  bearer tokens, not OAuth, so Desktop's remote "connector" flow (which expects OAuth) is
+- **MCP (Phase 5):** tested over stdio (including `docker exec`) and HTTP with the mock
+  LLM, and interactively from Claude Desktop for Linux 2.7032.0 against the mock preview
+  only. It has **not** been run from Claude Desktop on a Mac or over the Mac-to-Linux SSH
+  hop the guide describes. In that Desktop check, Desktop itself noticed one wrong mock
+  citation: a return/destruction finding cited the survival clause (2.3, page 2) of
+  `ready4s_mutual_nda.pdf` instead of its return section (8, page 4). The mock citation
+  verifier is a lexical heuristic, so "verified" on a mock run means that heuristic
+  accepted the passage, not that the citation is semantically correct against a gold
+  answer. This case is carried into Phase 6 as a semantic negative example. API tokens
+  are this app's own bearer tokens, not OAuth, so Desktop's remote "connector" flow (which expects OAuth) is
   not supported: use stdio. The HTTP endpoint binds to localhost; do not expose it
   without TLS. The MCP container learns which providers the worker holds keys for from a
   non-secret flag; if that is wrong, the worker fails the run without calling the
